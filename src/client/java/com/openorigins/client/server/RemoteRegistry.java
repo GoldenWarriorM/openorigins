@@ -21,7 +21,7 @@ public final class RemoteRegistry {
   private static final String REMOTE_URL =
       "https://raw.githubusercontent.com/OriginsEnhanced/assets/master/originsenhanced/assets/data.json";
 
-  public record LocationData(boolean chatroom) {}
+  public record LocationData(boolean chatroom, String icon) {}
 
   private volatile Map<String, LocationData> locations = Map.of();
   private volatile boolean loaded;
@@ -56,11 +56,15 @@ public final class RemoteRegistry {
       if (locs != null) {
         for (Map.Entry<String, JsonElement> entry : locs.entrySet()) {
           boolean chatroom = false;
+          String icon = null;
           if (entry.getValue().isJsonObject()) {
             JsonObject data = entry.getValue().getAsJsonObject();
             chatroom = data.has("chatroom") && data.get("chatroom").getAsBoolean();
+            if (data.has("presenceIcon")) {
+              icon = data.get("presenceIcon").getAsString();
+            }
           }
-          parsed.put(entry.getKey(), new LocationData(chatroom));
+          parsed.put(entry.getKey(), new LocationData(chatroom, icon));
         }
       }
       this.locations = Collections.unmodifiableMap(parsed);

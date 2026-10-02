@@ -1,0 +1,11 @@
+[Unit]
+Description=Discord IPC relay for Prism Launcher flatpak (OpenOrigins)
+After=network.target
+
+[Service]
+ExecStart=%h/Documents/open-origins/open-origins-26.2/tools/discord-relay/discord_ipc_relay.py
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=default.target

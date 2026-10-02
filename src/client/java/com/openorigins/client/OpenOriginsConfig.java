@@ -13,6 +13,7 @@ import net.fabricmc.loader.api.FabricLoader;
 public final class OpenOriginsConfig {
   private static final OpenOriginsConfig INSTANCE = new OpenOriginsConfig();
   private final Map<OriginFeature, Boolean> enabled = new EnumMap<>(OriginFeature.class);
+  private String discordClientId = "";
 
   private OpenOriginsConfig() {
     for (OriginFeature f : OriginFeature.values()) enabled.put(f, true);
@@ -37,6 +38,12 @@ public final class OpenOriginsConfig {
         String v = props.getProperty("feature." + f.name().toLowerCase());
         if (v != null) enabled.put(f, Boolean.parseBoolean(v));
       }
+      String clientId = props.getProperty("discord.client.id");
+      if (clientId != null) {
+        discordClientId = clientId.trim();
+      } else {
+        save();
+      }
     } catch (IOException ignored) {
     }
   }
@@ -46,6 +53,7 @@ public final class OpenOriginsConfig {
     for (Map.Entry<OriginFeature, Boolean> e : enabled.entrySet()) {
       props.setProperty("feature." + e.getKey().name().toLowerCase(), Boolean.toString(e.getValue()));
     }
+    props.setProperty("discord.client.id", discordClientId);
     try {
       Files.createDirectories(configPath().getParent());
       try (OutputStream out = Files.newOutputStream(configPath())) {
@@ -56,6 +64,7 @@ public final class OpenOriginsConfig {
   }
 
   public boolean isEnabled(OriginFeature f) { return enabled.getOrDefault(f, true); }
+  public String getDiscordClientId() { return discordClientId; }
   public void setEnabled(OriginFeature f, boolean v) {
     enabled.put(f, v);
     save();
