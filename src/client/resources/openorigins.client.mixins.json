@@ -1,0 +1,25 @@
+{
+  "required": true,
+  "package": "com.openorigins.client.mixin",
+  "compatibilityLevel": "JAVA_25",
+  "client": [
+    "ArmorStandPoseTrackerMixin",
+    "ArmorStandRenderMixin",
+    "AvatarBackItemMixin",
+    "AvatarStateMixin",
+    "BackSwagSlotMixin",
+    "ClientSpawnMixin",
+    "EntityNameTagMixin",
+    "RenderStateTagMixin",
+    "NoteBlockFixMixin",
+    "TripWireFixMixin",
+    "DigSlowdownMixin",
+    "PauseScreenMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  },
+  "overwrites": {
+    "requireAnnotations": true
+  }
+}

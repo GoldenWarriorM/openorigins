@@ -1,0 +1,21 @@
+pluginManagement {
+  repositories {
+    maven { name = "Fabric"; url = "https://maven.fabricmc.net/" }
+    mavenCentral()
+    gradlePluginPortal()
+  }
+}
+
+// MC 26.2 + Loom 1.18 требуют запускать сам Gradle на Java 25+.
+// Если видишь это сообщение: ./tools/setup-jdk.sh && export JAVA_HOME=$PWD/.jdk/java-25
+if (JavaVersion.current() < JavaVersion.VERSION_25) {
+  throw new GradleException(
+      "Gradle runs on " + System.getProperty("java.version")
+          + ", but MC 26.2 needs Java 25+. Run: ./tools/setup-jdk.sh && export JAVA_HOME=<project>/.jdk/java-25")
+}
+dependencyResolutionManagement {
+  repositories {
+    maven { name = "Fabric"; url = "https://maven.fabricmc.net/" }
+  }
+}
+rootProject.name = "openorigins"

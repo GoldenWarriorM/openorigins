@@ -1,0 +1,74 @@
+package com.openorigins.client.mixin;
+
+import com.mojang.blaze3d.vertex.PoseStack;
+import com.openorigins.client.ConnectionUtil;
+import com.openorigins.client.OpenOriginsConfig;
+import com.openorigins.client.OriginFeature;
+import com.openorigins.client.server.EntityData;
+import com.openorigins.client.util.TagHolder;
+import java.util.ArrayList;
+import java.util.List;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.SubmitNodeCollector;
+import net.minecraft.client.renderer.entity.EntityRenderer;
+import net.minecraft.client.renderer.entity.state.EntityRenderState;
+import net.minecraft.client.renderer.state.level.CameraRenderState;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.phys.Vec3;
+import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+
+/**
+ * Custom multi-line entity tags: lines stacked with 0.3105 spacing,
+ * vanilla tag suppressed. Hidden in F1 with the rest of the HUD.
+ */
+@Mixin(EntityRenderer.class)
+public abstract class EntityNameTagMixin {
+  private static final double LINE_SPACING = 0.3105;
+
+  @Inject(method = "extractRenderState", at = @At("TAIL"))
+  private void openorigins$storeTag(Entity entity, EntityRenderState state, float partialTick,
+      CallbackInfo ci) {
+    EntityData.NameTag tag = EntityData.getTag(entity.getId());
+    TagHolder holder = (TagHolder) state;
+    if (tag != null && !tag.lines().isEmpty()) {
+      holder.openorigins$setTag(tag);
+      state.nameTag = null;
+    } else {
+      holder.openorigins$setTag(null);
+    }
+  }
+
+  @Inject(method = "submitNameDisplay(Lnet/minecraft/client/renderer/entity/state/EntityRenderState;Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/SubmitNodeCollector;Lnet/minecraft/client/renderer/state/level/CameraRenderState;)V",
+      at = @At("HEAD"), cancellable = true)
+  private void openorigins$renderTag(EntityRenderState state, PoseStack poseStack,
+      SubmitNodeCollector collector, CameraRenderState camera, CallbackInfo ci) {
+    EntityData.NameTag tag = ((TagHolder) state).openorigins$getTag();
+    if (tag == null) return;
+    if (OpenOriginsConfig.getInstance().isEnabled(OriginFeature.HIDE_NAMES)
+        && ConnectionUtil.isConnected()
+        && isHudHidden()) {
+      ci.cancel();
+      return;
+    }
+    List<Component> lines;
+    synchronized (tag.lines()) {
+      lines = new ArrayList<>(tag.lines());
+    }
+    Vec3 base = state.nameTagAttachment != null ? state.nameTagAttachment
+        : new Vec3(state.x, state.y + state.boundingBoxHeight + 0.5, state.z);
+    for (int i = 0; i < lines.size(); i++) {
+      Vec3 pos = base.add(0.0, tag.offset() + LINE_SPACING * i, 0.0);
+      collector.submitNameTag(poseStack, pos, 0, lines.get(i), !state.isDiscrete, state.lightCoords, camera);
+    }
+    ci.cancel();
+  }
+
+  private static boolean isHudHidden() {
+    Minecraft mc = Minecraft.getInstance();
+    return mc.gui != null && mc.gui.hud != null && mc.gui.hud.isHidden();
+  }
+}

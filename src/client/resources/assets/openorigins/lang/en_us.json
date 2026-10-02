@@ -1,0 +1,13 @@
+{
+  "key.category.openorigins.keys": "Open Origins",
+  "key.openorigins.navigator": "Open Navigator",
+  "key.openorigins.gesture_menu": "Open Gesture Menu",
+  "key.openorigins.spawn": "Go to Spawn",
+  "key.openorigins.realm": "Go to your Realm",
+  "key.openorigins.config": "Open Config",
+  "key.openorigins.scan_cosmetics": "Scan Worn Cosmetics",
+  "screen.openorigins.config.title": "OpenOrigin config",
+  "button.openorigins.config": "OpenOrigins",
+  "config.openorigins.reconnect_note": "Will apply on reconnect",
+  "toast.openorigins.outdated": "Your OpenOrigins is too old! Please update to use server features."
+}
