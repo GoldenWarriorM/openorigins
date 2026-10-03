@@ -9,5 +9,14 @@
   "screen.openorigins.config.title": "OpenOrigin config",
   "button.openorigins.config": "OpenOrigins",
   "config.openorigins.reconnect_note": "Will apply on reconnect",
-  "toast.openorigins.outdated": "Your OpenOrigins is too old! Please update to use server features."
+  "toast.openorigins.outdated": "Your OpenOrigins is too old! Please update to use server features.",
+  "feature.openorigins.location_tracker.desc": "Shows your current location in Discord status.",
+  "feature.openorigins.enhanced_cosmetics.desc": "Answers the server handshake and enables server-driven cosmetics. Applies after reconnect.",
+  "feature.openorigins.smooth_animations.desc": "Interpolates armor stand poses for silky animations.",
+  "feature.openorigins.block_enhancements.desc": "Fixes custom-block flicker and blocks useless right-clicks.",
+  "feature.openorigins.ghost_block_fix.desc": "Slows client-side digging of custom blocks to avoid rollback ghosts.",
+  "feature.openorigins.back_swag_slot.desc": "Back cosmetic slot in inventory.",
+  "feature.openorigins.expand_model_bounding_box.desc": "Keeps large models rendered at screen edges and from afar.",
+  "feature.openorigins.hide_names.desc": "Hides name tags when the HUD is hidden (F1).",
+  "feature.openorigins.auction_ping.desc": "Plays a sound and shows a toast when your auction lot sells."
 }

@@ -49,7 +49,10 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
               Component.translatable("config.openorigins.reconnect_note"));
         }
         list.refreshEntries();
-      }).bounds(0, 0, 100, 20).build();
+      }).bounds(0, 0, 100, 20)
+          .tooltip(net.minecraft.client.gui.components.Tooltip.create(
+              Component.translatable(feature.getDescriptionKey())))
+          .build();
       this.refreshEntry();
     }
 

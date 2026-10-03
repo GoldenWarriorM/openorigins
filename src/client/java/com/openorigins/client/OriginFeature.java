@@ -1,7 +1,7 @@
 package com.openorigins.client;
 
 public enum OriginFeature {
-  LOCATION_TRACKER(FeatureCategory.FEATURES, "Location Tracker"),
+  LOCATION_TRACKER(FeatureCategory.FEATURES, "Discord Rich Presence"),
   ENHANCED_COSMETICS(FeatureCategory.FEATURES, "Enhanced Cosmetics"),
   SMOOTH_ANIMATIONS(FeatureCategory.ENHANCEMENTS, "Smooth Animations"),
   BLOCK_ENHANCEMENTS(FeatureCategory.ENHANCEMENTS, "Block Enhancements"),
@@ -21,4 +21,8 @@ public enum OriginFeature {
 
   public FeatureCategory getCategory() { return category; }
   public String getName() { return name; }
+
+  public String getDescriptionKey() {
+    return "feature.openorigins." + this.name().toLowerCase() + ".desc";
+  }
 }
