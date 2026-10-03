@@ -55,5 +55,6 @@
   "feature.openorigins.scoreboard_desync_fix.desc": "Tolerates stale scoreboard team packets instead of disconnecting.",
   "feature.openorigins.badger_task_hud.desc": "Shows the active badger task requirements on the HUD.",
   "hud.openorigins.badger_task": "Badger Task (streak %s)",
+  "hud.openorigins.badger_timeleft": "Time left: %s",
   "hud.openorigins.badger_reset": "Streak resets in %sd"
 }

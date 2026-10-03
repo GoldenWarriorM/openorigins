@@ -49,6 +49,12 @@ public final class BadgerHud implements net.fabricmc.fabric.api.client.rendering
       rows.add(new Row(null, Component.translatable("hud.openorigins.badger_reset",
           BadgerCache.daysUntilReset()).getString(), 0xFFAAAAAA));
     }
+    if (!BadgerCache.taskTimeLeft().isEmpty()) {
+      rows.add(rows.size() - (BadgerCache.daysUntilReset() > 0 ? 1 : 0),
+          new Row(null, Component.translatable("hud.openorigins.badger_timeleft",
+              com.openorigins.client.util.OpenWorldCache.shortDuration(
+                  BadgerCache.taskTimeLeft())).getString(), 0xFFAAAAAA));
+    }
     int maxW = 0;
     for (Row row : rows) {
       int w = (row.icon() != null ? 19 : 0) + font.width(row.text());

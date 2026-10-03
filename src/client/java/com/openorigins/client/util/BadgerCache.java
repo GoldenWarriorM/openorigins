@@ -38,6 +38,7 @@ public final class BadgerCache {
   private static volatile int streakScore;
   private static volatile int highscore;
   private static volatile int daysUntilReset;
+  private static volatile String taskTimeLeft = "";
 
   private static final Pattern SCORE = Pattern.compile("current streak score:\\s*(\\d+)");
   private static final Pattern HIGH = Pattern.compile("streak highscore:\\s*(\\d+)");
@@ -75,6 +76,10 @@ public final class BadgerCache {
     return daysUntilReset;
   }
 
+  public static String taskTimeLeft() {
+    return taskTimeLeft;
+  }
+
   public static boolean hasTask() {
     return !REQUIRED.isEmpty();
   }
@@ -91,6 +96,7 @@ public final class BadgerCache {
     int score = -1;
     int high = -1;
     int days = -1;
+    String timeLeft = null;
     for (Slot slot : screen.getMenu().slots) {
       if (!slot.hasItem()) {
         continue;
@@ -110,6 +116,9 @@ public final class BadgerCache {
       Matcher d = DAYS.matcher(lower);
       if (d.find()) {
         days = Integer.parseInt(d.group(1));
+      }
+      if (lower.startsWith("time left:")) {
+        timeLeft = name.substring(Math.min(name.length(), "time left:".length())).trim();
       }
       if (lower.contains("go to badger to accept") && !lines.isEmpty()) {
         Matcher t = TIER.matcher(lines.get(0).getString());
@@ -145,13 +154,17 @@ public final class BadgerCache {
       return;
     }
     boolean changed = score != streakScore || high != highscore || days != daysUntilReset
-        || !req.equals(REQUIRED) || !tiers.equals(TIERS);
+        || !req.equals(REQUIRED) || !tiers.equals(TIERS)
+        || (timeLeft != null && !timeLeft.equals(taskTimeLeft));
     streakScore = score;
     if (high >= 0) {
       highscore = high;
     }
     if (days >= 0) {
       daysUntilReset = days;
+    }
+    if (timeLeft != null) {
+      taskTimeLeft = timeLeft;
     }
     REQUIRED.clear();
     REQUIRED.addAll(req);
@@ -174,6 +187,7 @@ public final class BadgerCache {
       root.addProperty("score", streakScore);
       root.addProperty("highscore", highscore);
       root.addProperty("days", daysUntilReset);
+      root.addProperty("timeleft", taskTimeLeft);
       JsonArray arr = new JsonArray();
       for (Required r : REQUIRED) {
         JsonObject o = new JsonObject();
@@ -208,6 +222,7 @@ public final class BadgerCache {
       streakScore = root.has("score") ? root.get("score").getAsInt() : 0;
       highscore = root.has("highscore") ? root.get("highscore").getAsInt() : 0;
       daysUntilReset = root.has("days") ? root.get("days").getAsInt() : 0;
+      taskTimeLeft = root.has("timeleft") ? root.get("timeleft").getAsString() : "";
       REQUIRED.clear();
       JsonArray arr = root.getAsJsonArray("required");
       if (arr != null) {

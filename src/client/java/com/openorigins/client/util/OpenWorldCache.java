@@ -119,6 +119,25 @@ public final class OpenWorldCache {
     }
   }
 
+  /** Short "7h 50m" form of a duration line, or the raw line if unparseable. */
+  public static String shortDuration(String line) {
+    long dur = parseDurationMillis(line);
+    if (dur <= 0) {
+      return line;
+    }
+    long mins = dur / 60000;
+    long days = mins / 1440;
+    long hours = (mins % 1440) / 60;
+    long mm = mins % 60;
+    if (days > 0) {
+      return days + "d " + hours + "h";
+    }
+    if (hours > 0) {
+      return hours + "h " + mm + "m";
+    }
+    return mm + "m";
+  }
+
   static long parseDurationMillis(String line) {
     String s = line.toLowerCase(Locale.ROOT);
     java.util.regex.Matcher m = java.util.regex.Pattern.compile(
