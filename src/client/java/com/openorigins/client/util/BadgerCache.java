@@ -138,7 +138,7 @@ public final class BadgerCache {
         String ln = name.toLowerCase(Locale.ROOT);
         boolean ui = ln.contains("quit") || ln.contains("learn more") || ln.contains("go to badger")
             || ln.contains("streak score") || ln.contains("streak resets") || ln.contains("upcoming rewards")
-            || ln.contains("close") || ln.contains("time left");
+            || ln.contains("close") || ln.contains("time left") || ln.contains("delivered");
         if (!ui) {
           Identifier id = net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(stack.getItem());
           if (!id.getPath().equals("air")) {
