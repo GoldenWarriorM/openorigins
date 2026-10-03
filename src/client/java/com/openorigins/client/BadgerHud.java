@@ -1,6 +1,7 @@
 package com.openorigins.client;
 
 import com.openorigins.client.util.BadgerCache;
+import java.util.ArrayList;
 import java.util.List;
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
@@ -10,9 +11,11 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemStack;
 
-/** Top-left HUD with the active badger task requirements. */
+/** Corner-anchored HUD with the active badger task requirements. */
 public final class BadgerHud implements net.fabricmc.fabric.api.client.rendering.v1.hud.HudElement {
   public static final Identifier ID = Identifier.fromNamespaceAndPath("openorigins", "badger_task");
+
+  private record Row(ItemStack icon, String text, int color) {}
 
   @Override
   public void extractRenderState(GuiGraphicsExtractor graphics, DeltaTracker delta) {
@@ -28,11 +31,9 @@ public final class BadgerHud implements net.fabricmc.fabric.api.client.rendering
       return;
     }
     Font font = mc.font;
-    int x = 4;
-    int y = 4;
-    graphics.text(font, Component.translatable("hud.openorigins.badger_task",
-        BadgerCache.streakScore()), x, y, 0xFFFFFFFF);
-    y += 11;
+    List<Row> rows = new ArrayList<>();
+    rows.add(new Row(null, Component.translatable("hud.openorigins.badger_task",
+        BadgerCache.streakScore()).getString(), 0xFFFFFFFF));
     for (BadgerCache.Required r : req) {
       Identifier id = Identifier.tryParse(r.itemId());
       if (id == null) {
@@ -41,18 +42,52 @@ public final class BadgerHud implements net.fabricmc.fabric.api.client.rendering
       net.minecraft.world.item.Item item =
           net.minecraft.core.registries.BuiltInRegistries.ITEM.getValue(id);
       ItemStack stack = new ItemStack(item, r.count());
-      graphics.item(stack, x, y);
-      graphics.itemDecorations(font, stack, x, y);
       int have = countInInventory(mc, r.itemId());
       boolean done = have >= r.count();
-      String label = stack.getHoverName().getString() + " " + have + "/" + r.count();
-      graphics.text(font, label, x + 19, y + 5,
-          done ? 0xFF55FF55 : 0xFFFFFFFF);
-      y += 20;
+      rows.add(new Row(stack,
+          stack.getHoverName().getString() + " " + have + "/" + r.count(),
+          done ? 0xFF55FF55 : 0xFFFFFFFF));
     }
     if (BadgerCache.daysUntilReset() > 0) {
-      graphics.text(font, Component.translatable("hud.openorigins.badger_reset",
-          BadgerCache.daysUntilReset()), x, y + 1, 0xFFAAAAAA);
+      rows.add(new Row(null, Component.translatable("hud.openorigins.badger_reset",
+          BadgerCache.daysUntilReset()).getString(), 0xFFAAAAAA));
+    }
+    int maxW = 0;
+    for (Row row : rows) {
+      int w = (row.icon() != null ? 19 : 0) + font.width(row.text());
+      if (w > maxW) {
+        maxW = w;
+      }
+    }
+    int totalH = 11;
+    for (int i = 1; i < rows.size(); i++) {
+      totalH += rows.get(i).icon() != null ? 20 : 12;
+    }
+    totalH += 2;
+    int sw = mc.getWindow().getGuiScaledWidth();
+    int sh = mc.getWindow().getGuiScaledHeight();
+    OpenOriginsConfig.HudCorner corner = OpenOriginsConfig.getInstance().getBadgerHudCorner();
+    int x = switch (corner) {
+      case TOP_RIGHT, BOTTOM_RIGHT -> sw - 4 - maxW;
+      default -> 4;
+    };
+    int y = switch (corner) {
+      case BOTTOM_LEFT, BOTTOM_RIGHT -> sh - 4 - totalH;
+      default -> 4;
+    };
+    graphics.text(font, rows.get(0).text(), x + (rows.get(0).icon() != null ? 19 : 0), y,
+        rows.get(0).color());
+    y += 11;
+    for (int i = 1; i < rows.size(); i++) {
+      Row row = rows.get(i);
+      if (row.icon() != null) {
+        graphics.item(row.icon(), x, y);
+        graphics.itemDecorations(font, row.icon(), x, y);
+        graphics.text(font, row.text(), x + 19, y + 5, row.color());
+      } else {
+        graphics.text(font, row.text(), x, y + 1, row.color());
+      }
+      y += row.icon() != null ? 20 : 12;
     }
   }
 

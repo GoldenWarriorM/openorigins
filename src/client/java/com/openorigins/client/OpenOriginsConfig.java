@@ -11,9 +11,14 @@ import java.util.Properties;
 import net.fabricmc.loader.api.FabricLoader;
 
 public final class OpenOriginsConfig {
+  public enum HudCorner {
+    TOP_LEFT, TOP_RIGHT, BOTTOM_LEFT, BOTTOM_RIGHT
+  }
+
   private static final OpenOriginsConfig INSTANCE = new OpenOriginsConfig();
   private final Map<OriginFeature, Boolean> enabled = new EnumMap<>(OriginFeature.class);
   private String discordClientId = "";
+  private HudCorner badgerHudCorner = HudCorner.TOP_LEFT;
 
   private OpenOriginsConfig() {
     for (OriginFeature f : OriginFeature.values()) enabled.put(f, f.getDefaultValue());
@@ -44,6 +49,13 @@ public final class OpenOriginsConfig {
       } else {
         save();
       }
+      String corner = props.getProperty("badger.hud.corner");
+      if (corner != null) {
+        try {
+          badgerHudCorner = HudCorner.valueOf(corner.trim().toUpperCase(java.util.Locale.ROOT));
+        } catch (IllegalArgumentException ignored) {
+        }
+      }
     } catch (IOException ignored) {
     }
   }
@@ -54,6 +66,7 @@ public final class OpenOriginsConfig {
       props.setProperty("feature." + e.getKey().name().toLowerCase(), Boolean.toString(e.getValue()));
     }
     props.setProperty("discord.client.id", discordClientId);
+    props.setProperty("badger.hud.corner", badgerHudCorner.name());
     try {
       Files.createDirectories(configPath().getParent());
       try (OutputStream out = Files.newOutputStream(configPath())) {
@@ -65,6 +78,12 @@ public final class OpenOriginsConfig {
 
   public boolean isEnabled(OriginFeature f) { return enabled.getOrDefault(f, true); }
   public String getDiscordClientId() { return discordClientId; }
+  public HudCorner getBadgerHudCorner() { return badgerHudCorner; }
+  public void cycleBadgerHudCorner() {
+    HudCorner[] values = HudCorner.values();
+    badgerHudCorner = values[(badgerHudCorner.ordinal() + 1) % values.length];
+    save();
+  }
   public void setEnabled(OriginFeature f, boolean v) {
     enabled.put(f, v);
     save();

@@ -1,6 +1,11 @@
 {
   "key.category.openorigins.keys": "Open Origins",
   "category.openorigins.general": "General",
+  "config.openorigins.badger_corner": "Task HUD: %s",
+  "config.openorigins.corner.top_left": "Top Left",
+  "config.openorigins.corner.top_right": "Top Right",
+  "config.openorigins.corner.bottom_left": "Bottom Left",
+  "config.openorigins.corner.bottom_right": "Bottom Right",
   "category.openorigins.fixes": "Fixes",
   "category.openorigins.notifications": "Notifications",
   "key.openorigins.navigator": "Open Navigator",
