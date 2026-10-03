@@ -139,6 +139,8 @@ public class HomesMenuScreen extends Screen {
     }
     java.util.List<String> cells = new java.util.ArrayList<>();
     java.util.Set<String> covered = new java.util.HashSet<>();
+    int needed = ((this.homes.size() + 4) / 5) * 5;
+    int pos = 0;
     for (String e : com.openorigins.client.util.HomeInfoCache.layout()) {
       if (e.startsWith("home:")) {
         String k = e.substring(5);
@@ -146,9 +148,13 @@ public class HomesMenuScreen extends Screen {
         if (real != null) {
           cells.add("home:" + real);
           covered.add(k);
+          pos++;
         }
-      } else if (!com.openorigins.client.util.HomeInfoCache.isFiller(e)) {
+      } else if (e.toLowerCase(java.util.Locale.ROOT).contains("close")) {
+        continue;
+      } else if (pos < needed) {
         cells.add("locked");
+        pos++;
       }
     }
     for (String n : this.homes) {

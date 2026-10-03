@@ -159,8 +159,21 @@ public final class HomeInfoCache {
         n++;
       } else {
         layout.add("locked:" + name);
-        String firstLore = hasLore ? lore.lines().get(0).getString() : "<no lore>";
-        others.add(name + " :: " + firstLore);
+        String fullLore = "<no lore>";
+        if (hasLore) {
+          StringBuilder lb = new StringBuilder();
+          for (Component lc : lore.lines()) {
+            if (lb.length() > 0) {
+              lb.append(" // ");
+            }
+            lb.append(lc.getString());
+            if (lb.length() > 160) {
+              break;
+            }
+          }
+          fullLore = lb.toString();
+        }
+        others.add(name + " :: " + fullLore);
       }
     }
     if (loreSlots > 0 && n == 0) {
