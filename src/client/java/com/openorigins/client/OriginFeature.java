@@ -9,7 +9,8 @@ public enum OriginFeature {
   BACK_SWAG_SLOT(FeatureCategory.ENHANCEMENTS, "Back Swag Slot"),
   EXPAND_MODEL_BOUNDING_BOX(FeatureCategory.ENHANCEMENTS, "Expand Model Bounding Box"),
   HIDE_NAMES(FeatureCategory.ENHANCEMENTS, "Hide Names"),
-  AUCTION_PING(FeatureCategory.UTILITIES, "Auction Ping");
+  AUCTION_PING(FeatureCategory.UTILITIES, "Auction Ping"),
+  SCOREBOARD_DESYNC_FIX(FeatureCategory.UTILITIES, "Scoreboard Desync Fix");
 
   private final FeatureCategory category;
   private final boolean defaultValue;

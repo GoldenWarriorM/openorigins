@@ -11,6 +11,7 @@
     "CommandSuggestionsMixin",
     "ContainerLoreMixin",
     "ContainerSyncMixin",
+    "TeamPacketMixin",
     "ClientSpawnMixin",
     "EntityNameTagMixin",
     "RenderStateTagMixin",

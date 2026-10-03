@@ -43,5 +43,6 @@
   "feature.openorigins.back_swag_slot.desc": "Back cosmetic slot in inventory.",
   "feature.openorigins.expand_model_bounding_box.desc": "Keeps large models rendered at screen edges and from afar.",
   "feature.openorigins.hide_names.desc": "Hides name tags when the HUD is hidden (F1).",
-  "feature.openorigins.auction_ping.desc": "Plays a sound and shows a toast when your auction lot sells."
+  "feature.openorigins.auction_ping.desc": "Plays a sound and shows a toast when your auction lot sells.",
+  "feature.openorigins.scoreboard_desync_fix.desc": "Tolerates stale scoreboard team packets instead of disconnecting."
 }
