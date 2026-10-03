@@ -35,17 +35,14 @@ public final class BadgerHud implements net.fabricmc.fabric.api.client.rendering
     rows.add(new Row(null, Component.translatable("hud.openorigins.badger_task",
         BadgerCache.streakScore()).getString(), 0xFFFFFFFF));
     for (BadgerCache.Required r : req) {
-      Identifier id = Identifier.tryParse(r.itemId());
-      if (id == null) {
+      ItemStack stack = BadgerCache.iconFor(r);
+      if (stack.isEmpty()) {
         continue;
       }
-      net.minecraft.world.item.Item item =
-          net.minecraft.core.registries.BuiltInRegistries.ITEM.getValue(id);
-      ItemStack stack = new ItemStack(item, r.count());
-      int have = countInInventory(mc, r.itemId());
+      int have = countInInventory(mc, r);
       boolean done = have >= r.count();
-      rows.add(new Row(stack,
-          stack.getHoverName().getString() + " " + have + "/" + r.count(),
+      String labelName = r.displayName().isEmpty() ? stack.getHoverName().getString() : r.displayName();
+      rows.add(new Row(stack, labelName + " " + have + "/" + r.count(),
           done ? 0xFF55FF55 : 0xFFFFFFFF));
     }
     if (BadgerCache.daysUntilReset() > 0) {
@@ -91,7 +88,7 @@ public final class BadgerHud implements net.fabricmc.fabric.api.client.rendering
     }
   }
 
-  private static int countInInventory(Minecraft mc, String itemId) {
+  private static int countInInventory(Minecraft mc, BadgerCache.Required r) {
     if (mc.player == null) {
       return 0;
     }
@@ -104,9 +101,14 @@ public final class BadgerHud implements net.fabricmc.fabric.api.client.rendering
       }
       String id = net.minecraft.core.registries.BuiltInRegistries.ITEM
           .getKey(stack.getItem()).toString();
-      if (id.equals(itemId)) {
-        total += stack.getCount();
+      if (!id.equals(r.itemId())) {
+        continue;
       }
+      if (!r.displayName().isEmpty()
+          && !stack.getHoverName().getString().equals(r.displayName())) {
+        continue;
+      }
+      total += stack.getCount();
     }
     return total;
   }

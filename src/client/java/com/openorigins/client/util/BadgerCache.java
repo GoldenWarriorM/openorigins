@@ -29,11 +29,12 @@ import net.minecraft.world.item.component.ItemLore;
 public final class BadgerCache {
   private BadgerCache() {}
 
-  public record Required(String itemId, int count) {}
+  public record Required(String itemId, String displayName, int count) {}
   public record Tier(String name, int done, int total) {}
 
   private static final List<Required> REQUIRED = new java.util.concurrent.CopyOnWriteArrayList<>();
   private static final List<Tier> TIERS = new java.util.concurrent.CopyOnWriteArrayList<>();
+  private static final java.util.Map<String, ItemStack> ICONS = new java.util.concurrent.ConcurrentHashMap<>();
   private static volatile int streakScore;
   private static volatile int highscore;
   private static volatile int daysUntilReset;
@@ -45,6 +46,25 @@ public final class BadgerCache {
 
   public static List<Required> required() {
     return List.copyOf(REQUIRED);
+  }
+
+  private static String iconKey(String itemId, String displayName) {
+    return itemId + "\n" + displayName;
+  }
+
+  /** Exact menu stack copy (keeps custom model/name) or a plain reconstruction. */
+  public static ItemStack iconFor(Required r) {
+    ItemStack exact = ICONS.get(iconKey(r.itemId(), r.displayName()));
+    if (exact != null && !exact.isEmpty()) {
+      return exact;
+    }
+    Identifier id = Identifier.tryParse(r.itemId());
+    if (id == null) {
+      return ItemStack.EMPTY;
+    }
+    net.minecraft.world.item.Item item =
+        net.minecraft.core.registries.BuiltInRegistries.ITEM.getValue(id);
+    return new ItemStack(item, 1);
   }
 
   public static int streakScore() {
@@ -108,7 +128,10 @@ public final class BadgerCache {
       if (lines.isEmpty() && stack.getCount() > 1 && req.size() < 6) {
         Identifier id = net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(stack.getItem());
         if (!id.getPath().equals("air")) {
-          req.add(new Required(id.toString(), stack.getCount()));
+          req.add(new Required(id.toString(), name, stack.getCount()));
+          ItemStack icon = stack.copy();
+          icon.setCount(1);
+          ICONS.put(iconKey(id.toString(), name), icon);
         }
       }
     }
@@ -149,6 +172,7 @@ public final class BadgerCache {
       for (Required r : REQUIRED) {
         JsonObject o = new JsonObject();
         o.addProperty("id", r.itemId());
+        o.addProperty("name", r.displayName());
         o.addProperty("count", r.count());
         arr.add(o);
       }
@@ -183,7 +207,8 @@ public final class BadgerCache {
       if (arr != null) {
         for (JsonElement el : arr) {
           JsonObject o = el.getAsJsonObject();
-          REQUIRED.add(new Required(o.get("id").getAsString(), o.get("count").getAsInt()));
+          String nm = o.has("name") ? o.get("name").getAsString() : "";
+          REQUIRED.add(new Required(o.get("id").getAsString(), nm, o.get("count").getAsInt()));
         }
       }
       TIERS.clear();
