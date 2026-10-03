@@ -15,6 +15,7 @@
     "TripWireFixMixin",
     "DigSlowdownMixin",
     "EntityCullingMixin",
+    "EntityDistanceMixin",
     "PauseScreenMixin"
   ],
   "injectors": {
