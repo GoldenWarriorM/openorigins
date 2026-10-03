@@ -51,6 +51,21 @@ public class TeleportMenuScreen extends Screen implements HomePanelHost {
   private int panelY;
   private int panelCount;
 
+  /** Radial center: screen center unless the homes panel would overlap it. */
+  private double radialCx() {
+    double cx = this.width / 2.0;
+    List<String> cells = this.homes == null ? List.of() : HomeInfoCache.cellsFor(this.homes);
+    if (!cells.isEmpty()) {
+      int panelW = HOME_COLS * (HOME_ICON + HOME_GAP) - HOME_GAP;
+      double panelLeft = this.width - panelW - 10;
+      double needRight = RADIUS + 34;
+      if (cx + needRight > panelLeft) {
+        cx = Math.max(RADIUS + 40, panelLeft - needRight - 6);
+      }
+    }
+    return cx;
+  }
+
   public TeleportMenuScreen() {
     super(Component.translatable("menu.openorigins.teleport.title"));
   }
@@ -87,7 +102,7 @@ public class TeleportMenuScreen extends Screen implements HomePanelHost {
   }
 
   private void buildAll() {
-    double cx = (this.width - 170) / 2.0;
+    double cx = this.radialCx();
     double cy = this.height / 2.0;
     for (Entry entry : ENTRIES) {
       double angle = Math.toRadians(entry.angleDeg);
@@ -182,7 +197,8 @@ public class TeleportMenuScreen extends Screen implements HomePanelHost {
     extractor.fill(0, 0, this.width, this.height, 0xA0000000);
     super.extractRenderState(extractor, mouseX, mouseY, partialTick);
     int titleWidth = this.font.width(this.title);
-    extractor.text(this.font, this.title, (this.width - 170) / 2 - titleWidth / 2, 20, 0xFFFFFFFF);
+    double tcx = this.radialCx();
+    extractor.text(this.font, this.title, (int) tcx - titleWidth / 2, 20, 0xFFFFFFFF);
     if (this.panelCount > 0) {
       Component header = Component.translatable("menu.openorigins.homes.title");
       int hw = this.font.width(header);
