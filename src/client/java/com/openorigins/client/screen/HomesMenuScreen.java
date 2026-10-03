@@ -26,7 +26,6 @@ import net.minecraft.resources.Identifier;
  * ({@code /delhome <name>}).
  */
 public class HomesMenuScreen extends Screen {
-  private static final String HOUSE_ICON = "textures/custom_ui/transport_menu/button_homes.png";
   private static final int COLS = 5;
   private static final int ICON = 40;
   private static final int GAP = 8;
@@ -74,7 +73,11 @@ public class HomesMenuScreen extends Screen {
     if (this.homes == null) {
       return;
     }
-    Optional<ServerPackIcons.LoadedIcon> icon = ServerPackIcons.get(HOUSE_ICON);
+    java.util.Map<String, ServerPackIcons.LoadedIcon> icons = new java.util.HashMap<>();
+    for (String n : this.homes) {
+      ServerPackIcons.get(com.openorigins.client.util.HomeInfoCache.iconPath(n))
+          .ifPresent(li -> icons.put(n, li));
+    }
     int cellW = ICON + GAP;
     int rows = Math.max(1, (this.homes.size() + COLS - 1) / COLS);
     int gridW = COLS * cellW - GAP;
@@ -86,8 +89,8 @@ public class HomesMenuScreen extends Screen {
       int row = i / COLS;
       int x = cx - gridW / 2 + col * cellW;
       int y = y0 + row * (ICON + LABEL_H + GAP);
-      if (icon.isPresent()) {
-        ServerPackIcons.LoadedIcon li = icon.get();
+      ServerPackIcons.LoadedIcon li = icons.get(name);
+      if (li != null) {
         this.addRenderableWidget(new HomeButton(x, y, ICON,
             Component.literal(name), li.textureId(), li.width(), li.height(), name,
             () -> teleport(name), () -> delete(name)));
@@ -170,12 +173,7 @@ public class HomesMenuScreen extends Screen {
       this.homeName = homeName;
       this.leftAction = leftAction;
       this.rightAction = rightAction;
-      MutableComponent tip = Component.literal(this.homeName).withStyle(ChatFormatting.GOLD)
-          .append(Component.literal("\n"))
-          .append(Component.translatable("menu.openorigins.homes.teleport_hint").withStyle(ChatFormatting.GREEN))
-          .append(Component.literal("\n"))
-          .append(Component.translatable("menu.openorigins.homes.delete_hint").withStyle(ChatFormatting.YELLOW));
-      this.setTooltip(Tooltip.create(tip));
+      this.setTooltip(Tooltip.create(com.openorigins.client.util.HomeInfoCache.tooltip(this.homeName)));
     }
 
     @Override

@@ -9,6 +9,7 @@
     "AvatarStateMixin",
     "BackSwagSlotMixin",
     "CommandSuggestionsMixin",
+    "ContainerLoreMixin",
     "ClientSpawnMixin",
     "EntityNameTagMixin",
     "RenderStateTagMixin",
