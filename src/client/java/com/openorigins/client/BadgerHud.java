@@ -45,10 +45,10 @@ public final class BadgerHud implements net.fabricmc.fabric.api.client.rendering
       graphics.itemDecorations(font, stack, x, y);
       int have = countInInventory(mc, r.itemId());
       boolean done = have >= r.count();
-      String progress = have + "/" + r.count();
-      graphics.text(font, progress, x + 19, y + 5,
+      String label = stack.getHoverName().getString() + " " + have + "/" + r.count();
+      graphics.text(font, label, x + 19, y + 5,
           done ? 0xFF55FF55 : 0xFFFFFFFF);
-      y += 18;
+      y += 20;
     }
     if (BadgerCache.daysUntilReset() > 0) {
       graphics.text(font, Component.translatable("hud.openorigins.badger_reset",
