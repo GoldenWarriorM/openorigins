@@ -2,6 +2,7 @@ package com.openorigins.client.util;
 
 import java.util.List;
 import java.util.Map;
+import java.util.StringJoiner;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
@@ -24,6 +25,16 @@ public final class HomeListFetcher {
     if (mc == null || mc.player == null || mc.player.connection == null) {
       callback.accept(List.of());
       return;
+    }
+    try {
+      var root = mc.player.connection.getCommands().getRoot();
+      StringJoiner joiner = new StringJoiner(",");
+      root.getChildren().stream().map(com.mojang.brigadier.tree.CommandNode::getName)
+          .filter(n -> n.toLowerCase(java.util.Locale.ROOT).contains("home"))
+          .sorted().forEach(joiner::add);
+      org.slf4j.LoggerFactory.getLogger("openorigins")
+          .info("[homes-lore] home commands: {}", joiner);
+    } catch (Throwable ignored) {
     }
     int id = NEXT_ID.getAndIncrement();
     PENDING.put(id, callback);

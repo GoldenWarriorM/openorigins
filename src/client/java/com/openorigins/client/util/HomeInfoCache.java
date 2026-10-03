@@ -80,15 +80,21 @@ public final class HomeInfoCache {
       return 0;
     }
     int n = 0;
+    int loreSlots = 0;
+    String sample = null;
     for (Slot slot : screen.getMenu().slots) {
       if (!slot.hasItem()) {
         continue;
       }
       ItemStack stack = slot.getItem();
-      Component name = stack.get(DataComponents.CUSTOM_NAME);
       ItemLore lore = stack.get(DataComponents.LORE);
-      if (name == null || lore == null || lore.lines().isEmpty()) {
+      if (lore == null || lore.lines().isEmpty()) {
         continue;
+      }
+      loreSlots++;
+      String name = stack.getHoverName().getString();
+      if (sample == null && !lore.lines().isEmpty()) {
+        sample = "'" + name + "' / '" + lore.lines().get(0).getString() + "'";
       }
       boolean looksLikeHome = false;
       for (Component line : lore.lines()) {
@@ -99,9 +105,13 @@ public final class HomeInfoCache {
         }
       }
       if (looksLikeHome) {
-        put(name.getString(), lore.lines());
+        put(name, lore.lines());
         n++;
       }
+    }
+    if (loreSlots > 0 && n == 0) {
+      org.slf4j.LoggerFactory.getLogger("openorigins")
+          .info("[homes-lore] {} lore slots, no homes. sample: {}", loreSlots, sample);
     }
     return n;
   }
