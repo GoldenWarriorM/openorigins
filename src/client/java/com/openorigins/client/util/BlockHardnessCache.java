@@ -32,11 +32,17 @@ public final class BlockHardnessCache {
   private static final int MAX_SAMPLES = 8;
 
   private static final Map<String, List<Long>> SAMPLES = new ConcurrentHashMap<>();
+  private static final Map<String, Long> ALL_MIN = new ConcurrentHashMap<>();
 
   private static volatile BlockPos diggingPos;
   private static volatile long diggingStart;
   private static volatile String diggingState;
   private static volatile String diggingTool;
+
+  private record Pending(String key, String state, String tool, long breakMs, BlockPos pos, long observedAt) {}
+  private static final List<Pending> PENDING =
+      java.util.Collections.synchronizedList(new ArrayList<>());
+  private static final long CONFIRM_DELAY_MS = 5000;
 
   public static String stateKey(BlockState state) {
     StringBuilder sb = new StringBuilder(BuiltInRegistries.BLOCK.getKey(state.getBlock()).toString());
@@ -60,17 +66,10 @@ public final class BlockHardnessCache {
     return BuiltInRegistries.ITEM.getKey(mc.player.getMainHandItem().getItem()).toString();
   }
 
-  /** Predicted millis, or -1 if unknown. */
+  /** Predicted millis (all-time min), or -1 if unknown. */
   public static long predictMs(String stateKey, String toolId) {
-    List<Long> s = SAMPLES.get(mapKey(stateKey, toolId));
-    if (s == null || s.isEmpty()) {
-      return -1;
-    }
-    long min = Long.MAX_VALUE;
-    for (long v : s) {
-      min = Math.min(min, v);
-    }
-    return min;
+    Long min = ALL_MIN.get(mapKey(stateKey, toolId));
+    return min == null ? -1 : min;
   }
 
   public static void onDigStart(BlockPos pos) {
@@ -109,6 +108,15 @@ public final class BlockHardnessCache {
   }
 
   public static void onBlockChange(BlockPos pos, BlockState newState) {
+    synchronized (PENDING) {
+      PENDING.removeIf(p -> {
+        if (p.pos().equals(pos) && !newState.isAir()) {
+          LOG.info("[hardness] rollback, discarded {}ms state={}", p.breakMs(), p.state());
+          return true;
+        }
+        return false;
+      });
+    }
     BlockPos target = diggingPos;
     if (target == null || !target.equals(pos)) {
       return;
@@ -127,17 +135,49 @@ public final class BlockHardnessCache {
       LOG.info("[hardness] discarded (out of range) {}ms state={}", dur, diggingState);
       return;
     }
-    String key = mapKey(diggingState, diggingTool);
-    List<Long> s = SAMPLES.computeIfAbsent(key, k -> new ArrayList<>());
-    synchronized (s) {
-      s.add(dur);
-      while (s.size() > MAX_SAMPLES) {
-        s.remove(0);
+    synchronized (PENDING) {
+      if (PENDING.size() > 16) {
+        PENDING.remove(0);
       }
+      PENDING.add(new Pending(mapKey(diggingState, diggingTool), diggingState, diggingTool,
+          dur, pos.immutable(), System.currentTimeMillis()));
     }
-    save();
-    LOG.info("[hardness] measured {}ms tool={} state={} samples={} min={}ms",
-        dur, diggingTool, diggingState, s, predictMs(diggingState, diggingTool));
+    LOG.info("[hardness] break observed {}ms tool={} state={} (confirming in {}s)",
+        dur, diggingTool, diggingState, CONFIRM_DELAY_MS / 1000);
+  }
+
+  /** Called every client tick; confirms breaks that stuck. */
+  public static void tick() {
+    Minecraft mc = Minecraft.getInstance();
+    if (mc == null || mc.level == null) {
+      return;
+    }
+    long now = System.currentTimeMillis();
+    synchronized (PENDING) {
+      PENDING.removeIf(p -> {
+        if (now - p.observedAt() < CONFIRM_DELAY_MS) {
+          return false;
+        }
+        BlockState current = mc.level.getBlockState(p.pos());
+        if (!current.isAir()) {
+          LOG.info("[hardness] rollback on confirm, discarded {}ms state={}", p.breakMs(), p.state());
+          return true;
+        }
+        String key = p.key();
+        List<Long> s = SAMPLES.computeIfAbsent(key, k -> new ArrayList<>());
+        synchronized (s) {
+          s.add(p.breakMs());
+          while (s.size() > MAX_SAMPLES) {
+            s.remove(0);
+          }
+        }
+        ALL_MIN.merge(key, p.breakMs(), Math::min);
+        save();
+        LOG.info("[hardness] confirmed {}ms tool={} state={} samples={} min={}ms",
+            p.breakMs(), p.tool(), p.state(), s, predictMs(p.state(), p.tool()));
+        return true;
+      });
+    }
   }
 
   private static Path file() {
@@ -147,6 +187,7 @@ public final class BlockHardnessCache {
   public static synchronized void save() {
     try {
       JsonObject root = new JsonObject();
+      JsonObject samples = new JsonObject();
       for (Map.Entry<String, List<Long>> e : SAMPLES.entrySet()) {
         JsonArray arr = new JsonArray();
         synchronized (e.getValue()) {
@@ -154,8 +195,14 @@ public final class BlockHardnessCache {
             arr.add(v);
           }
         }
-        root.add(e.getKey(), arr);
+        samples.add(e.getKey(), arr);
       }
+      root.add("samples", samples);
+      JsonObject mins = new JsonObject();
+      for (Map.Entry<String, Long> e : ALL_MIN.entrySet()) {
+        mins.addProperty(e.getKey(), e.getValue());
+      }
+      root.add("min", mins);
       Files.writeString(file(), root.toString(), StandardCharsets.UTF_8);
     } catch (Exception ex) {
       LOG.warn("[hardness] save failed: {}", ex.toString());
@@ -170,17 +217,39 @@ public final class BlockHardnessCache {
       }
       JsonObject root = JsonParser.parseString(Files.readString(f, StandardCharsets.UTF_8)).getAsJsonObject();
       int n = 0;
-      for (Map.Entry<String, JsonElement> e : root.entrySet()) {
-        List<Long> s = new ArrayList<>();
-        for (JsonElement v : e.getValue().getAsJsonArray()) {
-          s.add(v.getAsLong());
-        }
-        if (!s.isEmpty()) {
-          SAMPLES.put(e.getKey(), s);
+      if (root.has("min")) {
+        for (Map.Entry<String, JsonElement> e : root.getAsJsonObject("min").entrySet()) {
+          ALL_MIN.put(e.getKey(), e.getValue().getAsLong());
           n++;
         }
       }
-      LOG.info("[hardness] loaded {} entries from disk", n);
+      if (root.has("samples")) {
+        for (Map.Entry<String, JsonElement> e : root.getAsJsonObject("samples").entrySet()) {
+          List<Long> s = new ArrayList<>();
+          for (JsonElement v : e.getValue().getAsJsonArray()) {
+            s.add(v.getAsLong());
+          }
+          if (!s.isEmpty()) {
+            SAMPLES.put(e.getKey(), s);
+          }
+        }
+      } else {
+        for (Map.Entry<String, JsonElement> e : root.entrySet()) {
+          List<Long> s = new ArrayList<>();
+          for (JsonElement v : e.getValue().getAsJsonArray()) {
+            s.add(v.getAsLong());
+          }
+          if (!s.isEmpty()) {
+            SAMPLES.put(e.getKey(), s);
+            long min = Long.MAX_VALUE;
+            for (long v : s) {
+              min = Math.min(min, v);
+            }
+            ALL_MIN.put(e.getKey(), min);
+          }
+        }
+      }
+      LOG.info("[hardness] loaded {} entries from disk", n > 0 ? n : SAMPLES.size());
     } catch (Exception ex) {
       LOG.warn("[hardness] load failed: {}", ex.toString());
     }
