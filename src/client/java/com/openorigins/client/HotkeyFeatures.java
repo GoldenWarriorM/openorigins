@@ -13,6 +13,7 @@ public final class HotkeyFeatures {
   private static KeyMapping realmKey;
   private static KeyMapping configKey;
   private static KeyMapping scanKey;
+  private static KeyMapping teleportMenuKey;
 
   private HotkeyFeatures() {}
 
@@ -31,10 +32,17 @@ public final class HotkeyFeatures {
         new KeyMapping("key.openorigins.config", InputConstants.UNKNOWN.getValue(), category));
     scanKey = KeyMappingHelper.registerKeyMapping(
         new KeyMapping("key.openorigins.scan_cosmetics", InputConstants.UNKNOWN.getValue(), category));
+    teleportMenuKey = KeyMappingHelper.registerKeyMapping(
+        new KeyMapping("key.openorigins.teleport_menu", InputConstants.UNKNOWN.getValue(), category));
 
     ClientTickEvents.END_CLIENT_TICK.register(client -> {
       while (scanKey.consumeClick()) {
         CosmeticScanner.scanAndReport();
+      }
+      while (teleportMenuKey.consumeClick()) {
+        if (client.gui.screen() == null && ConnectionUtil.isConnected()) {
+          client.gui.setScreen(new com.openorigins.client.screen.TeleportMenuScreen());
+        }
       }
       while (configKey.consumeClick()) {
         if (client.gui.screen() == null) {
