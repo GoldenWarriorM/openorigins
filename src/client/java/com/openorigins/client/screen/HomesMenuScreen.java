@@ -33,6 +33,8 @@ public class HomesMenuScreen extends Screen {
 
   private List<String> homes;
   private boolean failed;
+  private static boolean fetchArmed;
+  private static long fetchDeadline;
 
   public HomesMenuScreen() {
     super(Component.translatable("menu.openorigins.homes.title"));
@@ -59,6 +61,23 @@ public class HomesMenuScreen extends Screen {
   @Override
   public void tick() {
     super.tick();
+  }
+
+  /** Called when home lore is captured; returns to our menu if a fetch is armed. */
+  public static void onCaptured() {
+    if (!fetchArmed || System.currentTimeMillis() > fetchDeadline) {
+      fetchArmed = false;
+      return;
+    }
+    fetchArmed = false;
+    Minecraft mc = Minecraft.getInstance();
+    if (mc != null) {
+      mc.execute(() -> {
+        if (mc.gui.screen() != null && !(mc.gui.screen() instanceof HomesMenuScreen)) {
+          mc.gui.setScreen(new HomesMenuScreen());
+        }
+      });
+    }
   }
 
   private void refresh() {
@@ -105,7 +124,15 @@ public class HomesMenuScreen extends Screen {
           if (this.minecraft != null) {
             this.minecraft.gui.setScreen(new ChatScreen("/sethome ", false));
           }
-        }).bounds(cx - 60, btnY, 120, 20).build());
+        }).bounds(cx - 125, btnY, 120, 20).build());
+    this.addRenderableWidget(Button.builder(
+        Component.translatable("menu.openorigins.homes.details"), b -> {
+          if (this.minecraft != null && this.minecraft.player != null) {
+            fetchArmed = true;
+            fetchDeadline = System.currentTimeMillis() + 10000;
+            this.minecraft.player.connection.sendCommand("homes");
+          }
+        }).bounds(cx + 5, btnY, 120, 20).build());
   }
 
   private void teleport(String name) {

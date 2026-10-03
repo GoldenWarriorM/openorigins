@@ -26,6 +26,25 @@ public final class HomeInfoCache {
   private static final Map<String, Info> CACHE = new ConcurrentHashMap<>();
   public static final String DEFAULT_ICON = "textures/custom_ui/transport_menu/button_homes.png";
 
+  static String key(String name) {
+    if (name == null) {
+      return "";
+    }
+    StringBuilder sb = new StringBuilder();
+    String lower = name.toLowerCase(Locale.ROOT);
+    for (int i = 0; i < lower.length(); i++) {
+      char c = lower.charAt(i);
+      if (c != ' ' && c != '_' && !Character.isISOControl(c)) {
+        sb.append(c);
+      }
+    }
+    return sb.toString();
+  }
+
+  public static boolean has(String name) {
+    return CACHE.containsKey(key(name));
+  }
+
   public static void put(String name, List<Component> lore) {
     if (name == null || name.isBlank() || lore == null || lore.isEmpty()) {
       return;
@@ -43,11 +62,11 @@ public final class HomeInfoCache {
         break;
       }
     }
-    CACHE.put(name.toLowerCase(Locale.ROOT), new Info(List.copyOf(lore), color));
+    CACHE.put(key(name), new Info(List.copyOf(lore), color));
   }
 
   public static String iconPath(String name) {
-    Info info = name == null ? null : CACHE.get(name.toLowerCase(Locale.ROOT));
+    Info info = CACHE.get(key(name));
     if (info != null && info.worldColor() != null) {
       return "textures/custom/ui/homes/open_world_" + info.worldColor() + ".png";
     }
@@ -56,7 +75,7 @@ public final class HomeInfoCache {
 
   /** Server lore verbatim (keeps pack glyphs/colors), or a basic fallback. */
   public static Component tooltip(String name) {
-    Info info = name == null ? null : CACHE.get(name.toLowerCase(Locale.ROOT));
+    Info info = CACHE.get(key(name));
     if (info != null && !info.lore().isEmpty()) {
       MutableComponent tip = Component.literal(name == null ? "" : name);
       for (Component line : info.lore()) {

@@ -21,6 +21,7 @@ public abstract class ContainerSyncMixin {
       if (n > 0) {
         org.slf4j.LoggerFactory.getLogger("openorigins")
             .info("[homes-lore] captured {} homes on {}", n, why);
+        com.openorigins.client.screen.HomesMenuScreen.onCaptured();
       }
     }
   }

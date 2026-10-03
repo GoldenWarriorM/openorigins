@@ -17,6 +17,7 @@
   "key.openorigins.homes_menu": "Open Homes Menu",
   "menu.openorigins.homes.title": "Homes",
   "menu.openorigins.homes.sethome": "Set Home",
+  "menu.openorigins.homes.details": "Load Details",
   "menu.openorigins.homes.loading": "Loading homes...",
   "menu.openorigins.homes.empty": "No homes yet — press Set Home",
   "menu.openorigins.homes.teleport_hint": "Left-click to teleport",
