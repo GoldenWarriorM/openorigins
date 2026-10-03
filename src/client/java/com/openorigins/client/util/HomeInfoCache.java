@@ -126,7 +126,18 @@ public final class HomeInfoCache {
     if (info != null && !info.lore().isEmpty()) {
       MutableComponent tip = Component.literal(name == null ? "" : name);
       for (Component line : info.lore()) {
+        if (line.getString().toLowerCase(Locale.ROOT).contains("reset")) {
+          continue;
+        }
         tip.append(Component.literal("\n")).append(line);
+      }
+      if (info.worldColor() != null) {
+        String cd = OpenWorldCache.countdown(info.worldColor());
+        if (cd != null) {
+          tip.append(Component.literal("\n"))
+              .append(Component.translatable("menu.openorigins.homes.reset", cd)
+                  .withStyle(ChatFormatting.GRAY));
+        }
       }
       return tip;
     }
@@ -342,6 +353,11 @@ public final class HomeInfoCache {
       }
       JsonObject root = new JsonObject();
       root.add("homes", arr);
+      JsonObject res = new JsonObject();
+      for (Map.Entry<String, Long> e : OpenWorldCache.snapshot().entrySet()) {
+        res.addProperty(e.getKey(), e.getValue());
+      }
+      root.add("resets", res);
       JsonArray nm = new JsonArray();
       for (String n : NAMES) {
         nm.add(n);
@@ -403,6 +419,17 @@ public final class HomeInfoCache {
         for (JsonElement el : nm) {
           NAMES.add(el.getAsString());
         }
+      }
+      JsonObject res = root.getAsJsonObject("resets");
+      if (res != null) {
+        Map<String, Long> map = new java.util.HashMap<>();
+        for (Map.Entry<String, JsonElement> e : res.entrySet()) {
+          try {
+            map.put(e.getKey(), e.getValue().getAsLong());
+          } catch (Exception ignored) {
+          }
+        }
+        OpenWorldCache.restore(map);
       }
       if (root.has("capacity")) {
         try {
