@@ -54,9 +54,8 @@ public class TeleportMenuScreen extends Screen implements HomePanelHost {
   /** Radial center: screen center unless the homes panel would overlap it. */
   private double radialCx() {
     double cx = this.width / 2.0;
-    List<String> cells = this.homes == null ? List.of() : HomeInfoCache.cellsFor(this.homes);
-    if (!cells.isEmpty()) {
-      int panelW = HOME_COLS * (HOME_ICON + HOME_GAP) - HOME_GAP;
+    int panelW = homePanelWidth();
+    if (panelW > 0) {
       double panelLeft = this.width - panelW - 10;
       double needRight = RADIUS + 34;
       if (cx + needRight > panelLeft) {
@@ -64,6 +63,15 @@ public class TeleportMenuScreen extends Screen implements HomePanelHost {
       }
     }
     return cx;
+  }
+
+  private int homePanelWidth() {
+    List<String> cells = this.homes == null ? List.of() : HomeInfoCache.cellsFor(this.homes);
+    if (cells.isEmpty()) {
+      return 0;
+    }
+    int cols = Math.min(HOME_COLS, (cells.size() + 4) / 5);
+    return cols * (HOME_ICON + HOME_GAP) - HOME_GAP;
   }
 
   public TeleportMenuScreen() {
@@ -148,16 +156,17 @@ public class TeleportMenuScreen extends Screen implements HomePanelHost {
     }
     ServerPackIcons.get(HomeInfoCache.PLUS_ICON).ifPresent(li -> icons.put("\0plus", li));
     int cellW = HOME_ICON + HOME_GAP;
-    int rows = (cells.size() + HOME_COLS - 1) / HOME_COLS;
-    int panelW = HOME_COLS * cellW - HOME_GAP;
+    int cols = Math.min(HOME_COLS, (cells.size() + 4) / 5);
+    int rows = Math.min(5, cells.size());
+    int panelW = cols * cellW - HOME_GAP;
     int panelH = rows * (HOME_ICON + HOME_LABEL_H + HOME_GAP) - HOME_GAP;
     this.panelX = this.width - panelW - 10;
     this.panelY = Math.max(48, (this.height - panelH) / 2);
     this.panelCount = cells.size();
     for (int i = 0; i < cells.size(); i++) {
       String cell = cells.get(i);
-      int col = i % HOME_COLS;
-      int row = i / HOME_COLS;
+      int col = i / 5;
+      int row = i % 5;
       int x = this.panelX + col * cellW;
       int y = this.panelY + row * (HOME_ICON + HOME_LABEL_H + HOME_GAP);
       if (cell.startsWith("home:")) {
@@ -202,7 +211,8 @@ public class TeleportMenuScreen extends Screen implements HomePanelHost {
     if (this.panelCount > 0) {
       Component header = Component.translatable("menu.openorigins.homes.title");
       int hw = this.font.width(header);
-      int gridW = HOME_COLS * (HOME_ICON + HOME_GAP) - HOME_GAP;
+      int cols = Math.min(HOME_COLS, (this.panelCount + 4) / 5);
+      int gridW = cols * (HOME_ICON + HOME_GAP) - HOME_GAP;
       extractor.text(this.font, header, this.panelX + gridW / 2 - hw / 2, this.panelY - 16, 0xFFFFFFFF);
     }
   }
