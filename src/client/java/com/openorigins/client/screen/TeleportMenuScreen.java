@@ -28,9 +28,9 @@ public class TeleportMenuScreen extends Screen {
           "textures/custom_ui/transport_menu/button_balloon_yellow.png"),
       new Entry("menu.openorigins.teleport.green", "balloon green-balloon", 180.0,
           "textures/custom_ui/transport_menu/button_balloon_green.png"),
-      new Entry("menu.openorigins.teleport.realm", "realm tp", 120.0,
+      new Entry("menu.openorigins.teleport.realm", "realm tp", 105.0,
           "textures/custom_ui/transport_menu/button_homes.png"),
-      new Entry("menu.openorigins.teleport.spawn", "spawn", 60.0,
+      new Entry("menu.openorigins.teleport.spawn", "spawn", 75.0,
           "textures/custom_ui/transport_menu/button_origin_isles.png"),
   };
   private static final int ICON_SIZE = 56;
