@@ -33,7 +33,7 @@ import net.minecraft.world.item.component.ItemLore;
 public final class HomeInfoCache {
   private HomeInfoCache() {}
 
-  private record Info(List<Component> lore, String worldColor) {}
+  private record Info(List<Component> lore, String worldColor, long resetAt) {}
 
   private static final Map<String, Info> CACHE = new ConcurrentHashMap<>();
   private static final List<String> LAYOUT = new java.util.concurrent.CopyOnWriteArrayList<>();
@@ -105,11 +105,31 @@ public final class HomeInfoCache {
     String k = key(name);
     Info prev = CACHE.get(k);
     List<Component> copy = List.copyOf(lore);
-    if (prev != null && java.util.Objects.equals(prev.worldColor(), color) && prev.lore().equals(copy)) {
+    long anchor = color == null ? 0 : OpenWorldCache.resetAt(color);
+    if (prev != null && java.util.Objects.equals(prev.worldColor(), color) && prev.lore().equals(copy)
+        && prev.resetAt() == anchor) {
       return;
     }
-    CACHE.put(k, new Info(copy, color));
+    CACHE.put(k, new Info(copy, color, anchor));
     save();
+  }
+
+  /**
+   * Homes that never had a timer adopt fresh anchors silently.
+   * Expired ones stay unavailable until their own lore is re-captured.
+   */
+  public static void adoptReset(String worldColor, long at) {
+    boolean changed = false;
+    for (Map.Entry<String, Info> e : CACHE.entrySet()) {
+      Info info = e.getValue();
+      if (info.resetAt() == 0 && worldColor.equals(info.worldColor())) {
+        e.setValue(new Info(info.lore(), info.worldColor(), at));
+        changed = true;
+      }
+    }
+    if (changed) {
+      save();
+    }
   }
 
   public static String worldColor(String name) {
@@ -117,7 +137,8 @@ public final class HomeInfoCache {
     return info == null ? null : info.worldColor();
   }
 
-  public static String iconPath(String name) {    Info info = CACHE.get(key(name));
+  public static String iconPath(String name) {
+    Info info = CACHE.get(key(name));
     if (info != null && info.worldColor() != null) {
       return "textures/custom/ui/homes/open_world_" + info.worldColor() + ".png";
     }
@@ -135,19 +156,22 @@ public final class HomeInfoCache {
         }
         tip.append(Component.literal("\n")).append(line);
       }
-      if (info.worldColor() != null) {
-        String cd = OpenWorldCache.countdown(info.worldColor());
-        if (cd != null) {
-          long left = OpenWorldCache.remaining(info.worldColor());
-          net.minecraft.ChatFormatting color = net.minecraft.ChatFormatting.GRAY;
-          if (left > 0 && left < 30 * 60000L) {
-            color = net.minecraft.ChatFormatting.RED;
-          } else if (left > 0 && left < 60 * 60000L) {
-            color = net.minecraft.ChatFormatting.GOLD;
-          }
-          tip.append(Component.literal("\n"))
-              .append(Component.translatable("menu.openorigins.homes.reset", cd).withStyle(color));
+      long now = System.currentTimeMillis();
+      if (info.resetAt() > now) {
+        String cd = OpenWorldCache.countdownAt(info.resetAt());
+        long left = info.resetAt() - now;
+        net.minecraft.ChatFormatting color = net.minecraft.ChatFormatting.GRAY;
+        if (left < 30 * 60000L) {
+          color = net.minecraft.ChatFormatting.RED;
+        } else if (left < 60 * 60000L) {
+          color = net.minecraft.ChatFormatting.GOLD;
         }
+        tip.append(Component.literal("\n"))
+            .append(Component.translatable("menu.openorigins.homes.reset", cd).withStyle(color));
+      } else if (info.resetAt() > 0) {
+        tip.append(Component.literal("\n"))
+            .append(Component.translatable("menu.openorigins.homes.unavailable")
+                .withStyle(net.minecraft.ChatFormatting.RED));
       }
       return tip;
     }
@@ -354,6 +378,9 @@ public final class HomeInfoCache {
         if (e.getValue().worldColor() != null) {
           o.addProperty("world", e.getValue().worldColor());
         }
+        if (e.getValue().resetAt() > 0) {
+          o.addProperty("resetAt", e.getValue().resetAt());
+        }
         JsonArray lore = new JsonArray();
         for (Component line : e.getValue().lore()) {
           lore.add(encodeLine(line));
@@ -405,12 +432,19 @@ public final class HomeInfoCache {
         JsonObject o = el.getAsJsonObject();
         String k = o.get("key").getAsString();
         String world = o.has("world") ? o.get("world").getAsString() : null;
+        long resetAt = 0;
+        if (o.has("resetAt")) {
+          try {
+            resetAt = o.get("resetAt").getAsLong();
+          } catch (Exception ignored) {
+          }
+        }
         List<Component> lore = new ArrayList<>();
         for (JsonElement le : o.getAsJsonArray("lore")) {
           lore.add(decodeLine(le.getAsString()));
         }
         if (!k.isEmpty() && !lore.isEmpty()) {
-          CACHE.put(k, new Info(List.copyOf(lore), world));
+          CACHE.put(k, new Info(List.copyOf(lore), world, resetAt));
           n++;
         }
       }

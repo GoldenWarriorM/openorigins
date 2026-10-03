@@ -26,6 +26,7 @@
   "menu.openorigins.homes.teleport_hint": "Left-click to teleport",
   "menu.openorigins.homes.delete_hint": "Right-click to delete",
   "menu.openorigins.homes.reset": "Resets in: %s",
+  "menu.openorigins.homes.unavailable": "No longer available (world reset)",
   "screen.openorigins.config.title": "OpenOrigin config",
   "button.openorigins.config": "OpenOrigins",
   "label.openorigins.experimental": "Experimental",

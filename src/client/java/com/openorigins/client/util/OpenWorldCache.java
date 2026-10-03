@@ -82,10 +82,13 @@ public final class OpenWorldCache {
   }
 
   /** Live countdown text, or null if unknown. */
-  public static String countdown(String worldColor) {    long at = resetAt(worldColor);
-    if (at <= 0) {
-      return null;
-    }
+  public static String countdown(String worldColor) {
+    long at = resetAt(worldColor);
+    return at > System.currentTimeMillis() ? countdownAt(at) : null;
+  }
+
+  /** Live countdown text for an explicit instant, or null if passed. */
+  public static String countdownAt(long at) {
     long left = at - System.currentTimeMillis();
     if (left <= 0) {
       return null;
@@ -192,6 +195,7 @@ public final class OpenWorldCache {
       long at = now + dur;
       RESET_AT.put(color, at);
       RESETS.put(color, new ResetInfo(resetLine, now));
+      HomeInfoCache.adoptReset(color, at);
       HomeInfoCache.save();
       StringBuilder all = new StringBuilder();
       for (Component line : lore.lines()) {
