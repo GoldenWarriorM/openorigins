@@ -85,10 +85,16 @@ public final class BlockHardnessCache {
     if (state.isAir()) {
       return;
     }
+    String tool = currentToolId();
+    long now = System.currentTimeMillis();
+    if (diggingPos != null && diggingPos.equals(pos) && tool.equals(diggingTool)
+        && now - diggingStart < 120000) {
+      return;
+    }
     diggingPos = pos.immutable();
-    diggingStart = System.currentTimeMillis();
+    diggingStart = now;
     diggingState = stateKey(state);
-    diggingTool = currentToolId();
+    diggingTool = tool;
     long pred = predictMs(diggingState, diggingTool);
     LOG.info("[hardness] dig start {} tool={} state={} predicted={}ms",
         pos.toShortString(), diggingTool, diggingState,
@@ -107,11 +113,10 @@ public final class BlockHardnessCache {
     if (target == null || !target.equals(pos)) {
       return;
     }
-    diggingPos = null;
     if (!newState.isAir()) {
-      LOG.info("[hardness] block changed but not broken {} -> {}", pos.toShortString(), newState);
       return;
     }
+    diggingPos = null;
     long dur = System.currentTimeMillis() - diggingStart;
     String toolNow = currentToolId();
     if (!toolNow.equals(diggingTool)) {
