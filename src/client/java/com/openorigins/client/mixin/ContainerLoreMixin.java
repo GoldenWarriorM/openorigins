@@ -16,10 +16,15 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 /** Captures home lore from the server's own Homes container GUI. */
 @Mixin(AbstractContainerScreen.class)
 public abstract class ContainerLoreMixin {
+  private static final org.slf4j.Logger LORE_LOG =
+      org.slf4j.LoggerFactory.getLogger("openorigins");
+
   @Inject(method = "init()V", at = @At("TAIL"))
   private void openorigins$captureHomesLore(CallbackInfo ci) {
     AbstractContainerScreen<?> self = (AbstractContainerScreen<?>) (Object) this;
-    if (!self.getTitle().getString().trim().equalsIgnoreCase("Homes")) {
+    String title = self.getTitle().getString().trim();
+    LORE_LOG.info("[homes-lore] container opened: '{}'", title);
+    if (!title.equalsIgnoreCase("Homes")) {
       return;
     }
     for (Slot slot : self.getMenu().slots) {
@@ -43,6 +48,7 @@ public abstract class ContainerLoreMixin {
       }
       if (looksLikeHome) {
         HomeInfoCache.put(name.getString(), lines);
+        LORE_LOG.info("[homes-lore] captured home '{}' ({} lore lines)", name.getString(), lines.size());
       }
     }
   }
