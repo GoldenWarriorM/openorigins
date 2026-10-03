@@ -26,8 +26,6 @@ public class TeleportMenuScreen extends Screen {
           "textures/custom_ui/transport_menu/button_balloon_blue.png"),
       new Entry("menu.openorigins.teleport.yellow", "balloon yellow-balloon", 0.0,
           "textures/custom_ui/transport_menu/button_balloon_yellow.png"),
-      new Entry("menu.openorigins.teleport.red", "balloon red-balloon", 90.0,
-          "textures/custom_ui/transport_menu/button_balloon_red.png"),
       new Entry("menu.openorigins.teleport.green", "balloon green-balloon", 180.0,
           "textures/custom_ui/transport_menu/button_balloon_green.png"),
       new Entry("menu.openorigins.teleport.realm", "realm tp", 135.0,
