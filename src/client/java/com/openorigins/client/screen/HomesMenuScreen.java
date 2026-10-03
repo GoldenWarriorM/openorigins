@@ -211,14 +211,15 @@ public class HomesMenuScreen extends Screen {
     @Override
     public void onClick(MouseButtonEvent event, boolean doubleClick) {
       if (event.button() == 1) {
-        Minecraft mc = Minecraft.getInstance();
-        if (mc != null) {
-          this.playDownSound(mc.getSoundManager());
-        }
         this.rightAction.run();
       } else {
         super.onClick(event, doubleClick);
       }
+    }
+
+    @Override
+    protected boolean isValidClickButton(net.minecraft.client.input.MouseButtonInfo buttonInfo) {
+      return buttonInfo.button() == 0 || buttonInfo.button() == 1;
     }
 
     @Override
