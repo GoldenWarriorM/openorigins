@@ -82,6 +82,7 @@ public class TeleportMenuScreen extends Screen implements HomePanelHost {
 
   @Override
   protected void init() {
+    HomeInfoCache.backfillResets();
     if (!navigatorProbed && this.minecraft != null && this.minecraft.player != null) {
       navigatorProbed = true;
       HomeListFetcher.fetchRaw("/navigator ", false, subs ->

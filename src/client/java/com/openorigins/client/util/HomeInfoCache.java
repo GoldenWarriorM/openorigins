@@ -132,6 +132,25 @@ public final class HomeInfoCache {
     }
   }
 
+  /** Backfills missing per-home timers from already-known valid anchors. */
+  public static void backfillResets() {
+    boolean changed = false;
+    long now = System.currentTimeMillis();
+    for (Map.Entry<String, Info> e : CACHE.entrySet()) {
+      Info info = e.getValue();
+      if (info.resetAt() == 0 && info.worldColor() != null) {
+        long anchor = OpenWorldCache.resetAt(info.worldColor());
+        if (anchor > now) {
+          e.setValue(new Info(info.lore(), info.worldColor(), anchor));
+          changed = true;
+        }
+      }
+    }
+    if (changed) {
+      save();
+    }
+  }
+
   public static String worldColor(String name) {
     Info info = CACHE.get(key(name));
     return info == null ? null : info.worldColor();

@@ -34,6 +34,7 @@ public class HomesMenuScreen extends Screen implements HomePanelHost {
 
   @Override
   protected void init() {
+    HomeInfoCache.backfillResets();
     if (this.homes == null && !this.failed) {
       List<String> cached = HomeInfoCache.names();
       if (!cached.isEmpty()) {
