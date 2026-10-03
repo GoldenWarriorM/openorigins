@@ -1,5 +1,8 @@
 {
   "key.category.openorigins.keys": "Open Origins",
+  "category.openorigins.features": "Features",
+  "category.openorigins.enhancements": "Enhancements",
+  "category.openorigins.utilities": "Utilities",
   "key.openorigins.navigator": "Open Navigator",
   "key.openorigins.gesture_menu": "Open Gesture Menu",
   "key.openorigins.spawn": "Go to Spawn",

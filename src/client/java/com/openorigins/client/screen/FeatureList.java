@@ -14,8 +14,13 @@ import net.minecraft.network.chat.Component;
 public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry> {
   public FeatureList(Minecraft minecraft, int width, int contentHeight, int headerHeight) {
     super(minecraft, width, contentHeight, headerHeight, 24);
-    for (OriginFeature feature : OriginFeature.values()) {
-      this.addEntry(new FeatureEntry(this, feature));
+    for (com.openorigins.client.FeatureCategory category : com.openorigins.client.FeatureCategory.values()) {
+      this.addEntry(new CategoryEntry(this, category));
+      for (OriginFeature feature : OriginFeature.values()) {
+        if (feature.getCategory() == category) {
+          this.addEntry(new FeatureEntry(this, feature));
+        }
+      }
     }
   }
 
@@ -30,6 +35,41 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
 
   public abstract static class Entry extends ContainerObjectSelectionList.Entry<Entry> {
     public abstract void refreshEntry();
+  }
+
+  public static class CategoryEntry extends Entry {
+    private final FeatureList list;
+    private final com.openorigins.client.FeatureCategory category;
+
+    public CategoryEntry(FeatureList list, com.openorigins.client.FeatureCategory category) {
+      this.list = list;
+      this.category = category;
+    }
+
+    public void refreshEntry() {
+    }
+
+    @Override
+    public void extractContent(GuiGraphicsExtractor graphics, int mouseX, int mouseY, boolean hovered,
+        float partialTick) {
+      net.minecraft.client.gui.Font font = net.minecraft.client.Minecraft.getInstance().font;
+      Component name = Component.translatable(this.category.getTranslationKey())
+          .withStyle(net.minecraft.ChatFormatting.GOLD);
+      int w = font.width(name);
+      int rowW = this.list.getRowRight() - this.getContentX();
+      graphics.text(font, name, this.getContentX() + (rowW - w) / 2,
+          this.getContentYMiddle() - 4, 0xFFFFFFFF);
+    }
+
+    @Override
+    public List<? extends GuiEventListener> children() {
+      return List.of();
+    }
+
+    @Override
+    public List<? extends NarratableEntry> narratables() {
+      return List.of();
+    }
   }
 
   public static class FeatureEntry extends Entry {
