@@ -11,7 +11,6 @@ import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.AbstractButton;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.Tooltip;
-import net.minecraft.client.gui.screens.ChatScreen;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.InputWithModifiers;
 import net.minecraft.client.input.MouseButtonEvent;
@@ -121,45 +120,93 @@ public class HomesMenuScreen extends Screen {
     if (this.homes == null) {
       return;
     }
-    java.util.Map<String, ServerPackIcons.LoadedIcon> icons = new java.util.HashMap<>();
+    java.util.Map<String, String> byKey = new java.util.HashMap<>();
     for (String n : this.homes) {
-      ServerPackIcons.get(com.openorigins.client.util.HomeInfoCache.iconPath(n))
-          .ifPresent(li -> icons.put(n, li));
+      byKey.put(com.openorigins.client.util.HomeInfoCache.key(n), n);
     }
+    java.util.List<String> cells = new java.util.ArrayList<>();
+    java.util.Set<String> covered = new java.util.HashSet<>();
+    for (String e : com.openorigins.client.util.HomeInfoCache.layout()) {
+      if (e.startsWith("home:")) {
+        String k = e.substring(5);
+        String real = byKey.get(k);
+        if (real != null) {
+          cells.add("home:" + real);
+          covered.add(k);
+        }
+      } else {
+        cells.add("locked");
+      }
+    }
+    for (String n : this.homes) {
+      if (!covered.contains(com.openorigins.client.util.HomeInfoCache.key(n))) {
+        cells.add("home:" + n);
+      }
+    }
+    java.util.Map<String, ServerPackIcons.LoadedIcon> icons = new java.util.HashMap<>();
+    for (String c : cells) {
+      if (c.startsWith("home:")) {
+        String n = c.substring(5);
+        ServerPackIcons.get(com.openorigins.client.util.HomeInfoCache.iconPath(n))
+            .ifPresent(li -> icons.put(n, li));
+      }
+    }
+    ServerPackIcons.get(com.openorigins.client.util.HomeInfoCache.PLUS_ICON)
+        .ifPresent(li -> icons.put("\0plus", li));
     int cellW = ICON + GAP;
-    int rows = Math.max(1, (this.homes.size() + COLS - 1) / COLS);
+    int rows = Math.max(1, (cells.size() + COLS - 1) / COLS);
     int gridW = COLS * cellW - GAP;
     int gridH = rows * (ICON + LABEL_H + GAP) - GAP;
     int y0 = Math.max(44, (this.height - gridH) / 2 - 10);
-    for (int i = 0; i < this.homes.size(); i++) {
-      String name = this.homes.get(i);
+    for (int i = 0; i < cells.size(); i++) {
+      String cell = cells.get(i);
       int col = i % COLS;
       int row = i / COLS;
       int x = cx - gridW / 2 + col * cellW;
       int y = y0 + row * (ICON + LABEL_H + GAP);
-      ServerPackIcons.LoadedIcon li = icons.get(name);
-      if (li != null) {
-        this.addRenderableWidget(new HomeButton(x, y, ICON,
-            Component.literal(name), li.textureId(), li.width(), li.height(), name,
-            () -> teleport(name), () -> delete(name)));
+      if (cell.startsWith("home:")) {
+        String name = cell.substring(5);
+        ServerPackIcons.LoadedIcon li = icons.get(name);
+        Component tip = com.openorigins.client.util.HomeInfoCache.tooltip(name);
+        if (li != null) {
+          this.addRenderableWidget(new HomeButton(x, y, ICON,
+              Component.literal(name), li.textureId(), li.width(), li.height(), name, tip,
+              () -> teleport(name), () -> delete(name)));
+        } else {
+          this.addRenderableWidget(Button.builder(Component.literal(name), b -> teleport(name))
+              .bounds(x, y, ICON, 20).build());
+        }
       } else {
-        this.addRenderableWidget(Button.builder(Component.literal(name), b -> teleport(name))
-            .bounds(x, y, ICON, 20).build());
+        ServerPackIcons.LoadedIcon li = icons.get("\0plus");
+        Component tip = Component.translatable("menu.openorigins.homes.new_hint");
+        if (li != null) {
+          this.addRenderableWidget(new HomeButton(x, y, ICON,
+              Component.translatable("menu.openorigins.homes.new"), li.textureId(),
+              li.width(), li.height(), "+", tip,
+              () -> openSetHome(), () -> openSetHome()));
+        } else {
+          this.addRenderableWidget(Button.builder(
+              Component.translatable("menu.openorigins.homes.new"), b -> openSetHome())
+              .bounds(x, y, ICON, 20).build());
+        }
       }
     }
     int btnY = Math.min(this.height - 30, y0 + gridH + 12);
     this.addRenderableWidget(Button.builder(
-        Component.translatable("menu.openorigins.homes.sethome"), b -> {
-          if (this.minecraft != null) {
-            this.minecraft.gui.setScreen(new ChatScreen("/sethome ", false));
-          }
-        }).bounds(cx - 125, btnY, 120, 20).build());
+        Component.translatable("menu.openorigins.homes.sethome"), b -> openSetHome())
+        .bounds(cx - 125, btnY, 120, 20).build());
     this.addRenderableWidget(Button.builder(
         Component.translatable("menu.openorigins.homes.details"), b -> {
           if (this.minecraft != null && this.minecraft.player != null) {
             startFetch();
           }
         }).bounds(cx + 5, btnY, 120, 20).build());
+  }
+
+  private void openSetHome() {
+    if (this.minecraft != null) {
+      this.minecraft.gui.setScreen(new SetHomeScreen());
+    }
   }
 
   private void teleport(String name) {
@@ -219,7 +266,8 @@ public class HomesMenuScreen extends Screen {
     private final Runnable rightAction;
 
     HomeButton(int x, int y, int size, Component message, Identifier textureId,
-        int texW, int texH, String homeName, Runnable leftAction, Runnable rightAction) {
+        int texW, int texH, String homeName, Component tooltip,
+        Runnable leftAction, Runnable rightAction) {
       super(x, y, size, size, message);
       this.textureId = textureId;
       this.texW = texW;
@@ -227,7 +275,7 @@ public class HomesMenuScreen extends Screen {
       this.homeName = homeName;
       this.leftAction = leftAction;
       this.rightAction = rightAction;
-      this.setTooltip(Tooltip.create(com.openorigins.client.util.HomeInfoCache.tooltip(this.homeName)));
+      this.setTooltip(Tooltip.create(tooltip));
     }
 
     @Override

@@ -36,7 +36,9 @@ public final class HomeInfoCache {
   private record Info(List<Component> lore, String worldColor) {}
 
   private static final Map<String, Info> CACHE = new ConcurrentHashMap<>();
+  private static final List<String> LAYOUT = new java.util.concurrent.CopyOnWriteArrayList<>();
   public static final String DEFAULT_ICON = "textures/custom_ui/transport_menu/button_homes.png";
+  public static final String PLUS_ICON = "textures/custom/ui/slot_add.png";
 
   public static String key(String name) {
     if (name == null) {
@@ -117,41 +119,67 @@ public final class HomeInfoCache {
     if (screen == null || screen.getMenu() == null) {
       return 0;
     }
+    net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
+    Object playerInv = (mc != null && mc.player != null) ? mc.player.getInventory() : null;
     int n = 0;
     int loreSlots = 0;
     String sample = null;
+    List<String> layout = new ArrayList<>();
+    java.util.Set<String> others = new java.util.TreeSet<>();
     for (Slot slot : screen.getMenu().slots) {
       if (!slot.hasItem()) {
         continue;
       }
-      ItemStack stack = slot.getItem();
-      ItemLore lore = stack.get(DataComponents.LORE);
-      if (lore == null || lore.lines().isEmpty()) {
+      if (playerInv != null && slot.container == playerInv) {
         continue;
       }
-      loreSlots++;
+      ItemStack stack = slot.getItem();
       String name = stack.getHoverName().getString();
-      if (sample == null && !lore.lines().isEmpty()) {
-        sample = "'" + name + "' / '" + lore.lines().get(0).getString() + "'";
+      ItemLore lore = stack.get(DataComponents.LORE);
+      boolean hasLore = lore != null && !lore.lines().isEmpty();
+      if (hasLore) {
+        loreSlots++;
+        if (sample == null) {
+          sample = "'" + name + "' / '" + lore.lines().get(0).getString() + "'";
+        }
       }
       boolean looksLikeHome = false;
-      for (Component line : lore.lines()) {
-        String s = line.getString();
-        if (s.contains("World:") || s.contains("Position:") || s.contains("Created:")) {
-          looksLikeHome = true;
-          break;
+      if (hasLore) {
+        for (Component line : lore.lines()) {
+          String s = line.getString();
+          if (s.contains("World:") || s.contains("Position:") || s.contains("Created:")) {
+            looksLikeHome = true;
+            break;
+          }
         }
       }
       if (looksLikeHome) {
         put(name, lore.lines());
+        layout.add("home:" + key(name));
         n++;
+      } else {
+        layout.add("locked");
+        others.add(name);
       }
     }
     if (loreSlots > 0 && n == 0) {
       org.slf4j.LoggerFactory.getLogger("openorigins")
           .info("[homes-lore] {} lore slots, no homes. sample: {}", loreSlots, sample);
     }
+    if (!layout.isEmpty() && !layout.equals(LAYOUT)) {
+      LAYOUT.clear();
+      LAYOUT.addAll(layout);
+      save();
+      if (!others.isEmpty()) {
+        org.slf4j.LoggerFactory.getLogger("openorigins")
+            .info("[homes-lore] layout: {} homes, {} locked. others: {}", n, layout.size() - n, others);
+      }
+    }
     return n;
+  }
+
+  public static List<String> layout() {
+    return List.copyOf(LAYOUT);
   }
 
   private static Path file() {
@@ -199,6 +227,11 @@ public final class HomeInfoCache {
       }
       JsonObject root = new JsonObject();
       root.add("homes", arr);
+      JsonArray lay = new JsonArray();
+      for (String e : LAYOUT) {
+        lay.add(e);
+      }
+      root.add("layout", lay);
       Files.writeString(file(), root.toString(), StandardCharsets.UTF_8);
     } catch (Exception ex) {
       org.slf4j.LoggerFactory.getLogger("openorigins")
@@ -234,6 +267,13 @@ public final class HomeInfoCache {
       }
       org.slf4j.LoggerFactory.getLogger("openorigins")
           .info("[homes-lore] loaded {} homes from disk", n);
+      JsonArray lay = root.getAsJsonArray("layout");
+      if (lay != null) {
+        LAYOUT.clear();
+        for (JsonElement el : lay) {
+          LAYOUT.add(el.getAsString());
+        }
+      }
     } catch (Exception ex) {
       org.slf4j.LoggerFactory.getLogger("openorigins")
           .warn("[homes-lore] load failed: {}", ex.toString());
