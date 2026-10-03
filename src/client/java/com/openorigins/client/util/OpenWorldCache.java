@@ -29,6 +29,42 @@ public final class OpenWorldCache {
     return worldColor == null ? null : RESETS.get(worldColor);
   }
 
+  private static boolean armed;
+  private static long deadline;
+  private static long lastAttempt;
+  private static java.util.function.Supplier<net.minecraft.client.gui.screens.Screen> returnTo =
+      com.openorigins.client.screen.TeleportMenuScreen::new;
+
+  /** Silent background fetch via the server open-world menu. */
+  public static void fetch(java.util.function.Supplier<net.minecraft.client.gui.screens.Screen> ret) {
+    net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
+    if (mc == null || mc.player == null) {
+      return;
+    }
+    returnTo = ret;
+    armed = true;
+    deadline = System.currentTimeMillis() + 10000;
+    lastAttempt = System.currentTimeMillis();
+    mc.player.connection.sendCommand("navigator worlds");
+  }
+
+  /** True if a fetch attempt is worthwhile (throttled, missing/expired anchors). */
+  public static boolean shouldFetch(java.util.List<String> homeNames) {
+    if (System.currentTimeMillis() - lastAttempt < 30 * 60000L) {
+      return false;
+    }
+    if (homeNames == null || homeNames.isEmpty()) {
+      return false;
+    }
+    for (String n : homeNames) {
+      String w = HomeInfoCache.worldColor(n);
+      if (w != null && resetAt(w) <= System.currentTimeMillis()) {
+        return true;
+      }
+    }
+    return HomeInfoCache.layout().isEmpty();
+  }
+
   /** Absolute reset instant (epoch millis), 0 if unknown. */
   public static long resetAt(String worldColor) {    if (worldColor == null) {
       return 0;
@@ -168,6 +204,21 @@ public final class OpenWorldCache {
           "[openworld] {} reset at {} (in '{}', item '{}', lore: {})",
           color, new java.util.Date(at), resetLine, name, all);
       found++;
+    }
+    if (found > 0 && armed && System.currentTimeMillis() <= deadline) {
+      armed = false;
+      net.minecraft.client.Minecraft mc2 = net.minecraft.client.Minecraft.getInstance();
+      if (mc2 != null) {
+        mc2.execute(() -> {
+          if (mc2.gui.screen() != null
+              && !(mc2.gui.screen() instanceof com.openorigins.client.screen.HomePanelHost)) {
+            if (mc2.player != null) {
+              mc2.player.closeContainer();
+            }
+            mc2.gui.setScreen(returnTo.get());
+          }
+        });
+      }
     }
     return found;
   }

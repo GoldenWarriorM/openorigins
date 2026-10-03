@@ -112,8 +112,12 @@ public final class HomeInfoCache {
     save();
   }
 
-  public static String iconPath(String name) {
+  public static String worldColor(String name) {
     Info info = CACHE.get(key(name));
+    return info == null ? null : info.worldColor();
+  }
+
+  public static String iconPath(String name) {    Info info = CACHE.get(key(name));
     if (info != null && info.worldColor() != null) {
       return "textures/custom/ui/homes/open_world_" + info.worldColor() + ".png";
     }

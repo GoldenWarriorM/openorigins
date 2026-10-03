@@ -3,6 +3,7 @@ package com.openorigins.client.screen;
 import com.openorigins.client.util.HomeFetch;
 import com.openorigins.client.util.HomeInfoCache;
 import com.openorigins.client.util.HomeListFetcher;
+import com.openorigins.client.util.OpenWorldCache;
 import com.openorigins.client.util.ServerPackIcons;
 import java.util.ArrayList;
 import java.util.List;
@@ -104,6 +105,8 @@ public class TeleportMenuScreen extends Screen implements HomePanelHost {
         }
         if (HomeFetch.consumeRefetch()) {
           HomeFetch.start(TeleportMenuScreen::new);
+        } else if (OpenWorldCache.shouldFetch(this.homes)) {
+          OpenWorldCache.fetch(TeleportMenuScreen::new);
         }
       });
     }
