@@ -1,16 +1,16 @@
 package com.openorigins.client;
 
 public enum OriginFeature {
-  LOCATION_TRACKER(FeatureCategory.FEATURES, "Discord Rich Presence"),
-  ENHANCED_COSMETICS(FeatureCategory.FEATURES, "Enhanced Cosmetics"),
-  SMOOTH_ANIMATIONS(FeatureCategory.ENHANCEMENTS, "Smooth Animations"),
-  BLOCK_ENHANCEMENTS(FeatureCategory.ENHANCEMENTS, "Block Enhancements"),
-  GHOST_BLOCK_FIX(FeatureCategory.ENHANCEMENTS, false, "Ghost Block Fix"),
-  BACK_SWAG_SLOT(FeatureCategory.ENHANCEMENTS, "Back Swag Slot"),
-  EXPAND_MODEL_BOUNDING_BOX(FeatureCategory.ENHANCEMENTS, "Expand Model Bounding Box"),
-  HIDE_NAMES(FeatureCategory.ENHANCEMENTS, "Hide Names"),
-  AUCTION_PING(FeatureCategory.UTILITIES, "Auction Ping"),
-  SCOREBOARD_DESYNC_FIX(FeatureCategory.UTILITIES, "Scoreboard Desync Fix");
+  LOCATION_TRACKER(FeatureCategory.GENERAL, "Discord Rich Presence"),
+  ENHANCED_COSMETICS(FeatureCategory.GENERAL, "Enhanced Cosmetics"),
+  SMOOTH_ANIMATIONS(FeatureCategory.GENERAL, "Smooth Animations"),
+  BLOCK_ENHANCEMENTS(FeatureCategory.FIXES, "Block Enhancements"),
+  GHOST_BLOCK_FIX(FeatureCategory.FIXES, false, "Ghost Block Fix"),
+  BACK_SWAG_SLOT(FeatureCategory.GENERAL, "Back Swag Slot"),
+  EXPAND_MODEL_BOUNDING_BOX(FeatureCategory.GENERAL, "Expand Model Bounding Box"),
+  HIDE_NAMES(FeatureCategory.GENERAL, "Hide Names"),
+  AUCTION_PING(FeatureCategory.NOTIFICATIONS, "Auction Ping"),
+  SCOREBOARD_DESYNC_FIX(FeatureCategory.FIXES, "Scoreboard Desync Fix");
 
   private final FeatureCategory category;
   private final boolean defaultValue;
