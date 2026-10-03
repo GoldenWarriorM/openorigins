@@ -6,7 +6,7 @@ import net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents;
 import net.minecraft.sounds.SoundEvents;
 
 /**
- * Plays a sound when one of the player's auction lots sells.
+ * Sound plus toast notification when one of the player's auction lots sells.
  * Heuristic over system-message text; gated on ConnectionUtil.isConnected().
  */
 public final class AuctionPing {
@@ -25,6 +25,9 @@ public final class AuctionPing {
         var client = net.minecraft.client.Minecraft.getInstance();
         if (client.player != null) {
           client.player.playSound(SoundEvents.EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f);
+          com.openorigins.client.screen.ReconnectToast.show(client.gui.toastManager(),
+              net.minecraft.network.chat.Component.literal("Auction"), message.copy(),
+              com.openorigins.client.screen.ReconnectToast.Mode.HEADER);
         }
       }
     });
