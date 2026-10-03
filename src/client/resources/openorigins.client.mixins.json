@@ -11,6 +11,7 @@
     "CommandSuggestionsMixin",
     "ContainerLoreMixin",
     "ContainerSyncMixin",
+    "DigMeasureMixin",
     "OutgoingProbeMixin",
     "TeamPacketMixin",
     "ClientSpawnMixin",

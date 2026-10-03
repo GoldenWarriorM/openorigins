@@ -77,4 +77,10 @@ public abstract class ContainerSyncMixin {
   private void openorigins$onSlot(ClientboundContainerSetSlotPacket packet, CallbackInfo ci) {
     openorigins$recapture("slot");
   }
+
+  @Inject(method = "handleBlockUpdate", at = @At("TAIL"))
+  private void openorigins$onBlockUpdate(
+      net.minecraft.network.protocol.game.ClientboundBlockUpdatePacket packet, CallbackInfo ci) {
+    com.openorigins.client.util.BlockHardnessCache.onBlockChange(packet.getPos(), packet.getBlockState());
+  }
 }
