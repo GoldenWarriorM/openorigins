@@ -47,5 +47,8 @@
   "feature.openorigins.expand_model_bounding_box.desc": "Keeps large models rendered at screen edges and from afar.",
   "feature.openorigins.hide_names.desc": "Hides name tags when the HUD is hidden (F1).",
   "feature.openorigins.auction_ping.desc": "Plays a sound and shows a toast when your auction lot sells.",
-  "feature.openorigins.scoreboard_desync_fix.desc": "Tolerates stale scoreboard team packets instead of disconnecting."
+  "feature.openorigins.scoreboard_desync_fix.desc": "Tolerates stale scoreboard team packets instead of disconnecting.",
+  "feature.openorigins.badger_task_hud.desc": "Shows the active badger task requirements on the HUD.",
+  "hud.openorigins.badger_task": "Badger Task (streak %s)",
+  "hud.openorigins.badger_reset": "Streak resets in %sd"
 }

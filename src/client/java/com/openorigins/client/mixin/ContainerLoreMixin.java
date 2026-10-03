@@ -22,6 +22,7 @@ public abstract class ContainerLoreMixin {
       LORE_LOG.info("[homes-lore] captured {} homes on open", n);
     }
     com.openorigins.client.util.OpenWorldCache.scan(self);
+    com.openorigins.client.util.BadgerCache.scan(self);
     try {
       Object inv = null;
       try {
