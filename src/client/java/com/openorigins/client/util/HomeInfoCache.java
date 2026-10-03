@@ -134,9 +134,15 @@ public final class HomeInfoCache {
       if (info.worldColor() != null) {
         String cd = OpenWorldCache.countdown(info.worldColor());
         if (cd != null) {
+          long left = OpenWorldCache.remaining(info.worldColor());
+          net.minecraft.ChatFormatting color = net.minecraft.ChatFormatting.GRAY;
+          if (left > 0 && left < 30 * 60000L) {
+            color = net.minecraft.ChatFormatting.RED;
+          } else if (left > 0 && left < 60 * 60000L) {
+            color = net.minecraft.ChatFormatting.GOLD;
+          }
           tip.append(Component.literal("\n"))
-              .append(Component.translatable("menu.openorigins.homes.reset", cd)
-                  .withStyle(ChatFormatting.GRAY));
+              .append(Component.translatable("menu.openorigins.homes.reset", cd).withStyle(color));
         }
       }
       return tip;

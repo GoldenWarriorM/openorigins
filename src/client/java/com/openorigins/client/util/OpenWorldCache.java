@@ -30,16 +30,23 @@ public final class OpenWorldCache {
   }
 
   /** Absolute reset instant (epoch millis), 0 if unknown. */
-  public static long resetAt(String worldColor) {
-    if (worldColor == null) {
+  public static long resetAt(String worldColor) {    if (worldColor == null) {
       return 0;
     }
     return RESET_AT.getOrDefault(worldColor, 0L);
   }
 
-  /** Live countdown text, or null if unknown. */
-  public static String countdown(String worldColor) {
+  /** Millis until reset, <=0 if unknown or passed. */
+  public static long remaining(String worldColor) {
     long at = resetAt(worldColor);
+    if (at <= 0) {
+      return -1;
+    }
+    return at - System.currentTimeMillis();
+  }
+
+  /** Live countdown text, or null if unknown. */
+  public static String countdown(String worldColor) {    long at = resetAt(worldColor);
     if (at <= 0) {
       return null;
     }
