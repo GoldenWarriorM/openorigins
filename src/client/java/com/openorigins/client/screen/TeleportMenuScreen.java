@@ -122,7 +122,7 @@ public class TeleportMenuScreen extends Screen {
     protected void extractContents(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
       graphics.blit(RenderPipelines.GUI_TEXTURED, this.textureId,
           this.getX(), this.getY(), 0.0F, 0.0F,
-          this.getWidth(), this.getHeight(), this.texW, this.texH);
+          this.getWidth(), this.getHeight(), this.texW, this.texH, this.texW, this.texH);
       if (this.isHoveredOrFocused()) {
         int x0 = this.getX() - 1;
         int y0 = this.getY() - 1;
