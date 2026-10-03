@@ -53,6 +53,34 @@ public final class HotkeyFeatures {
     ClientTickEvents.END_CLIENT_TICK.register(client -> {
       while (scanKey.consumeClick()) {
         CosmeticScanner.scanAndReport();
+        if (client.gui.screen() instanceof net.minecraft.client.gui.screens.inventory.AbstractContainerScreen<?> container
+            && client.player != null) {
+          Object inv = client.player.getInventory();
+          int idx = 0;
+          for (net.minecraft.world.inventory.Slot slot : container.getMenu().slots) {
+            String tag = (inv != null && slot.container == inv) ? "[inv]" : "[top]";
+            if (!slot.hasItem()) {
+              idx++;
+              continue;
+            }
+            net.minecraft.world.item.ItemStack stack = slot.getItem();
+            StringBuilder lb = new StringBuilder();
+            net.minecraft.world.item.component.ItemLore lore =
+                stack.get(net.minecraft.core.component.DataComponents.LORE);
+            if (lore != null) {
+              for (net.minecraft.network.chat.Component line : lore.lines()) {
+                if (lb.length() > 0) {
+                  lb.append(" // ");
+                }
+                lb.append(line.getString());
+              }
+            }
+            org.slf4j.LoggerFactory.getLogger("openorigins").info(
+                "[menu-slot] {} {} '{}' x{} lore: {}", tag, idx,
+                stack.getHoverName().getString(), stack.getCount(), lb);
+            idx++;
+          }
+        }
       }
       while (teleportMenuKey.consumeClick()) {
         if (client.gui.screen() == null && ConnectionUtil.isConnected()) {
