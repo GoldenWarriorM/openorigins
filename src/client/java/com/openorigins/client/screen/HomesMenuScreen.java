@@ -115,6 +115,9 @@ public class HomesMenuScreen extends Screen {
     if (mc != null) {
       mc.execute(() -> {
         if (mc.gui.screen() != null && !(mc.gui.screen() instanceof HomesMenuScreen)) {
+          if (mc.player != null) {
+            mc.player.closeContainer();
+          }
           mc.gui.setScreen(new HomesMenuScreen());
         }
       });
@@ -139,6 +142,8 @@ public class HomesMenuScreen extends Screen {
     }
     java.util.List<String> cells = new java.util.ArrayList<>();
     java.util.Set<String> covered = new java.util.HashSet<>();
+    int cap = com.openorigins.client.util.HomeInfoCache.capacity();
+    int plusLeft = cap > 0 ? Math.max(0, cap - this.homes.size()) : -1;
     int needed = ((this.homes.size() + 4) / 5) * 5;
     int pos = 0;
     for (String e : com.openorigins.client.util.HomeInfoCache.layout()) {
@@ -152,7 +157,11 @@ public class HomesMenuScreen extends Screen {
         }
       } else if (e.toLowerCase(java.util.Locale.ROOT).contains("close")) {
         continue;
-      } else if (pos < needed) {
+      } else if (plusLeft > 0) {
+        cells.add("locked");
+        plusLeft--;
+        pos++;
+      } else if (plusLeft < 0 && pos < needed) {
         cells.add("locked");
         pos++;
       }

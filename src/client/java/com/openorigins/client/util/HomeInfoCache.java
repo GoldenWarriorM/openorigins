@@ -37,8 +37,33 @@ public final class HomeInfoCache {
 
   private static final Map<String, Info> CACHE = new ConcurrentHashMap<>();
   private static final List<String> LAYOUT = new java.util.concurrent.CopyOnWriteArrayList<>();
+  private static volatile int CAPACITY;
   public static final String DEFAULT_ICON = "textures/custom_ui/transport_menu/button_homes.png";
   public static final String PLUS_ICON = "textures/custom/ui/slot_add.png";
+
+  public static int capacity() {
+    return CAPACITY;
+  }
+
+  /** Parses lines like "5 home slots" / "Home slots: 5" from rank perk lore. */
+  static int parseCapacity(String line) {
+    String s = line.toLowerCase(java.util.Locale.ROOT);
+    if (!(s.contains("home") || s.contains("slot"))) {
+      return 0;
+    }
+    java.util.regex.Matcher m = java.util.regex.Pattern.compile(
+        "(\\d+)\\s*(?:x\\s*)?(?:home|house)?\\s*slots?|(?:home|house)s?\\s*slots?\\s*[:x]?\\s*(\\d+)")
+        .matcher(s);
+    if (m.find()) {
+      String num = m.group(1) != null ? m.group(1) : m.group(2);
+      try {
+        int v = Integer.parseInt(num);
+        return (v > 0 && v <= 100) ? v : 0;
+      } catch (NumberFormatException ignored) {
+      }
+    }
+    return 0;
+  }
 
   public static String key(String name) {
     if (name == null) {
@@ -153,6 +178,17 @@ public final class HomeInfoCache {
           }
         }
       }
+      if (hasLore) {
+        for (Component capLine : lore.lines()) {
+          int cap = parseCapacity(capLine.getString());
+          if (cap > 0 && cap != CAPACITY) {
+            CAPACITY = cap;
+            save();
+            org.slf4j.LoggerFactory.getLogger("openorigins")
+                .info("[homes-lore] capacity: {} (from '{}')", cap, capLine.getString());
+          }
+        }
+      }
       if (looksLikeHome) {
         put(name, lore.lines());
         layout.add("home:" + key(name));
@@ -247,6 +283,9 @@ public final class HomeInfoCache {
       }
       JsonObject root = new JsonObject();
       root.add("homes", arr);
+      if (CAPACITY > 0) {
+        root.addProperty("capacity", CAPACITY);
+      }
       JsonArray lay = new JsonArray();
       for (String e : LAYOUT) {
         lay.add(e);
@@ -292,6 +331,15 @@ public final class HomeInfoCache {
         LAYOUT.clear();
         for (JsonElement el : lay) {
           LAYOUT.add(el.getAsString());
+        }
+      }
+      if (root.has("capacity")) {
+        try {
+          int c = root.get("capacity").getAsInt();
+          if (c > 0 && c <= 100) {
+            CAPACITY = c;
+          }
+        } catch (Exception ignored) {
         }
       }
     } catch (Exception ex) {
