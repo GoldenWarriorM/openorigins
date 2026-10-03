@@ -37,6 +37,7 @@ public final class HomeInfoCache {
 
   private static final Map<String, Info> CACHE = new ConcurrentHashMap<>();
   private static final List<String> LAYOUT = new java.util.concurrent.CopyOnWriteArrayList<>();
+  private static final List<String> NAMES = new java.util.concurrent.CopyOnWriteArrayList<>();
   private static volatile int CAPACITY;
   public static final String DEFAULT_ICON = "textures/custom_ui/transport_menu/button_homes.png";
   public static final String PLUS_ICON = "textures/custom/ui/slot_add.png";
@@ -234,8 +235,24 @@ public final class HomeInfoCache {
     return e.contains("rank") || e.contains("close");
   }
 
+  public static List<String> names() {
+    return List.copyOf(NAMES);
+  }
+
   public static List<String> layout() {
     return List.copyOf(LAYOUT);
+  }
+
+  /** Reconciles the cached name list with a fresh server response. @return true if changed. */
+  public static synchronized boolean setNames(List<String> names) {
+    List<String> copy = List.copyOf(names);
+    if (copy.equals(NAMES)) {
+      return false;
+    }
+    NAMES.clear();
+    NAMES.addAll(copy);
+    save();
+    return true;
   }
 
   /**
@@ -325,6 +342,11 @@ public final class HomeInfoCache {
       }
       JsonObject root = new JsonObject();
       root.add("homes", arr);
+      JsonArray nm = new JsonArray();
+      for (String n : NAMES) {
+        nm.add(n);
+      }
+      root.add("names", nm);
       if (CAPACITY > 0) {
         root.addProperty("capacity", CAPACITY);
       }
@@ -373,6 +395,13 @@ public final class HomeInfoCache {
         LAYOUT.clear();
         for (JsonElement el : lay) {
           LAYOUT.add(el.getAsString());
+        }
+      }
+      JsonArray nm = root.getAsJsonArray("names");
+      if (nm != null) {
+        NAMES.clear();
+        for (JsonElement el : nm) {
+          NAMES.add(el.getAsString());
         }
       }
       if (root.has("capacity")) {

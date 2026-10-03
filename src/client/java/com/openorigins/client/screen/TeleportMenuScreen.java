@@ -58,13 +58,20 @@ public class TeleportMenuScreen extends Screen implements HomePanelHost {
   @Override
   protected void init() {
     if (this.homes == null && this.minecraft != null && this.minecraft.player != null) {
+      List<String> cached = HomeInfoCache.names();
+      if (!cached.isEmpty()) {
+        this.homes = new ArrayList<>(cached);
+      }
       HomeListFetcher.fetchHomes(names -> {
         if (this.minecraft == null || this.minecraft.gui.screen() != this) {
           return;
         }
-        this.homes = new ArrayList<>(names);
-        this.clearWidgets();
-        this.buildAll();
+        boolean changed = HomeInfoCache.setNames(names);
+        if (changed || this.homes == null) {
+          this.homes = new ArrayList<>(names);
+          this.clearWidgets();
+          this.buildAll();
+        }
         if (HomeFetch.consumeRefetch()) {
           HomeFetch.start(TeleportMenuScreen::new);
         }

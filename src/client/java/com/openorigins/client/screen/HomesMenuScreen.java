@@ -35,13 +35,20 @@ public class HomesMenuScreen extends Screen implements HomePanelHost {
   @Override
   protected void init() {
     if (this.homes == null && !this.failed) {
+      List<String> cached = HomeInfoCache.names();
+      if (!cached.isEmpty()) {
+        this.homes = new ArrayList<>(cached);
+      }
       if (this.minecraft != null && this.minecraft.player != null) {
         HomeListFetcher.fetchHomes(names -> {
           if (this.minecraft == null || this.minecraft.gui.screen() != this) {
             return;
           }
-          this.homes = new ArrayList<>(names);
-          this.layoutWidgets();
+          boolean changed = HomeInfoCache.setNames(names);
+          if (changed || this.homes == null) {
+            this.homes = new ArrayList<>(names);
+            this.layoutWidgets();
+          }
           if (HomeFetch.consumeRefetch()) {
             HomeFetch.start(HomesMenuScreen::new);
           } else {
