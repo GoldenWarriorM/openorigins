@@ -43,11 +43,36 @@ public final class BadgerHud implements net.fabricmc.fabric.api.client.rendering
       ItemStack stack = new ItemStack(item, r.count());
       graphics.item(stack, x, y);
       graphics.itemDecorations(font, stack, x, y);
+      int have = countInInventory(mc, r.itemId());
+      boolean done = have >= r.count();
+      String progress = have + "/" + r.count();
+      graphics.text(font, progress, x + 19, y + 5,
+          done ? 0xFF55FF55 : 0xFFFFFFFF);
       y += 18;
     }
     if (BadgerCache.daysUntilReset() > 0) {
       graphics.text(font, Component.translatable("hud.openorigins.badger_reset",
           BadgerCache.daysUntilReset()), x, y + 1, 0xFFAAAAAA);
     }
+  }
+
+  private static int countInInventory(Minecraft mc, String itemId) {
+    if (mc.player == null) {
+      return 0;
+    }
+    int total = 0;
+    net.minecraft.world.entity.player.Inventory inv = mc.player.getInventory();
+    for (int i = 0; i < inv.getContainerSize(); i++) {
+      ItemStack stack = inv.getItem(i);
+      if (stack.isEmpty()) {
+        continue;
+      }
+      String id = net.minecraft.core.registries.BuiltInRegistries.ITEM
+          .getKey(stack.getItem()).toString();
+      if (id.equals(itemId)) {
+        total += stack.getCount();
+      }
+    }
+    return total;
   }
 }
