@@ -35,6 +35,17 @@ public class HomesMenuScreen extends Screen {
   private boolean failed;
   private static boolean fetchArmed;
   private static long fetchDeadline;
+  private static final java.util.Set<String> AUTO_TRIED =
+      java.util.Collections.newSetFromMap(new java.util.concurrent.ConcurrentHashMap<>());
+
+  private static void startFetch() {
+    Minecraft mc = Minecraft.getInstance();
+    if (mc != null && mc.player != null) {
+      fetchArmed = true;
+      fetchDeadline = System.currentTimeMillis() + 10000;
+      mc.player.connection.sendCommand("homes");
+    }
+  }
 
   public HomesMenuScreen() {
     super(Component.translatable("menu.openorigins.homes.title"));
@@ -50,6 +61,7 @@ public class HomesMenuScreen extends Screen {
           }
           this.homes = new ArrayList<>(names);
           this.layoutWidgets();
+          this.autoFetchMissing();
         });
       } else {
         this.failed = true;
@@ -61,6 +73,23 @@ public class HomesMenuScreen extends Screen {
   @Override
   public void tick() {
     super.tick();
+  }
+
+  /** Silently pulls missing details via the server menu, once per home. */
+  private void autoFetchMissing() {
+    if (this.homes == null || this.homes.isEmpty() || fetchArmed) {
+      return;
+    }
+    boolean need = false;
+    for (String n : this.homes) {
+      String k = com.openorigins.client.util.HomeInfoCache.key(n);
+      if (!com.openorigins.client.util.HomeInfoCache.has(n) && AUTO_TRIED.add(k)) {
+        need = true;
+      }
+    }
+    if (need) {
+      startFetch();
+    }
   }
 
   /** Called when home lore is captured; returns to our menu if a fetch is armed. */
@@ -128,9 +157,7 @@ public class HomesMenuScreen extends Screen {
     this.addRenderableWidget(Button.builder(
         Component.translatable("menu.openorigins.homes.details"), b -> {
           if (this.minecraft != null && this.minecraft.player != null) {
-            fetchArmed = true;
-            fetchDeadline = System.currentTimeMillis() + 10000;
-            this.minecraft.player.connection.sendCommand("homes");
+            startFetch();
           }
         }).bounds(cx + 5, btnY, 120, 20).build());
   }

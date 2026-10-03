@@ -15,6 +15,7 @@ public class OpenOriginsClient implements ClientModInitializer {
   @Override
   public void onInitializeClient() {
     OpenOriginsConfig.getInstance().load();
+    com.openorigins.client.util.HomeInfoCache.load();
     OENetwork.setup();
     OriginStateTracker.INSTANCE.setup();
     RemoteRegistry.get().fetchAsync();

@@ -1,9 +1,21 @@
 package com.openorigins.client.util;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Base64;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.core.component.DataComponents;
@@ -26,7 +38,7 @@ public final class HomeInfoCache {
   private static final Map<String, Info> CACHE = new ConcurrentHashMap<>();
   public static final String DEFAULT_ICON = "textures/custom_ui/transport_menu/button_homes.png";
 
-  static String key(String name) {
+  public static String key(String name) {
     if (name == null) {
       return "";
     }
@@ -62,7 +74,14 @@ public final class HomeInfoCache {
         break;
       }
     }
-    CACHE.put(key(name), new Info(List.copyOf(lore), color));
+    String k = key(name);
+    Info prev = CACHE.get(k);
+    List<Component> copy = List.copyOf(lore);
+    if (prev != null && java.util.Objects.equals(prev.worldColor(), color) && prev.lore().equals(copy)) {
+      return;
+    }
+    CACHE.put(k, new Info(copy, color));
+    save();
   }
 
   public static String iconPath(String name) {
@@ -133,5 +152,91 @@ public final class HomeInfoCache {
           .info("[homes-lore] {} lore slots, no homes. sample: {}", loreSlots, sample);
     }
     return n;
+  }
+
+  private static Path file() {
+    return FabricLoader.getInstance().getConfigDir().resolve("openorigins_homes.json");
+  }
+
+  private static String encodeLine(Component line) {
+    ByteBuf buf = Unpooled.buffer();
+    try {
+      net.minecraft.network.chat.ComponentSerialization.TRUSTED_CONTEXT_FREE_STREAM_CODEC.encode(buf, line);
+      byte[] b = new byte[buf.readableBytes()];
+      buf.readBytes(b);
+      return Base64.getEncoder().encodeToString(b);
+    } finally {
+      buf.release();
+    }
+  }
+
+  private static Component decodeLine(String s) {
+    byte[] b = Base64.getDecoder().decode(s);
+    ByteBuf buf = Unpooled.wrappedBuffer(b);
+    try {
+      return net.minecraft.network.chat.ComponentSerialization.TRUSTED_CONTEXT_FREE_STREAM_CODEC.decode(buf);
+    } finally {
+      buf.release();
+    }
+  }
+
+  /** Persists cache to disk (only called when data actually changed). */
+  public static synchronized void save() {
+    try {
+      JsonArray arr = new JsonArray();
+      for (Map.Entry<String, Info> e : CACHE.entrySet()) {
+        JsonObject o = new JsonObject();
+        o.addProperty("key", e.getKey());
+        if (e.getValue().worldColor() != null) {
+          o.addProperty("world", e.getValue().worldColor());
+        }
+        JsonArray lore = new JsonArray();
+        for (Component line : e.getValue().lore()) {
+          lore.add(encodeLine(line));
+        }
+        o.add("lore", lore);
+        arr.add(o);
+      }
+      JsonObject root = new JsonObject();
+      root.add("homes", arr);
+      Files.writeString(file(), root.toString(), StandardCharsets.UTF_8);
+    } catch (Exception ex) {
+      org.slf4j.LoggerFactory.getLogger("openorigins")
+          .warn("[homes-lore] save failed: {}", ex.toString());
+    }
+  }
+
+  /** Loads disk cache at startup; server data overwrites it when captured. */
+  public static synchronized void load() {
+    try {
+      Path f = file();
+      if (!Files.isRegularFile(f)) {
+        return;
+      }
+      JsonObject root = JsonParser.parseString(Files.readString(f, StandardCharsets.UTF_8)).getAsJsonObject();
+      JsonArray arr = root.getAsJsonArray("homes");
+      if (arr == null) {
+        return;
+      }
+      int n = 0;
+      for (JsonElement el : arr) {
+        JsonObject o = el.getAsJsonObject();
+        String k = o.get("key").getAsString();
+        String world = o.has("world") ? o.get("world").getAsString() : null;
+        List<Component> lore = new ArrayList<>();
+        for (JsonElement le : o.getAsJsonArray("lore")) {
+          lore.add(decodeLine(le.getAsString()));
+        }
+        if (!k.isEmpty() && !lore.isEmpty()) {
+          CACHE.put(k, new Info(List.copyOf(lore), world));
+          n++;
+        }
+      }
+      org.slf4j.LoggerFactory.getLogger("openorigins")
+          .info("[homes-lore] loaded {} homes from disk", n);
+    } catch (Exception ex) {
+      org.slf4j.LoggerFactory.getLogger("openorigins")
+          .warn("[homes-lore] load failed: {}", ex.toString());
+    }
   }
 }
