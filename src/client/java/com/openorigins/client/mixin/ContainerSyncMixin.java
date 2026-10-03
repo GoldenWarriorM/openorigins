@@ -2,6 +2,7 @@ package com.openorigins.client.mixin;
 
 import com.openorigins.client.util.HomeFetch;
 import com.openorigins.client.util.HomeInfoCache;
+import com.openorigins.client.util.OpenWorldCache;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.multiplayer.ClientPacketListener;
@@ -24,6 +25,7 @@ public abstract class ContainerSyncMixin {
             .info("[homes-lore] captured {} homes on {}", n, why);
         HomeFetch.onCaptured();
       }
+      OpenWorldCache.scan(container);
     }
   }
 
