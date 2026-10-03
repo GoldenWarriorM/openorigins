@@ -9,15 +9,15 @@ import net.minecraft.network.chat.Component;
  * Click an entry to run its command, Esc to cancel.
  */
 public class TeleportMenuScreen extends Screen {
-  private record Entry(String labelKey, String command) {}
+  private record Entry(String labelKey, String command, double angleDeg) {}
 
   private static final Entry[] ENTRIES = {
-      new Entry("menu.openorigins.teleport.spawn", "spawn"),
-      new Entry("menu.openorigins.teleport.realm", "realm tp"),
-      new Entry("menu.openorigins.teleport.blue", "balloon blue-balloon"),
-      new Entry("menu.openorigins.teleport.green", "balloon green-balloon"),
-      new Entry("menu.openorigins.teleport.red", "balloon red-balloon"),
-      new Entry("menu.openorigins.teleport.yellow", "balloon yellow-balloon"),
+      new Entry("menu.openorigins.teleport.blue", "balloon blue-balloon", -90.0),
+      new Entry("menu.openorigins.teleport.yellow", "balloon yellow-balloon", 0.0),
+      new Entry("menu.openorigins.teleport.red", "balloon red-balloon", 90.0),
+      new Entry("menu.openorigins.teleport.green", "balloon green-balloon", 180.0),
+      new Entry("menu.openorigins.teleport.realm", "realm tp", 135.0),
+      new Entry("menu.openorigins.teleport.spawn", "spawn", 45.0),
   };
   private static final int BUTTON_W = 96;
   private static final int BUTTON_H = 20;
@@ -33,7 +33,7 @@ public class TeleportMenuScreen extends Screen {
     double cy = this.height / 2.0;
     for (int i = 0; i < ENTRIES.length; i++) {
       Entry entry = ENTRIES[i];
-      double angle = -Math.PI / 2.0 + i * 2.0 * Math.PI / ENTRIES.length;
+      double angle = Math.toRadians(entry.angleDeg);
       int x = (int) Math.round(cx + Math.cos(angle) * RADIUS) - BUTTON_W / 2;
       int y = (int) Math.round(cy + Math.sin(angle) * RADIUS) - BUTTON_H / 2;
       this.addRenderableWidget(Button.builder(Component.translatable(entry.labelKey), button -> {
