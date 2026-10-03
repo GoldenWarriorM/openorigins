@@ -21,24 +21,19 @@ public final class HomeListFetcher {
   private static final Map<Integer, Consumer<List<String>>> PENDING = new ConcurrentHashMap<>();
 
   public static void fetchHomes(Consumer<List<String>> callback) {
+    fetchRaw("/home ", true, callback);
+  }
+
+  /** Generic tab-complete request. */
+  public static void fetchRaw(String command, boolean dropSpaced, Consumer<List<String>> callback) {
     Minecraft mc = Minecraft.getInstance();
     if (mc == null || mc.player == null || mc.player.connection == null) {
       callback.accept(List.of());
       return;
     }
-    try {
-      var root = mc.player.connection.getCommands().getRoot();
-      StringJoiner joiner = new StringJoiner(",");
-      root.getChildren().stream().map(com.mojang.brigadier.tree.CommandNode::getName)
-          .filter(n -> n.toLowerCase(java.util.Locale.ROOT).contains("home"))
-          .sorted().forEach(joiner::add);
-      org.slf4j.LoggerFactory.getLogger("openorigins")
-          .info("[homes-lore] home commands: {}", joiner);
-    } catch (Throwable ignored) {
-    }
     int id = NEXT_ID.getAndIncrement();
     PENDING.put(id, callback);
-    mc.player.connection.send(new ServerboundCommandSuggestionPacket(id, "/home "));
+    mc.player.connection.send(new ServerboundCommandSuggestionPacket(id, command));
   }
 
   /**

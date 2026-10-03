@@ -50,6 +50,7 @@ public class TeleportMenuScreen extends Screen implements HomePanelHost {
   private int panelX;
   private int panelY;
   private int panelCount;
+  private static boolean navigatorProbed;
 
   /** Radial center: screen center unless the homes panel would overlap it. */
   private double radialCx() {
@@ -80,6 +81,12 @@ public class TeleportMenuScreen extends Screen implements HomePanelHost {
 
   @Override
   protected void init() {
+    if (!navigatorProbed && this.minecraft != null && this.minecraft.player != null) {
+      navigatorProbed = true;
+      HomeListFetcher.fetchRaw("/navigator ", false, subs ->
+          org.slf4j.LoggerFactory.getLogger("openorigins")
+              .info("[openworld] navigator subs: {}", subs));
+    }
     if (this.homes == null && this.minecraft != null && this.minecraft.player != null) {
       List<String> cached = HomeInfoCache.names();
       if (!cached.isEmpty()) {
