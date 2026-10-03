@@ -16,7 +16,7 @@ public final class OpenOriginsConfig {
   private String discordClientId = "";
 
   private OpenOriginsConfig() {
-    for (OriginFeature f : OriginFeature.values()) enabled.put(f, true);
+    for (OriginFeature f : OriginFeature.values()) enabled.put(f, f.getDefaultValue());
   }
 
   public static OpenOriginsConfig getInstance() { return INSTANCE; }

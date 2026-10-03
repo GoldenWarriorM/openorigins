@@ -8,6 +8,7 @@
   "key.openorigins.scan_cosmetics": "Scan Worn Cosmetics",
   "screen.openorigins.config.title": "OpenOrigin config",
   "button.openorigins.config": "OpenOrigins",
+  "label.openorigins.experimental": "Experimental",
   "config.openorigins.reconnect_note": "Will apply on reconnect",
   "toast.openorigins.outdated": "Your OpenOrigins is too old! Please update to use server features.",
   "feature.openorigins.location_tracker.desc": "Shows your current location in Discord status.",

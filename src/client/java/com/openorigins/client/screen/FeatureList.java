@@ -51,7 +51,7 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
         list.refreshEntries();
       }).bounds(0, 0, 100, 20)
           .tooltip(net.minecraft.client.gui.components.Tooltip.create(
-              Component.translatable(feature.getDescriptionKey())))
+              featureTooltip(feature)))
           .build();
       this.refreshEntry();
     }
@@ -60,6 +60,15 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
       boolean on = OpenOriginsConfig.getInstance().isEnabled(this.feature);
       this.toggleButton.setMessage(Component.translatable(on ? "options.on" : "options.off")
           .withStyle(on ? net.minecraft.ChatFormatting.GREEN : net.minecraft.ChatFormatting.RED));
+    }
+
+    private static Component featureTooltip(OriginFeature feature) {
+      Component desc = Component.translatable(feature.getDescriptionKey());
+      if (feature == OriginFeature.GHOST_BLOCK_FIX) {
+        return desc.copy().append("\n").append(Component.translatable("label.openorigins.experimental")
+            .withStyle(net.minecraft.ChatFormatting.YELLOW));
+      }
+      return desc;
     }
 
     @Override
