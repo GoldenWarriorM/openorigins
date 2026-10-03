@@ -1,20 +1,15 @@
 package com.openorigins.client.screen;
 
+import com.openorigins.client.util.HomeFetch;
+import com.openorigins.client.util.HomeInfoCache;
 import com.openorigins.client.util.HomeListFetcher;
 import com.openorigins.client.util.ServerPackIcons;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import net.minecraft.ChatFormatting;
-import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
-import net.minecraft.client.gui.components.AbstractButton;
 import net.minecraft.client.gui.components.Button;
-import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.client.input.InputWithModifiers;
-import net.minecraft.client.input.MouseButtonEvent;
-import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.resources.Identifier;
@@ -22,36 +17,16 @@ import net.minecraft.resources.Identifier;
 /**
  * Trimmed homes management: grid of house icons from the server pack,
  * left-click teleports ({@code /home <name>}), right-click deletes
- * ({@code /delhome <name>}).
+ * ({@code /delhome <name>}). Free slots show a plus opening name input.
  */
-public class HomesMenuScreen extends Screen {
-  private static final int COLS = 5;
-  private static final int ICON = 40;
-  private static final int GAP = 8;
-  private static final int LABEL_H = 12;
+public class HomesMenuScreen extends Screen implements HomePanelHost {
+  static final int COLS = 5;
+  static final int ICON = 40;
+  static final int GAP = 8;
+  static final int LABEL_H = 12;
 
   private List<String> homes;
   private boolean failed;
-  private static boolean fetchArmed;
-  private static long fetchDeadline;
-  private static boolean refetchRequested;
-  private static boolean layoutFetchTried;
-  private static final java.util.Set<String> AUTO_TRIED =
-      java.util.Collections.newSetFromMap(new java.util.concurrent.ConcurrentHashMap<>());
-
-  private static void startFetch() {
-    Minecraft mc = Minecraft.getInstance();
-    if (mc != null && mc.player != null) {
-      fetchArmed = true;
-      fetchDeadline = System.currentTimeMillis() + 10000;
-      mc.player.connection.sendCommand("homes");
-    }
-  }
-
-  /** Next opened menu re-reads slot positions from the server once names arrive. */
-  public static void requestRefetch() {
-    refetchRequested = true;
-  }
 
   public HomesMenuScreen() {
     super(Component.translatable("menu.openorigins.homes.title"));
@@ -67,11 +42,10 @@ public class HomesMenuScreen extends Screen {
           }
           this.homes = new ArrayList<>(names);
           this.layoutWidgets();
-          if (refetchRequested) {
-            refetchRequested = false;
-            startFetch();
+          if (HomeFetch.consumeRefetch()) {
+            HomeFetch.start(HomesMenuScreen::new);
           } else {
-            this.autoFetchMissing();
+            HomeFetch.autoFetch(this.homes);
           }
         });
       } else {
@@ -82,105 +56,23 @@ public class HomesMenuScreen extends Screen {
   }
 
   @Override
-  public void tick() {
-    super.tick();
+  public void rebuildHomeWidgets() {
+    this.layoutWidgets();
   }
 
-  /** Silently pulls missing details via the server menu, once per home. */
-  private void autoFetchMissing() {
-    if (this.homes == null || this.homes.isEmpty() || fetchArmed) {
-      return;
-    }
-    boolean need = com.openorigins.client.util.HomeInfoCache.layout().isEmpty() && !layoutFetchTried;
-    for (String n : this.homes) {
-      String k = com.openorigins.client.util.HomeInfoCache.key(n);
-      if (!com.openorigins.client.util.HomeInfoCache.has(n) && AUTO_TRIED.add(k)) {
-        need = true;
-      }
-    }
-    if (need) {
-      layoutFetchTried = true;
-      startFetch();
-    }
-  }
-
-  /** Called when home lore is captured; returns to our menu if a fetch is armed. */
-  public static void onCaptured() {
-    if (!fetchArmed || System.currentTimeMillis() > fetchDeadline) {
-      fetchArmed = false;
-      return;
-    }
-    fetchArmed = false;
-    Minecraft mc = Minecraft.getInstance();
-    if (mc != null) {
-      mc.execute(() -> {
-        if (mc.gui.screen() != null && !(mc.gui.screen() instanceof HomesMenuScreen)) {
-          if (mc.player != null) {
-            mc.player.closeContainer();
-          }
-          mc.gui.setScreen(new HomesMenuScreen());
-        }
-      });
-    }
-  }
-
-  private void refresh() {
+  void refresh() {
     this.homes = null;
     this.failed = false;
     this.init();
   }
 
-  private void layoutWidgets() {
+  void layoutWidgets() {
     this.clearWidgets();
     int cx = this.width / 2;
     if (this.homes == null) {
       return;
     }
-    java.util.Map<String, String> byKey = new java.util.HashMap<>();
-    for (String n : this.homes) {
-      byKey.put(com.openorigins.client.util.HomeInfoCache.key(n), n);
-    }
-    java.util.List<String> cells = new java.util.ArrayList<>();
-    java.util.Set<String> covered = new java.util.HashSet<>();
-    int cap = com.openorigins.client.util.HomeInfoCache.capacity();
-    int plusLeft = cap > 0 ? Math.max(0, cap - this.homes.size()) : -1;
-    int needed = ((this.homes.size() + 4) / 5) * 5;
-    int pos = 0;
-    for (String e : com.openorigins.client.util.HomeInfoCache.layout()) {
-      if (e.startsWith("home:")) {
-        String k = e.substring(5);
-        String real = byKey.get(k);
-        if (real != null) {
-          cells.add("home:" + real);
-          covered.add(k);
-          pos++;
-        }
-      } else if (e.toLowerCase(java.util.Locale.ROOT).contains("close")) {
-        continue;
-      } else if (plusLeft > 0) {
-        cells.add("locked");
-        plusLeft--;
-        pos++;
-      } else if (plusLeft < 0 && pos < needed) {
-        cells.add("locked");
-        pos++;
-      }
-    }
-    for (String n : this.homes) {
-      if (!covered.contains(com.openorigins.client.util.HomeInfoCache.key(n))) {
-        cells.add("home:" + n);
-      }
-    }
-    java.util.Map<String, ServerPackIcons.LoadedIcon> icons = new java.util.HashMap<>();
-    for (String c : cells) {
-      if (c.startsWith("home:")) {
-        String n = c.substring(5);
-        ServerPackIcons.get(com.openorigins.client.util.HomeInfoCache.iconPath(n))
-            .ifPresent(li -> icons.put(n, li));
-      }
-    }
-    ServerPackIcons.get(com.openorigins.client.util.HomeInfoCache.PLUS_ICON)
-        .ifPresent(li -> icons.put("\0plus", li));
+    List<String> cells = HomeInfoCache.cellsFor(this.homes);
     int cellW = ICON + GAP;
     int rows = Math.max(1, (cells.size() + COLS - 1) / COLS);
     int gridW = COLS * cellW - GAP;
@@ -193,51 +85,59 @@ public class HomesMenuScreen extends Screen {
       int x = cx - gridW / 2 + col * cellW;
       int y = y0 + row * (ICON + LABEL_H + GAP);
       if (cell.startsWith("home:")) {
-        String name = cell.substring(5);
-        ServerPackIcons.LoadedIcon li = icons.get(name);
-        Component tip = com.openorigins.client.util.HomeInfoCache.tooltip(name);
-        if (li != null) {
-          this.addRenderableWidget(new HomeButton(x, y, ICON,
-              Component.literal(name), li.textureId(), li.width(), li.height(), false, name, tip,
-              () -> teleport(name), () -> delete(name)));
-        } else if (this.minecraft != null && this.minecraft.player != null) {
-          Identifier skin = this.minecraft.player.getSkin().body().texturePath();
-          this.addRenderableWidget(new HomeButton(x, y, ICON,
-              Component.literal(name), skin, 64, 64, true, name, tip,
-              () -> teleport(name), () -> delete(name)));
-        } else {
-          this.addRenderableWidget(Button.builder(Component.literal(name), b -> teleport(name))
-              .bounds(x, y, ICON, 20).build());
-        }
+        this.addRenderableWidget(makeHomeCell(this.minecraft, x, y, ICON, cell.substring(5),
+            () -> teleport(cell.substring(5)), () -> delete(cell.substring(5))));
       } else {
-        ServerPackIcons.LoadedIcon li = icons.get("\0plus");
-        Component tip = Component.translatable("menu.openorigins.homes.new_hint");
-        if (li != null) {
-          this.addRenderableWidget(new HomeButton(x, y, ICON,
-              Component.translatable("menu.openorigins.homes.new"), li.textureId(),
-              li.width(), li.height(), false, "+", tip,
-              () -> openSetHome(), () -> openSetHome()));
-        } else {
-          this.addRenderableWidget(Button.builder(
-              Component.translatable("menu.openorigins.homes.new"), b -> openSetHome())
-              .bounds(x, y, ICON, 20).build());
-        }
+        this.addRenderableWidget(makePlusCell(x, y, ICON,
+            () -> openSetHome(HomesMenuScreen::new)));
       }
     }
     int btnY = Math.min(this.height - 30, y0 + gridH + 12);
     this.addRenderableWidget(Button.builder(
-        Component.translatable("menu.openorigins.homes.sethome"), b -> openSetHome())
-        .bounds(cx - 125, btnY, 120, 20).build());
-    this.addRenderableWidget(Button.builder(
-        Component.translatable("menu.openorigins.homes.details"), b -> {
-          if (this.minecraft != null && this.minecraft.player != null) {
-            startFetch();
-          }
-        }).bounds(cx + 5, btnY, 120, 20).build());
+        Component.translatable("menu.openorigins.homes.details"), b -> HomeFetch.start(HomesMenuScreen::new))
+        .bounds(cx - 60, btnY, 120, 20).build());
   }
 
-  private void openSetHome() {
+  static net.minecraft.client.gui.components.AbstractButton makeHomeCell(
+      net.minecraft.client.Minecraft mc, int x, int y, int size, String name,
+      Runnable teleport, Runnable delete) {
+    ServerPackIcons.LoadedIcon li =
+        ServerPackIcons.get(HomeInfoCache.iconPath(name)).orElse(null);
+    Component tip = HomeInfoCache.tooltip(name);
+    if (li != null) {
+      return new HomeIconButton(x, y, size,
+          Component.literal(name), li.textureId(), li.width(), li.height(), false, name, tip,
+          teleport, delete);
+    } else if (mc != null && mc.player != null) {
+      Identifier skin = mc.player.getSkin().body().texturePath();
+      return new HomeIconButton(x, y, size,
+          Component.literal(name), skin, 64, 64, true, name, tip, teleport, delete);
+    } else {
+      return Button.builder(Component.literal(name), b -> teleport.run()).bounds(x, y, size, 20).build();
+    }
+  }
+
+  static net.minecraft.client.gui.components.AbstractButton makePlusCell(
+      int x, int y, int size, Runnable openInput) {
+    ServerPackIcons.LoadedIcon li = ServerPackIcons.get(HomeInfoCache.PLUS_ICON).orElse(null);
+    Component tip = Component.translatable("menu.openorigins.homes.new_hint");
+    if (li != null) {
+      return new HomeIconButton(x, y, size,
+          Component.translatable("menu.openorigins.homes.new"), li.textureId(),
+          li.width(), li.height(), false, "+", tip, openInput, openInput);
+    } else {
+      return Button.builder(Component.translatable("menu.openorigins.homes.new"),
+          b -> openInput.run()).bounds(x, y, size, 20).build();
+    }
+  }
+
+  private static ServerPackIcons.LoadedIcon iconFor(Screen screen, String name) {
+    return ServerPackIcons.get(HomeInfoCache.iconPath(name)).orElse(null);
+  }
+
+  private void openSetHome(java.util.function.Supplier<Screen> ret) {
     if (this.minecraft != null) {
+      SetHomeScreen.returnTo = ret;
       this.minecraft.gui.setScreen(new SetHomeScreen());
     }
   }
@@ -253,12 +153,12 @@ public class HomesMenuScreen extends Screen {
     if (this.minecraft != null && this.minecraft.player != null) {
       this.minecraft.player.connection.sendCommand("delhome " + name);
     }
-    requestRefetch();
+    HomeFetch.requestRefetch();
     this.refresh();
   }
 
   @Override
-  public void extractRenderState(net.minecraft.client.gui.GuiGraphicsExtractor extractor,
+  public void extractRenderState(GuiGraphicsExtractor extractor,
       int mouseX, int mouseY, float partialTick) {
     extractor.fill(0, 0, this.width, this.height, 0xA0000000);
     super.extractRenderState(extractor, mouseX, mouseY, partialTick);
@@ -288,101 +188,6 @@ public class HomesMenuScreen extends Screen {
   public void onClose() {
     if (this.minecraft != null) {
       this.minecraft.gui.setScreen(null);
-    }
-  }
-
-  private static final class HomeButton extends AbstractButton {
-    private final Identifier textureId;
-    private final int texW;
-    private final int texH;
-    private final boolean face;
-    private final String homeName;
-    private final Runnable leftAction;
-    private final Runnable rightAction;
-
-    HomeButton(int x, int y, int size, Component message, Identifier textureId,
-        int texW, int texH, boolean face, String homeName, Component tooltip,
-        Runnable leftAction, Runnable rightAction) {
-      super(x, y, size, size, message);
-      this.textureId = textureId;
-      this.texW = texW;
-      this.texH = texH;
-      this.face = face;
-      this.homeName = homeName;
-      this.leftAction = leftAction;
-      this.rightAction = rightAction;
-      this.setTooltip(Tooltip.create(tooltip));
-    }
-
-    @Override
-    public void onPress(InputWithModifiers input) {
-      this.leftAction.run();
-    }
-
-    @Override
-    public void onClick(MouseButtonEvent event, boolean doubleClick) {
-      if (event.button() == 1) {
-        this.rightAction.run();
-      } else {
-        super.onClick(event, doubleClick);
-      }
-    }
-
-    @Override
-    protected boolean isValidClickButton(net.minecraft.client.input.MouseButtonInfo buttonInfo) {
-      return buttonInfo.button() == 0 || buttonInfo.button() == 1;
-    }
-
-    @Override
-    protected void updateWidgetNarration(net.minecraft.client.gui.narration.NarrationElementOutput output) {
-      this.defaultButtonNarrationText(output);
-    }
-
-    @Override
-    protected void extractContents(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
-      float aspect;
-      int dw = this.getWidth();
-      int dh = this.getHeight();
-      if (this.face) {
-        int dx = this.getX();
-        int dy = this.getY();
-        graphics.blit(RenderPipelines.GUI_TEXTURED, this.textureId,
-            dx, dy, 8.0F, 8.0F, dw, dh, 8, 8, 64, 64);
-        graphics.blit(RenderPipelines.GUI_TEXTURED, this.textureId,
-            dx, dy, 40.0F, 8.0F, dw, dh, 8, 8, 64, 64);
-      } else {
-        aspect = this.texW / (float) this.texH;
-        if (aspect >= 1.0F) {
-          dh = Math.max(1, Math.round(dw / aspect));
-        } else {
-          dw = Math.max(1, Math.round(dh * aspect));
-        }
-        int dx = this.getX() + (this.getWidth() - dw) / 2;
-        int dy = this.getY() + (this.getHeight() - dh) / 2;
-        graphics.blit(RenderPipelines.GUI_TEXTURED, this.textureId,
-            dx, dy, 0.0F, 0.0F, dw, dh, this.texW, this.texH, this.texW, this.texH);
-      }
-      if (this.isHoveredOrFocused()) {
-        int x0 = this.getX() - 1;
-        int y0 = this.getY() - 1;
-        int x1 = this.getX() + this.getWidth() + 1;
-        int y1 = this.getY() + this.getHeight() + 1;
-        graphics.fill(x0, y0, x1, y0 + 1, 0xFFFFFFFF);
-        graphics.fill(x0, y1 - 1, x1, y1, 0xFFFFFFFF);
-        graphics.fill(x0, y0, x0 + 1, y1, 0xFFFFFFFF);
-        graphics.fill(x1 - 1, y0, x1, y1, 0xFFFFFFFF);
-      }
-      Minecraft mc = Minecraft.getInstance();
-      if (mc != null) {
-        String s = this.homeName;
-        int maxW = this.getWidth() + 16;
-        if (mc.font.width(s) > maxW) {
-          s = mc.font.plainSubstrByWidth(s, maxW - 3) + "...";
-        }
-        int sw = mc.font.width(s);
-        graphics.text(mc.font, s, this.getX() + this.getWidth() / 2 - sw / 2,
-            this.getY() + this.getHeight() + 2, 0xFFFFFFFF);
-      }
     }
   }
 }

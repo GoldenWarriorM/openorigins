@@ -1,5 +1,6 @@
 package com.openorigins.client.mixin;
 
+import com.openorigins.client.util.HomeFetch;
 import com.openorigins.client.util.HomeInfoCache;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
@@ -21,7 +22,7 @@ public abstract class ContainerSyncMixin {
       if (n > 0) {
         org.slf4j.LoggerFactory.getLogger("openorigins")
             .info("[homes-lore] captured {} homes on {}", n, why);
-        com.openorigins.client.screen.HomesMenuScreen.onCaptured();
+        HomeFetch.onCaptured();
       }
     }
   }

@@ -238,6 +238,48 @@ public final class HomeInfoCache {
     return List.copyOf(LAYOUT);
   }
 
+  /**
+   * Ordered panel cells for the given home names: {@code "home:<realName>"}
+   * or {@code "locked"} for free slots. Capped at 15 (3x5).
+   */
+  public static List<String> cellsFor(List<String> names) {
+    Map<String, String> byKey = new java.util.HashMap<>();
+    for (String n : names) {
+      byKey.put(key(n), n);
+    }
+    List<String> cells = new ArrayList<>();
+    java.util.Set<String> covered = new java.util.HashSet<>();
+    int plusLeft = CAPACITY > 0 ? Math.max(0, CAPACITY - names.size()) : -1;
+    int needed = ((names.size() + 4) / 5) * 5;
+    int pos = 0;
+    for (String e : LAYOUT) {
+      if (e.startsWith("home:")) {
+        String k = e.substring(5);
+        String real = byKey.get(k);
+        if (real != null) {
+          cells.add("home:" + real);
+          covered.add(k);
+          pos++;
+        }
+      } else if (e.toLowerCase(java.util.Locale.ROOT).contains("close")) {
+        continue;
+      } else if (plusLeft > 0) {
+        cells.add("locked");
+        plusLeft--;
+        pos++;
+      } else if (plusLeft < 0 && pos < needed) {
+        cells.add("locked");
+        pos++;
+      }
+    }
+    for (String n : names) {
+      if (!covered.contains(key(n))) {
+        cells.add("home:" + n);
+      }
+    }
+    return cells.size() > 15 ? cells.subList(0, 15) : cells;
+  }
+
   private static Path file() {
     return FabricLoader.getInstance().getConfigDir().resolve("openorigins_homes.json");
   }

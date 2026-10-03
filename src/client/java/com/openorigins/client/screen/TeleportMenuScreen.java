@@ -1,6 +1,11 @@
 package com.openorigins.client.screen;
 
+import com.openorigins.client.util.HomeFetch;
+import com.openorigins.client.util.HomeInfoCache;
+import com.openorigins.client.util.HomeListFetcher;
 import com.openorigins.client.util.ServerPackIcons;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
@@ -14,11 +19,11 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 
 /**
- * Radial teleport menu with icons loaded at runtime from the server resource pack.
- * No pack pixels are bundled with the mod; transparent margins are trimmed
- * down to the outline edge on load.
+ * Radial teleport menu with icons loaded at runtime from the server resource pack,
+ * plus a homes panel docked to the right edge (3 columns, up to 15).
+ * The radial part renders instantly; the homes section fills in async.
  */
-public class TeleportMenuScreen extends Screen {
+public class TeleportMenuScreen extends Screen implements HomePanelHost {
   private record Entry(String labelKey, String command, double angleDeg, String packPath, int yOff) {}
 
   private static final Entry[] ENTRIES = {
@@ -35,6 +40,16 @@ public class TeleportMenuScreen extends Screen {
   };
   private static final int ICON_SIZE = 56;
   private static final int RADIUS = 95;
+  static final int HOME_COLS = 3;
+  static final int HOME_ICON = 40;
+  static final int HOME_GAP = 8;
+  static final int HOME_LABEL_H = 12;
+  static final int HOME_MAX = 15;
+
+  private List<String> homes;
+  private int panelX;
+  private int panelY;
+  private int panelCount;
 
   public TeleportMenuScreen() {
     super(Component.translatable("menu.openorigins.teleport.title"));
@@ -42,7 +57,30 @@ public class TeleportMenuScreen extends Screen {
 
   @Override
   protected void init() {
-    double cx = this.width / 2.0;
+    if (this.homes == null && this.minecraft != null && this.minecraft.player != null) {
+      HomeListFetcher.fetchHomes(names -> {
+        if (this.minecraft == null || this.minecraft.gui.screen() != this) {
+          return;
+        }
+        this.homes = new ArrayList<>(names);
+        this.clearWidgets();
+        this.buildAll();
+        if (HomeFetch.consumeRefetch()) {
+          HomeFetch.start(TeleportMenuScreen::new);
+        }
+      });
+    }
+    this.buildAll();
+  }
+
+  @Override
+  public void rebuildHomeWidgets() {
+    this.clearWidgets();
+    this.buildAll();
+  }
+
+  private void buildAll() {
+    double cx = (this.width - 170) / 2.0;
     double cy = this.height / 2.0;
     for (Entry entry : ENTRIES) {
       double angle = Math.toRadians(entry.angleDeg);
@@ -67,15 +105,83 @@ public class TeleportMenuScreen extends Screen {
         }).bounds(x, y, 96, 20).build());
       }
     }
+    this.buildHomePanel();
+  }
+
+  private void buildHomePanel() {
+    this.panelCount = 0;
+    if (this.homes == null || this.homes.isEmpty()) {
+      return;
+    }
+    List<String> cells = HomeInfoCache.cellsFor(this.homes);
+    if (cells.isEmpty()) {
+      return;
+    }
+    java.util.Map<String, ServerPackIcons.LoadedIcon> icons = new java.util.HashMap<>();
+    for (String c : cells) {
+      if (c.startsWith("home:")) {
+        String n = c.substring(5);
+        ServerPackIcons.get(HomeInfoCache.iconPath(n)).ifPresent(li -> icons.put(n, li));
+      }
+    }
+    ServerPackIcons.get(HomeInfoCache.PLUS_ICON).ifPresent(li -> icons.put("\0plus", li));
+    int cellW = HOME_ICON + HOME_GAP;
+    int rows = (cells.size() + HOME_COLS - 1) / HOME_COLS;
+    int panelW = HOME_COLS * cellW - HOME_GAP;
+    int panelH = rows * (HOME_ICON + HOME_LABEL_H + HOME_GAP) - HOME_GAP;
+    this.panelX = this.width - panelW - 10;
+    this.panelY = Math.max(48, (this.height - panelH) / 2);
+    this.panelCount = cells.size();
+    for (int i = 0; i < cells.size(); i++) {
+      String cell = cells.get(i);
+      int col = i % HOME_COLS;
+      int row = i / HOME_COLS;
+      int x = this.panelX + col * cellW;
+      int y = this.panelY + row * (HOME_ICON + HOME_LABEL_H + HOME_GAP);
+      if (cell.startsWith("home:")) {
+        String name = cell.substring(5);
+        this.addRenderableWidget(HomesMenuScreen.makeHomeCell(this.minecraft, x, y, HOME_ICON, name,
+            () -> teleportHome(name), () -> deleteHome(name)));
+      } else {
+        this.addRenderableWidget(HomesMenuScreen.makePlusCell(x, y, HOME_ICON, () -> {
+          if (this.minecraft != null) {
+            SetHomeScreen.returnTo = TeleportMenuScreen::new;
+            this.minecraft.gui.setScreen(new SetHomeScreen());
+          }
+        }));
+      }
+    }
+  }
+
+  private void teleportHome(String name) {
+    if (this.minecraft != null && this.minecraft.player != null) {
+      this.minecraft.player.connection.sendCommand("home " + name);
+    }
+    this.onClose();
+  }
+
+  private void deleteHome(String name) {
+    if (this.minecraft != null && this.minecraft.player != null) {
+      this.minecraft.player.connection.sendCommand("delhome " + name);
+    }
+    if (this.minecraft != null) {
+      this.minecraft.gui.setScreen(new TeleportMenuScreen());
+    }
   }
 
   @Override
-  public void extractRenderState(net.minecraft.client.gui.GuiGraphicsExtractor extractor,
+  public void extractRenderState(GuiGraphicsExtractor extractor,
       int mouseX, int mouseY, float partialTick) {
     extractor.fill(0, 0, this.width, this.height, 0xA0000000);
     super.extractRenderState(extractor, mouseX, mouseY, partialTick);
     int titleWidth = this.font.width(this.title);
-    extractor.text(this.font, this.title, this.width / 2 - titleWidth / 2, 20, 0xFFFFFFFF);
+    extractor.text(this.font, this.title, (this.width - 170) / 2 - titleWidth / 2, 20, 0xFFFFFFFF);
+    if (this.panelCount > 0) {
+      Component header = Component.translatable("menu.openorigins.homes.title");
+      int hw = this.font.width(header);
+      int gridW = HOME_COLS * (HOME_ICON + HOME_GAP) - HOME_GAP;
+      extractor.text(this.font, header, this.panelX + gridW / 2 - hw / 2, this.panelY - 16, 0xFFFFFFFF);
+    }
   }
 
   @Override
@@ -136,9 +242,9 @@ public class TeleportMenuScreen extends Screen {
         int x1 = this.getX() + this.getWidth() + 1;
         int y1 = this.getY() + this.getHeight() + 1;
         graphics.fill(x0, y0, x1, y0 + 1, 0xFFFFFFFF);
-        graphics.fill(x0, y1 - 1, x1, y1, 0xFFFFFFFF);
         graphics.fill(x0, y0, x0 + 1, y1, 0xFFFFFFFF);
         graphics.fill(x1 - 1, y0, x1, y1, 0xFFFFFFFF);
+        graphics.fill(x0, y1 - 1, x1, y1, 0xFFFFFFFF);
       }
       Minecraft mc = Minecraft.getInstance();
       if (mc != null) {

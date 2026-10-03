@@ -8,6 +8,9 @@ import net.minecraft.network.chat.Component;
 
 /** Name input for a new home; Done sends {@code /sethome <name>}. */
 public class SetHomeScreen extends Screen {
+  /** Where to return after Done/Cancel. */
+  public static java.util.function.Supplier<Screen> returnTo = HomesMenuScreen::new;
+
   private EditBox nameBox;
 
   public SetHomeScreen() {
@@ -38,14 +41,14 @@ public class SetHomeScreen extends Screen {
     String name = this.nameBox == null ? "" : this.nameBox.getValue().trim().replaceAll("[^a-zA-Z0-9_]", "");
     if (!name.isEmpty() && this.minecraft != null && this.minecraft.player != null) {
       this.minecraft.player.connection.sendCommand("sethome " + name);
-      HomesMenuScreen.requestRefetch();
-      this.minecraft.gui.setScreen(new HomesMenuScreen());
+      com.openorigins.client.util.HomeFetch.requestRefetch();
+      this.minecraft.gui.setScreen(returnTo.get());
     }
   }
 
   private void doCancel() {
     if (this.minecraft != null) {
-      this.minecraft.gui.setScreen(new HomesMenuScreen());
+      this.minecraft.gui.setScreen(returnTo.get());
     }
   }
 
