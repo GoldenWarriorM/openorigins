@@ -14,6 +14,7 @@ public final class HotkeyFeatures {
   private static KeyMapping configKey;
   private static KeyMapping scanKey;
   private static KeyMapping teleportMenuKey;
+  private static KeyMapping homesMenuKey;
 
   private HotkeyFeatures() {}
 
@@ -34,6 +35,8 @@ public final class HotkeyFeatures {
         new KeyMapping("key.openorigins.scan_cosmetics", InputConstants.UNKNOWN.getValue(), category));
     teleportMenuKey = KeyMappingHelper.registerKeyMapping(
         new KeyMapping("key.openorigins.teleport_menu", InputConstants.UNKNOWN.getValue(), category));
+    homesMenuKey = KeyMappingHelper.registerKeyMapping(
+        new KeyMapping("key.openorigins.homes_menu", InputConstants.UNKNOWN.getValue(), category));
 
     ClientTickEvents.END_CLIENT_TICK.register(client -> {
       while (scanKey.consumeClick()) {
@@ -42,6 +45,11 @@ public final class HotkeyFeatures {
       while (teleportMenuKey.consumeClick()) {
         if (client.gui.screen() == null && ConnectionUtil.isConnected()) {
           client.gui.setScreen(new com.openorigins.client.screen.TeleportMenuScreen());
+        }
+      }
+      while (homesMenuKey.consumeClick()) {
+        if (client.gui.screen() == null && ConnectionUtil.isConnected()) {
+          client.gui.setScreen(new com.openorigins.client.screen.HomesMenuScreen());
         }
       }
       while (configKey.consumeClick()) {

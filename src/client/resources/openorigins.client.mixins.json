@@ -8,6 +8,7 @@
     "AvatarBackItemMixin",
     "AvatarStateMixin",
     "BackSwagSlotMixin",
+    "CommandSuggestionsMixin",
     "ClientSpawnMixin",
     "EntityNameTagMixin",
     "RenderStateTagMixin",
