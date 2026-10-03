@@ -19,19 +19,19 @@ import net.minecraft.resources.Identifier;
  * down to the outline edge on load.
  */
 public class TeleportMenuScreen extends Screen {
-  private record Entry(String labelKey, String command, double angleDeg, String packPath) {}
+  private record Entry(String labelKey, String command, double angleDeg, String packPath, int yOff) {}
 
   private static final Entry[] ENTRIES = {
       new Entry("menu.openorigins.teleport.blue", "balloon blue-balloon", -90.0,
-          "textures/custom_ui/transport_menu/button_balloon_blue.png"),
+          "textures/custom_ui/transport_menu/button_balloon_blue.png", 0),
       new Entry("menu.openorigins.teleport.yellow", "balloon yellow-balloon", 0.0,
-          "textures/custom_ui/transport_menu/button_balloon_yellow.png"),
+          "textures/custom_ui/transport_menu/button_balloon_yellow.png", 0),
       new Entry("menu.openorigins.teleport.green", "balloon green-balloon", 180.0,
-          "textures/custom_ui/transport_menu/button_balloon_green.png"),
-      new Entry("menu.openorigins.teleport.realm", "realm tp", 105.0,
-          "textures/custom_ui/transport_menu/button_homes.png"),
-      new Entry("menu.openorigins.teleport.spawn", "spawn", 75.0,
-          "textures/custom_ui/transport_menu/button_origin_isles.png"),
+          "textures/custom_ui/transport_menu/button_balloon_green.png", 0),
+      new Entry("menu.openorigins.teleport.realm", "realm tp", 115.0,
+          "textures/custom_ui/transport_menu/button_homes.png", 16),
+      new Entry("menu.openorigins.teleport.spawn", "spawn", 65.0,
+          "textures/custom_ui/transport_menu/button_origin_isles.png", 16),
   };
   private static final int ICON_SIZE = 56;
   private static final int RADIUS = 95;
@@ -47,7 +47,7 @@ public class TeleportMenuScreen extends Screen {
     for (Entry entry : ENTRIES) {
       double angle = Math.toRadians(entry.angleDeg);
       int x = (int) Math.round(cx + Math.cos(angle) * RADIUS) - ICON_SIZE / 2;
-      int y = (int) Math.round(cy + Math.sin(angle) * RADIUS) - ICON_SIZE / 2;
+      int y = (int) Math.round(cy + Math.sin(angle) * RADIUS) - ICON_SIZE / 2 + entry.yOff;
       Optional<ServerPackIcons.LoadedIcon> icon = ServerPackIcons.get(entry.packPath);
       if (icon.isPresent()) {
         ServerPackIcons.LoadedIcon li = icon.get();
