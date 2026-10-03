@@ -20,6 +20,12 @@ public class SetHomeScreen extends Screen {
     this.nameBox = new EditBox(this.font, cx - 100, this.height / 2 - 10, 200, 20,
         Component.translatable("menu.openorigins.sethome.title"));
     this.nameBox.setMaxLength(32);
+    this.nameBox.setResponder(s -> {
+      String filtered = s.replaceAll("[^a-zA-Z0-9_]", "");
+      if (!filtered.equals(s)) {
+        this.nameBox.setValue(filtered);
+      }
+    });
     this.addRenderableWidget(this.nameBox);
     this.setFocused(this.nameBox);
     this.addRenderableWidget(Button.builder(Component.translatable("gui.done"), b -> this.doDone())
@@ -29,9 +35,10 @@ public class SetHomeScreen extends Screen {
   }
 
   private void doDone() {
-    String name = this.nameBox == null ? "" : this.nameBox.getValue().trim();
+    String name = this.nameBox == null ? "" : this.nameBox.getValue().trim().replaceAll("[^a-zA-Z0-9_]", "");
     if (!name.isEmpty() && this.minecraft != null && this.minecraft.player != null) {
       this.minecraft.player.connection.sendCommand("sethome " + name);
+      HomesMenuScreen.requestRefetch();
       this.minecraft.gui.setScreen(new HomesMenuScreen());
     }
   }

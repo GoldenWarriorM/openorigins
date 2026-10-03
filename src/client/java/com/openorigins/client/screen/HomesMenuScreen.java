@@ -34,6 +34,8 @@ public class HomesMenuScreen extends Screen {
   private boolean failed;
   private static boolean fetchArmed;
   private static long fetchDeadline;
+  private static boolean refetchRequested;
+  private static boolean layoutFetchTried;
   private static final java.util.Set<String> AUTO_TRIED =
       java.util.Collections.newSetFromMap(new java.util.concurrent.ConcurrentHashMap<>());
 
@@ -44,6 +46,11 @@ public class HomesMenuScreen extends Screen {
       fetchDeadline = System.currentTimeMillis() + 10000;
       mc.player.connection.sendCommand("homes");
     }
+  }
+
+  /** Next opened menu re-reads slot positions from the server once names arrive. */
+  public static void requestRefetch() {
+    refetchRequested = true;
   }
 
   public HomesMenuScreen() {
@@ -60,7 +67,12 @@ public class HomesMenuScreen extends Screen {
           }
           this.homes = new ArrayList<>(names);
           this.layoutWidgets();
-          this.autoFetchMissing();
+          if (refetchRequested) {
+            refetchRequested = false;
+            startFetch();
+          } else {
+            this.autoFetchMissing();
+          }
         });
       } else {
         this.failed = true;
@@ -79,7 +91,7 @@ public class HomesMenuScreen extends Screen {
     if (this.homes == null || this.homes.isEmpty() || fetchArmed) {
       return;
     }
-    boolean need = false;
+    boolean need = com.openorigins.client.util.HomeInfoCache.layout().isEmpty() && !layoutFetchTried;
     for (String n : this.homes) {
       String k = com.openorigins.client.util.HomeInfoCache.key(n);
       if (!com.openorigins.client.util.HomeInfoCache.has(n) && AUTO_TRIED.add(k)) {
@@ -87,6 +99,7 @@ public class HomesMenuScreen extends Screen {
       }
     }
     if (need) {
+      layoutFetchTried = true;
       startFetch();
     }
   }
@@ -134,7 +147,7 @@ public class HomesMenuScreen extends Screen {
           cells.add("home:" + real);
           covered.add(k);
         }
-      } else {
+      } else if (!com.openorigins.client.util.HomeInfoCache.isFiller(e)) {
         cells.add("locked");
       }
     }
@@ -170,7 +183,12 @@ public class HomesMenuScreen extends Screen {
         Component tip = com.openorigins.client.util.HomeInfoCache.tooltip(name);
         if (li != null) {
           this.addRenderableWidget(new HomeButton(x, y, ICON,
-              Component.literal(name), li.textureId(), li.width(), li.height(), name, tip,
+              Component.literal(name), li.textureId(), li.width(), li.height(), false, name, tip,
+              () -> teleport(name), () -> delete(name)));
+        } else if (this.minecraft != null && this.minecraft.player != null) {
+          Identifier skin = this.minecraft.player.getSkin().body().texturePath();
+          this.addRenderableWidget(new HomeButton(x, y, ICON,
+              Component.literal(name), skin, 64, 64, true, name, tip,
               () -> teleport(name), () -> delete(name)));
         } else {
           this.addRenderableWidget(Button.builder(Component.literal(name), b -> teleport(name))
@@ -182,7 +200,7 @@ public class HomesMenuScreen extends Screen {
         if (li != null) {
           this.addRenderableWidget(new HomeButton(x, y, ICON,
               Component.translatable("menu.openorigins.homes.new"), li.textureId(),
-              li.width(), li.height(), "+", tip,
+              li.width(), li.height(), false, "+", tip,
               () -> openSetHome(), () -> openSetHome()));
         } else {
           this.addRenderableWidget(Button.builder(
@@ -220,6 +238,7 @@ public class HomesMenuScreen extends Screen {
     if (this.minecraft != null && this.minecraft.player != null) {
       this.minecraft.player.connection.sendCommand("delhome " + name);
     }
+    requestRefetch();
     this.refresh();
   }
 
@@ -261,17 +280,19 @@ public class HomesMenuScreen extends Screen {
     private final Identifier textureId;
     private final int texW;
     private final int texH;
+    private final boolean face;
     private final String homeName;
     private final Runnable leftAction;
     private final Runnable rightAction;
 
     HomeButton(int x, int y, int size, Component message, Identifier textureId,
-        int texW, int texH, String homeName, Component tooltip,
+        int texW, int texH, boolean face, String homeName, Component tooltip,
         Runnable leftAction, Runnable rightAction) {
       super(x, y, size, size, message);
       this.textureId = textureId;
       this.texW = texW;
       this.texH = texH;
+      this.face = face;
       this.homeName = homeName;
       this.leftAction = leftAction;
       this.rightAction = rightAction;
@@ -304,18 +325,28 @@ public class HomesMenuScreen extends Screen {
 
     @Override
     protected void extractContents(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
-      float aspect = this.texW / (float) this.texH;
+      float aspect;
       int dw = this.getWidth();
       int dh = this.getHeight();
-      if (aspect >= 1.0F) {
-        dh = Math.max(1, Math.round(dw / aspect));
+      if (this.face) {
+        int dx = this.getX();
+        int dy = this.getY();
+        graphics.blit(RenderPipelines.GUI_TEXTURED, this.textureId,
+            dx, dy, 8.0F, 8.0F, dw, dh, 8, 8, 64, 64);
+        graphics.blit(RenderPipelines.GUI_TEXTURED, this.textureId,
+            dx, dy, 40.0F, 8.0F, dw, dh, 8, 8, 64, 64);
       } else {
-        dw = Math.max(1, Math.round(dh * aspect));
+        aspect = this.texW / (float) this.texH;
+        if (aspect >= 1.0F) {
+          dh = Math.max(1, Math.round(dw / aspect));
+        } else {
+          dw = Math.max(1, Math.round(dh * aspect));
+        }
+        int dx = this.getX() + (this.getWidth() - dw) / 2;
+        int dy = this.getY() + (this.getHeight() - dh) / 2;
+        graphics.blit(RenderPipelines.GUI_TEXTURED, this.textureId,
+            dx, dy, 0.0F, 0.0F, dw, dh, this.texW, this.texH, this.texW, this.texH);
       }
-      int dx = this.getX() + (this.getWidth() - dw) / 2;
-      int dy = this.getY() + (this.getHeight() - dh) / 2;
-      graphics.blit(RenderPipelines.GUI_TEXTURED, this.textureId,
-          dx, dy, 0.0F, 0.0F, dw, dh, this.texW, this.texH, this.texW, this.texH);
       if (this.isHoveredOrFocused()) {
         int x0 = this.getX() - 1;
         int y0 = this.getY() - 1;

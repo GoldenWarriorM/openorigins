@@ -158,24 +158,31 @@ public final class HomeInfoCache {
         layout.add("home:" + key(name));
         n++;
       } else {
-        layout.add("locked");
-        others.add(name);
+        layout.add("locked:" + name);
+        String firstLore = hasLore ? lore.lines().get(0).getString() : "<no lore>";
+        others.add(name + " :: " + firstLore);
       }
     }
     if (loreSlots > 0 && n == 0) {
       org.slf4j.LoggerFactory.getLogger("openorigins")
           .info("[homes-lore] {} lore slots, no homes. sample: {}", loreSlots, sample);
     }
-    if (!layout.isEmpty() && !layout.equals(LAYOUT)) {
+    if (n > 0 && !layout.isEmpty() && !layout.equals(LAYOUT)) {
       LAYOUT.clear();
       LAYOUT.addAll(layout);
       save();
       if (!others.isEmpty()) {
         org.slf4j.LoggerFactory.getLogger("openorigins")
-            .info("[homes-lore] layout: {} homes, {} locked. others: {}", n, layout.size() - n, others);
+            .info("[homes-lore] layout: {} homes, {} other. others: {}", n, layout.size() - n, others);
       }
     }
     return n;
+  }
+
+  /** True for filler entries that are never free slots (rank locks, close button). */
+  public static boolean isFiller(String layoutEntry) {
+    String e = layoutEntry.toLowerCase(java.util.Locale.ROOT);
+    return e.contains("rank") || e.contains("close");
   }
 
   public static List<String> layout() {
