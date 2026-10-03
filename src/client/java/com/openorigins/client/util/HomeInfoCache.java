@@ -5,8 +5,13 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import net.minecraft.ChatFormatting;
+import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.world.inventory.Slot;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.component.ItemLore;
 
 /**
  * Caches home details (created/world/position lore) seen in the server's
@@ -64,5 +69,40 @@ public final class HomeInfoCache {
         .append(Component.translatable("menu.openorigins.homes.teleport_hint").withStyle(ChatFormatting.GREEN))
         .append(Component.literal("\n"))
         .append(Component.translatable("menu.openorigins.homes.delete_hint").withStyle(ChatFormatting.YELLOW));
+  }
+
+  /**
+   * Scans any open container for home-like item lore (identified by content,
+   * not by title — server titles are pack glyphs). Returns captures count.
+   */
+  public static int captureFrom(AbstractContainerScreen<?> screen) {
+    if (screen == null || screen.getMenu() == null) {
+      return 0;
+    }
+    int n = 0;
+    for (Slot slot : screen.getMenu().slots) {
+      if (!slot.hasItem()) {
+        continue;
+      }
+      ItemStack stack = slot.getItem();
+      Component name = stack.get(DataComponents.CUSTOM_NAME);
+      ItemLore lore = stack.get(DataComponents.LORE);
+      if (name == null || lore == null || lore.lines().isEmpty()) {
+        continue;
+      }
+      boolean looksLikeHome = false;
+      for (Component line : lore.lines()) {
+        String s = line.getString();
+        if (s.contains("World:") || s.contains("Position:") || s.contains("Created:")) {
+          looksLikeHome = true;
+          break;
+        }
+      }
+      if (looksLikeHome) {
+        put(name.getString(), lore.lines());
+        n++;
+      }
+    }
+    return n;
   }
 }
