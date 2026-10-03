@@ -15,6 +15,10 @@ public final class HotkeyFeatures {
   private static KeyMapping scanKey;
   private static KeyMapping teleportMenuKey;
   private static KeyMapping homesMenuKey;
+  private static KeyMapping blueBalloonKey;
+  private static KeyMapping greenBalloonKey;
+  private static KeyMapping yellowBalloonKey;
+  private static KeyMapping redBalloonKey;
 
   private HotkeyFeatures() {}
 
@@ -37,6 +41,14 @@ public final class HotkeyFeatures {
         new KeyMapping("key.openorigins.teleport_menu", InputConstants.UNKNOWN.getValue(), category));
     homesMenuKey = KeyMappingHelper.registerKeyMapping(
         new KeyMapping("key.openorigins.homes_menu", InputConstants.UNKNOWN.getValue(), category));
+    blueBalloonKey = KeyMappingHelper.registerKeyMapping(
+        new KeyMapping("key.openorigins.balloon_blue", InputConstants.UNKNOWN.getValue(), category));
+    greenBalloonKey = KeyMappingHelper.registerKeyMapping(
+        new KeyMapping("key.openorigins.balloon_green", InputConstants.UNKNOWN.getValue(), category));
+    yellowBalloonKey = KeyMappingHelper.registerKeyMapping(
+        new KeyMapping("key.openorigins.balloon_yellow", InputConstants.UNKNOWN.getValue(), category));
+    redBalloonKey = KeyMappingHelper.registerKeyMapping(
+        new KeyMapping("key.openorigins.balloon_red", InputConstants.UNKNOWN.getValue(), category));
 
     ClientTickEvents.END_CLIENT_TICK.register(client -> {
       while (scanKey.consumeClick()) {
@@ -62,6 +74,10 @@ public final class HotkeyFeatures {
       while (gestureKey.consumeClick()) client.player.connection.sendCommand("gesture");
       while (spawnKey.consumeClick()) client.player.connection.sendCommand("spawn");
       while (realmKey.consumeClick()) client.player.connection.sendCommand("realm tp");
+      while (blueBalloonKey.consumeClick()) client.player.connection.sendCommand("balloon blue-balloon");
+      while (greenBalloonKey.consumeClick()) client.player.connection.sendCommand("balloon green-balloon");
+      while (yellowBalloonKey.consumeClick()) client.player.connection.sendCommand("balloon yellow-balloon");
+      while (redBalloonKey.consumeClick()) client.player.connection.sendCommand("balloon red-balloon");
     });
   }
 }
