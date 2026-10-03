@@ -22,5 +22,22 @@ public abstract class ContainerLoreMixin {
       LORE_LOG.info("[homes-lore] captured {} homes on open", n);
     }
     com.openorigins.client.util.OpenWorldCache.scan(self);
+    try {
+      StringBuilder sb = new StringBuilder();
+      int count = 0;
+      for (net.minecraft.world.inventory.Slot slot : self.getMenu().slots) {
+        if (!slot.hasItem() || count >= 30) {
+          continue;
+        }
+        String nm = slot.getItem().getHoverName().getString();
+        if (sb.length() > 0) {
+          sb.append(" | ");
+        }
+        sb.append(nm.length() > 40 ? nm.substring(0, 40) : nm);
+        count++;
+      }
+      LORE_LOG.info("[menu-dump] {} slots: {}", count, sb);
+    } catch (Throwable ignored) {
+    }
   }
 }
