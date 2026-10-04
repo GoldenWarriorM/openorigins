@@ -12,6 +12,7 @@ public enum OriginFeature {
   HIDE_NAMES(FeatureCategory.GENERAL, "Hide Names"),
   AUCTION_PING(FeatureCategory.NOTIFICATIONS, "Auction Ping"),
   SCOREBOARD_DESYNC_FIX(FeatureCategory.FIXES, "Scoreboard Desync Fix"),
+  REGISTRY_DESYNC_FIX(FeatureCategory.FIXES, "Registry Desync Fix"),
   BADGER_TASK_HUD(FeatureCategory.GENERAL, "Badger Task HUD");
 
   private final FeatureCategory category;
