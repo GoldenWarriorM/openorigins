@@ -17,6 +17,8 @@ public final class HelmetCosmeticTracker {
   private static volatile java.util.List<net.minecraft.network.chat.Component> frozenTip;
   private static volatile String frozenTipKey = "";
   private static final Map<Integer, ItemStack> INV_HEADS = new java.util.concurrent.ConcurrentHashMap<>();
+  private static volatile Map<Integer, ItemStack> diffBase;
+  private static volatile long diffAt;
   private static volatile ItemStack pendingHelmet = ItemStack.EMPTY;
   private static volatile long pendingAt;
   private static final long PENDING_TTL_MS = 2000;
@@ -52,6 +54,14 @@ public final class HelmetCosmeticTracker {
         pendingHelmet = ItemStack.EMPTY;
       }
       if (isFirework(stack)) {
+        Map<Integer, ItemStack> base = new java.util.HashMap<>();
+        for (Map.Entry<Integer, ItemStack> e : INV_HEADS.entrySet()) {
+          if (e.getValue() != null && !e.getValue().isEmpty()) {
+            base.put(e.getKey(), e.getValue().copy());
+          }
+        }
+        diffBase = base;
+        diffAt = System.currentTimeMillis();
         diffStashVanished();
       }
     }
@@ -117,7 +127,11 @@ public final class HelmetCosmeticTracker {
 
   /** A head item vanished from storage exactly when the combo formed: it got merged. */
   private static void diffStashVanished() {
-    for (Map.Entry<Integer, ItemStack> e : INV_HEADS.entrySet()) {
+    Map<Integer, ItemStack> base = diffBase;
+    if (base == null || base.isEmpty()) {
+      return;
+    }
+    for (Map.Entry<Integer, ItemStack> e : base.entrySet()) {
       ItemStack gone = e.getValue();
       if (gone != null && !gone.isEmpty() && !presentAnywhere(gone)) {
         ItemStack cur = realHelmet;
@@ -126,7 +140,7 @@ public final class HelmetCosmeticTracker {
         lastCommitMs = System.currentTimeMillis();
         org.slf4j.LoggerFactory.getLogger("openorigins").info("[helmet] diff-stash {} (was {})",
             describe(gone), cur.isEmpty() ? "<empty>" : describe(cur));
-        INV_HEADS.remove(e.getKey());
+        diffBase = null;
         return;
       }
     }
@@ -147,6 +161,12 @@ public final class HelmetCosmeticTracker {
   /** Drops the snapshot if the helmet left without any slot activity. */
   public static void resolvePending() {
     long now = System.currentTimeMillis();
+    if (diffBase != null) {
+      if (now - diffAt > 500) {
+        diffStashVanished();
+        diffBase = null;
+      }
+    }
     if (!pendingHelmet.isEmpty() && now - pendingAt > PENDING_TTL_MS) {
       org.slf4j.LoggerFactory.getLogger("openorigins").info("[helmet] pending expired {}",
           describe(pendingHelmet));
