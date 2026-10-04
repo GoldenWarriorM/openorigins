@@ -72,7 +72,10 @@ public abstract class ContainerSyncMixin {
   private void openorigins$onContent(ClientboundContainerSetContentPacket packet, CallbackInfo ci) {
     openorigins$recapture("content");
     if (packet.containerId() == 0) {
-      com.openorigins.client.util.HelmetCosmeticTracker.clearInv();
+      java.util.List<net.minecraft.world.item.ItemStack> items = packet.items();
+      for (int i = 9; i <= 44 && i < items.size(); i++) {
+        com.openorigins.client.util.HelmetCosmeticTracker.noteInvSlot(i, items.get(i));
+      }
     }
   }
 

@@ -51,6 +51,10 @@ public final class HotkeyFeatures {
         new KeyMapping("key.openorigins.balloon_red", InputConstants.UNKNOWN.getValue(), category));
 
     ClientTickEvents.END_CLIENT_TICK.register(client -> {
+      if (client.player != null && com.openorigins.client.ConnectionUtil.isConnected()) {
+        com.openorigins.client.util.HelmetCosmeticTracker.offerReal(
+            client.player.getMainHandItem(), true);
+      }
       while (scanKey.consumeClick()) {
         CosmeticScanner.scanAndReport();
         if (client.gui.screen() instanceof net.minecraft.client.gui.screens.inventory.AbstractContainerScreen<?> container
