@@ -78,6 +78,13 @@ public abstract class HelmetCosmeticSlotMixin {
       return ItemStack.EMPTY;
     }
     HelmetCosmeticTracker.offerReal(worn);
+    try {
+      Player player = Minecraft.getInstance().player;
+      if (player != null) {
+        HelmetCosmeticTracker.offerReal(player.getMainHandItem(), true);
+      }
+    } catch (Throwable ignored) {
+    }
     if (HelmetCosmeticTracker.isCosmetic(worn)) {
       return worn;
     }
