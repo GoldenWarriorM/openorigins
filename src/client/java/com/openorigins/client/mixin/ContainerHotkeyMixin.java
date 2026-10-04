@@ -16,7 +16,12 @@ public abstract class ContainerHotkeyMixin {
   @Inject(method = "keyPressed", at = @At("HEAD"), cancellable = true)
   private void openorigins$guiHotkey(KeyEvent event, CallbackInfoReturnable<Boolean> cir) {
     if (HotkeyFeatures.matchesScan(event)) {
-      ContainerDump.dump(Minecraft.getInstance());
+      org.slf4j.LoggerFactory.getLogger("openorigins").info("[hotkey] scan pressed in GUI");
+      try {
+        ContainerDump.dump(Minecraft.getInstance());
+      } catch (Throwable t) {
+        org.slf4j.LoggerFactory.getLogger("openorigins").warn("[hotkey] dump failed: {}", t.toString());
+      }
       cir.setReturnValue(true);
     }
   }
