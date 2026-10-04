@@ -117,6 +117,7 @@ public class TeleportMenuScreen extends Screen implements HomePanelHost {
       });
     }
     this.buildAll();
+    HomeFetch.ensureFresh();
   }
 
   @Override
@@ -129,6 +130,25 @@ public class TeleportMenuScreen extends Screen implements HomePanelHost {
   public void forgetHome(String name) {
     if (this.homes != null) {
       this.homes.removeIf(n -> n.equalsIgnoreCase(name));
+    }
+    this.clearWidgets();
+    this.buildAll();
+  }
+
+  @Override
+  public void addHome(String name) {
+    if (this.homes == null) {
+      this.homes = new ArrayList<>();
+    }
+    boolean known = false;
+    for (String n : this.homes) {
+      if (n.equalsIgnoreCase(name)) {
+        known = true;
+        break;
+      }
+    }
+    if (!known) {
+      this.homes.add(name);
     }
     this.clearWidgets();
     this.buildAll();

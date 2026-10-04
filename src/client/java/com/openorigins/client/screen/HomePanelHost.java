@@ -6,4 +6,7 @@ public interface HomePanelHost {
 
   /** Drops a home immediately (server confirmed deletion). */
   void forgetHome(String name);
+
+  /** Adds a home immediately (server confirmed creation). */
+  void addHome(String name);
 }

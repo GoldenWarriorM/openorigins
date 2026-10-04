@@ -26,9 +26,23 @@ public final class HomeFetch {
     if (!BackgroundMenu.tryArm()) {
       return;
     }
+    lastFetchMs = System.currentTimeMillis();
     Minecraft mc = Minecraft.getInstance();
     if (mc != null && mc.player != null) {
       mc.player.connection.sendCommand("homes");
+    }
+  }
+
+  private static volatile long lastFetchMs;
+
+  /** Background refresh if data missing or older than a minute. */
+  public static void ensureFresh() {
+    if (BackgroundMenu.isArmed()) {
+      return;
+    }
+    if (HomeInfoCache.layout().isEmpty()
+        || System.currentTimeMillis() - lastFetchMs > 60000L) {
+      start();
     }
   }
 

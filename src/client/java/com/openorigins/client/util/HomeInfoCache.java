@@ -314,21 +314,73 @@ public final class HomeInfoCache {
           .info("[homes-lore] {} lore slots, no homes. sample: {}", loreSlots, sample);
     }
     if (n > 0 && !layout.isEmpty() && !layout.equals(LAYOUT)) {
-      LAYOUT.clear();
-      LAYOUT.addAll(layout);
-      save();
-      if (!others.isEmpty()) {
-        org.slf4j.LoggerFactory.getLogger("openorigins")
-            .info("[homes-lore] layout: {} homes, {} other. others: {}", n, layout.size() - n, others);
+      java.util.Set<String> newKeys = new java.util.HashSet<>();
+      java.util.Set<String> oldKeys = new java.util.HashSet<>();
+      for (String s : layout) {
+        if (s.startsWith("home:")) {
+          newKeys.add(s);
+        }
+      }
+      for (String s : LAYOUT) {
+        if (s.startsWith("home:")) {
+          oldKeys.add(s);
+        }
+      }
+      boolean safe = newKeys.containsAll(oldKeys);
+      if (!safe) {
+        if (layout.equals(PENDING_LAYOUT)) {
+          PENDING_COUNT++;
+          safe = PENDING_COUNT >= 2;
+        } else {
+          PENDING_LAYOUT = new ArrayList<>(layout);
+          PENDING_COUNT = 1;
+        }
+      }
+      if (safe) {
+        LAYOUT.clear();
+        LAYOUT.addAll(layout);
+        save();
+        PENDING_LAYOUT = null;
+        PENDING_COUNT = 0;
+        if (!others.isEmpty()) {
+          org.slf4j.LoggerFactory.getLogger("openorigins")
+              .info("[homes-lore] layout: {} homes, {} other. others: {}", n, layout.size() - n, others);
+        }
       }
     }
     if (n > 0 || sawRank || sawCmd) {
-      CONTAINER_NAMES.clear();
-      CONTAINER_NAMES.putAll(guiNames);
-      lastHomesGuiMs = System.currentTimeMillis();
+      Map<String, String> gui = new java.util.HashMap<>(guiNames);
+      boolean safe = true;
+      for (String k : CONTAINER_NAMES.keySet()) {
+        if (!gui.containsKey(k)) {
+          safe = false;
+          break;
+        }
+      }
+      if (!safe) {
+        if (gui.equals(PENDING_NAMES)) {
+          PENDING_NAMES_COUNT++;
+          safe = PENDING_NAMES_COUNT >= 2;
+        } else {
+          PENDING_NAMES = gui;
+          PENDING_NAMES_COUNT = 1;
+        }
+      }
+      if (safe) {
+        CONTAINER_NAMES.clear();
+        CONTAINER_NAMES.putAll(gui);
+        lastHomesGuiMs = System.currentTimeMillis();
+        PENDING_NAMES = null;
+        PENDING_NAMES_COUNT = 0;
+      }
     }
     return n;
   }
+
+  private static List<String> PENDING_LAYOUT;
+  private static int PENDING_COUNT;
+  private static Map<String, String> PENDING_NAMES;
+  private static int PENDING_NAMES_COUNT;
 
   public static List<String> names() {
     return List.copyOf(NAMES);
@@ -338,9 +390,23 @@ public final class HomeInfoCache {
     return List.copyOf(LAYOUT);
   }
 
+  /** Adds a name immediately (e.g. server confirmed creation). @return true if changed. */
+  public static synchronized boolean addName(String name) {
+    if (name == null || name.isBlank()) {
+      return false;
+    }
+    for (String n : NAMES) {
+      if (n.equalsIgnoreCase(name)) {
+        return false;
+      }
+    }
+    NAMES.add(name);
+    save();
+    return true;
+  }
+
   /** Drops a name immediately (e.g. server confirmed deletion). @return true if changed. */
-  public static synchronized boolean removeName(String name) {
-    String k = key(name);
+  public static synchronized boolean removeName(String name) {    String k = key(name);
     TOMBSTONES.add(k);
     boolean changed = NAMES.removeIf(n -> n.equalsIgnoreCase(name));
     if (CONTAINER_NAMES.remove(k) != null) {

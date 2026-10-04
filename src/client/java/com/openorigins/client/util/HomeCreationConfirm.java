@@ -68,8 +68,12 @@ public final class HomeCreationConfirm {
       }
       BLOCKED.remove(norm(name));
       com.openorigins.client.util.HomeInfoCache.untomb(name);
+      if (com.openorigins.client.util.HomeInfoCache.addName(name)) {
+        refreshAdd(name);
+      } else {
+        refresh();
+      }
       com.openorigins.client.screen.SetHomeScreen.onServerResult(true, name);
-      refresh();
       return;
     }
     Matcher fail = CREATE_FAILED.matcher(text);
@@ -112,6 +116,17 @@ public final class HomeCreationConfirm {
       mc.execute(() -> {
         if (mc.gui.screen() instanceof com.openorigins.client.screen.HomePanelHost host) {
           host.forgetHome(name);
+        }
+      });
+    }
+  }
+
+  private static void refreshAdd(String name) {
+    Minecraft mc = Minecraft.getInstance();
+    if (mc != null) {
+      mc.execute(() -> {
+        if (mc.gui.screen() instanceof com.openorigins.client.screen.HomePanelHost host) {
+          host.addHome(name);
         }
       });
     }
