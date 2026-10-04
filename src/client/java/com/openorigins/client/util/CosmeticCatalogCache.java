@@ -52,8 +52,7 @@ public final class CosmeticCatalogCache {
   }
 
   /** Memorized clean tooltip lines, or null. */
-  public static List<Component> cleanFor(ItemStack cosmetic) {
-    if (cosmetic == null || cosmetic.isEmpty()) {
+  public static List<Component> cleanFor(ItemStack cosmetic) {    if (cosmetic == null || cosmetic.isEmpty()) {
       return null;
     }
     String key = normName(cosmetic.getHoverName().getString());
@@ -79,11 +78,104 @@ public final class CosmeticCatalogCache {
     }
     List<Component> full = new java.util.ArrayList<>(lore.lines());
     full.add(0, stack.getHoverName().copy());
+    full = withoutActions(full);
+    full = withoutActions(full);
     List<Component> prev = CLEAN.get(key);
     if (prev == null || !sameText(prev, full)) {
       CLEAN.put(key, List.copyOf(full));
       save();
       LOG.info("[cosmetics] captured '{}' ({} lines)", key, full.size());
+    }
+  }
+
+  private static net.minecraft.client.Minecraft mc() {
+    return net.minecraft.client.Minecraft.getInstance();
+  }
+
+  private static boolean profileArmed;
+  private static long profileDeadline;
+  private static java.util.function.Supplier<net.minecraft.client.gui.screens.Screen> profileReturn =
+      () -> null;
+  private static final java.util.Set<String> PROFILE_TARGETS =
+      java.util.Collections.newSetFromMap(new java.util.concurrent.ConcurrentHashMap<>());
+  private static volatile long lastProfileAttempt;
+
+  /** Silently opens /profile to memorize worn cosmetics, then returns. */
+  public static void fetchWorn(java.util.function.Supplier<net.minecraft.client.gui.screens.Screen> ret) {
+    Minecraft m = mc();
+    if (m == null || m.player == null) {
+      return;
+    }
+    PROFILE_TARGETS.clear();
+    try {
+      ItemStack head = m.player.getItemBySlot(net.minecraft.world.entity.EquipmentSlot.HEAD);
+      if (head != null && !head.isEmpty()) {
+        PROFILE_TARGETS.add(normName(head.getHoverName().getString()));
+      }
+      ItemStack back = com.openorigins.client.server.EntityData.getBackItem(m.player.getId());
+      if (back != null && !back.isEmpty()) {
+        PROFILE_TARGETS.add(normName(back.getHoverName().getString()));
+      }
+    } catch (Throwable ignored) {
+    }
+    if (PROFILE_TARGETS.isEmpty()) {
+      return;
+    }
+    profileReturn = ret;
+    profileArmed = true;
+    profileDeadline = System.currentTimeMillis() + 10000;
+    lastProfileAttempt = System.currentTimeMillis();
+    m.player.connection.sendCommand("profile");
+  }
+
+  public static boolean shouldFetchWorn() {
+    return System.currentTimeMillis() - lastProfileAttempt > 5 * 60000L;
+  }
+
+  /** Called on container open/content; captures targets and returns when done. */
+  public static void profilePoll(AbstractContainerScreen<?> screen) {
+    if (!profileArmed) {
+      return;
+    }
+    Minecraft m = mc();
+    if (m == null) {
+      profileArmed = false;
+      return;
+    }
+    boolean done = System.currentTimeMillis() > profileDeadline;
+    try {
+      Object inv = m.player != null ? m.player.getInventory() : null;
+      for (Slot slot : screen.getMenu().slots) {
+        if (!slot.hasItem()) {
+          continue;
+        }
+        if (inv != null && slot.container == inv) {
+          continue;
+        }
+        ItemStack stack = slot.getItem();
+        if (PROFILE_TARGETS.contains(normName(stack.getHoverName().getString()))) {
+          putClean(stack);
+          done = true;
+        }
+      }
+    } catch (Throwable ignored) {
+    }
+    if (done) {
+      profileArmed = false;
+      m.execute(() -> {
+        try {
+          if (m.player != null) {
+            m.player.closeContainer();
+          }
+          net.minecraft.client.gui.screens.Screen ret = profileReturn.get();
+          if (ret != null) {
+            m.gui.setScreen(ret);
+          } else {
+            m.gui.setScreen(null);
+          }
+        } catch (Throwable ignored) {
+        }
+      });
     }
   }
 
@@ -124,6 +216,7 @@ public final class CosmeticCatalogCache {
       }
       List<Component> full = new java.util.ArrayList<>(lore.lines());
       full.add(0, stack.getHoverName().copy());
+      full = withoutActions(full);
       List<Component> prev = CLEAN.get(key);
       if (prev == null) {
         CLEAN.put(key, List.copyOf(full));
@@ -136,6 +229,23 @@ public final class CosmeticCatalogCache {
     if (changed) {
       save();
     }
+  }
+
+  private static boolean isActionLine(String s) {
+    return s.startsWith("Left-click") || s.startsWith("Right-click")
+        || s.startsWith("Shift-click") || s.startsWith("Middle-click");
+  }
+
+  /** Drops menu-action lines, keeps the display content. */
+  private static List<Component> withoutActions(List<Component> lines) {
+    List<Component> out = new java.util.ArrayList<>(lines.size());
+    for (int i = 0; i < lines.size(); i++) {
+      if (i > 0 && isActionLine(lines.get(i).getString())) {
+        continue;
+      }
+      out.add(lines.get(i));
+    }
+    return out;
   }
 
   private static boolean sameText(List<Component> a, List<Component> b) {

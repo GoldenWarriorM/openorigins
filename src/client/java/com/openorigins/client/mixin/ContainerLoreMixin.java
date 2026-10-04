@@ -24,6 +24,7 @@ public abstract class ContainerLoreMixin {
     com.openorigins.client.util.OpenWorldCache.scan(self);
     com.openorigins.client.util.BadgerCache.scan(self);
     com.openorigins.client.util.CosmeticCatalogCache.scan(self);
+    com.openorigins.client.util.CosmeticCatalogCache.profilePoll(self);
     try {
       Object inv = null;
       try {
