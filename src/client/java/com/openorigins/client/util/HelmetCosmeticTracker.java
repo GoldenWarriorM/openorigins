@@ -63,7 +63,19 @@ public final class HelmetCosmeticTracker {
         }
         diffBase = base;
         diffAt = System.currentTimeMillis();
-        diffStashVanished();
+        if (!departedHelmet.isEmpty() && System.currentTimeMillis() - departedAt < 3000
+            && !presentAnywhere(departedHelmet)
+            && (realHelmet.isEmpty() || !isSameHead(realHelmet, departedHelmet))) {
+          ItemStack cur = realHelmet;
+          realHelmet = departedHelmet.copy();
+          setTip(departedHelmet);
+          lastCommitMs = System.currentTimeMillis();
+          org.slf4j.LoggerFactory.getLogger("openorigins").info("[helmet] departed-stash {} (was {})",
+              describe(departedHelmet), cur.isEmpty() ? "<empty>" : describe(cur));
+          departedHelmet = ItemStack.EMPTY;
+        } else {
+          diffStashVanished();
+        }
       }
     }
   }
@@ -79,11 +91,24 @@ public final class HelmetCosmeticTracker {
     if (menuSlot < 9 || menuSlot > 44) {
       return;
     }
+    ItemStack old = INV_HEADS.get(menuSlot);
     if (isHeadArmor(stack)) {
       INV_HEADS.put(menuSlot, stack.copy());
     } else {
       INV_HEADS.remove(menuSlot);
     }
+    if (isHeadArmor(old) && !isSameHead(old, stack)) {
+      departedHelmet = old.copy();
+      departedAt = System.currentTimeMillis();
+    }
+  }
+
+  private static volatile ItemStack departedHelmet = ItemStack.EMPTY;
+  private static volatile long departedAt;
+
+  private static boolean isSameHead(ItemStack a, ItemStack b) {
+    return a != null && b != null && !a.isEmpty() && !b.isEmpty()
+        && ItemStack.isSameItemSameComponents(a, b);
   }
 
   public static void clearInv() {
