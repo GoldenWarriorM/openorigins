@@ -432,7 +432,6 @@ public final class HomeInfoCache {
   /**
    * Ordered panel cells. Label is the display name (/homes), command is the
    * exact tab-complete name when paired, otherwise the label itself.
-   * When fresh /homes data exists it is authoritative; otherwise tab-complete.
    */
   public record Cell(String label, String command, boolean plus) {}
 
@@ -444,7 +443,6 @@ public final class HomeInfoCache {
       }
       tabByKey.put(key(n), n);
     }
-    boolean authoritative = containerFresh();
     java.util.List<Cell> homes = new ArrayList<>();
     java.util.List<Cell> pluses = new ArrayList<>();
     java.util.Set<String> covered = new java.util.HashSet<>();
@@ -453,11 +451,14 @@ public final class HomeInfoCache {
         String k = e.substring(5);
         String display = CONTAINER_NAMES.get(k);
         String cmd = tabByKey.get(k);
-        if (display != null && (cmd != null || authoritative)) {
-          homes.add(new Cell(display, cmd != null ? cmd : display, false));
+        if (display != null && cmd != null) {
+          homes.add(new Cell(display, cmd, false));
           covered.add(k);
-        } else if (cmd != null && !authoritative) {
+        } else if (cmd != null) {
           homes.add(new Cell(cmd, cmd, false));
+          covered.add(k);
+        } else if (display != null) {
+          homes.add(new Cell(display, display, false));
           covered.add(k);
         }
       } else if (e.toLowerCase(java.util.Locale.ROOT).startsWith("locked:cmd:")) {
@@ -466,9 +467,6 @@ public final class HomeInfoCache {
     }
     for (Map.Entry<String, String> en : tabByKey.entrySet()) {
       if (covered.contains(en.getKey())) {
-        continue;
-      }
-      if (authoritative && !HomeCreationConfirm.isFresh(en.getValue())) {
         continue;
       }
       homes.add(new Cell(en.getValue(), en.getValue(), false));
