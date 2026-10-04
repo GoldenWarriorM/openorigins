@@ -75,7 +75,8 @@ public final class CosmeticCatalogCache {
       }
       boolean catalog = false;
       for (Component line : lore.lines()) {
-        if (line.getString().contains("Left-click to preview")) {
+        String text = line.getString();
+        if (text.contains("Left-click to")) {
           catalog = true;
           break;
         }
