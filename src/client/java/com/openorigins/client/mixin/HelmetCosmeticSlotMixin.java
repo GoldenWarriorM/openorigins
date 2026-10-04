@@ -201,22 +201,22 @@ public abstract class HelmetCosmeticSlotMixin {
             memo == null ? "MISS" : ("HIT size=" + memo.size()),
             com.openorigins.client.util.CosmeticCatalogCache.normName(
                 cosmetic.getHoverName().getString()));
+        java.util.List<net.minecraft.network.chat.Component> base;
         if (memo != null) {
-          cosmeticTip = new java.util.ArrayList<>(memo);
+          base = memo;
         } else {
-          cosmeticTip = new java.util.ArrayList<>(
-              net.minecraft.client.gui.screens.Screen.getTooltipFromItem(mc, cosmetic));
+          base = net.minecraft.client.gui.screens.Screen.getTooltipFromItem(mc, cosmetic);
+        }
+        cosmeticTip = new java.util.ArrayList<>();
+        for (net.minecraft.network.chat.Component line : base) {
+          String s = line.getString();
+          if (s.startsWith("Left-click") || s.startsWith("Right-click")
+              || s.startsWith("Shift-click") || s.startsWith("Middle-click")) {
+            continue;
+          }
+          cosmeticTip.add(line);
         }
         cosmeticTipKey = key;
-        String base = key.contains("\n") ? key.substring(0, key.indexOf('\n')) : key;
-        if (HelmetCosmeticTracker.realHelmet().isEmpty() && !cosmeticTip.isEmpty()) {
-          CLEAN_NAMES.put(base, cosmeticTip.get(0));
-        }
-      }
-      String base = key.contains("\n") ? key.substring(0, key.indexOf('\n')) : key;
-      net.minecraft.network.chat.Component cleanName = CLEAN_NAMES.get(base);
-      if (cleanName != null && !cosmeticTip.isEmpty()) {
-        cosmeticTip.set(0, cleanName);
       }
       this.openorigins$showTip(graphics, mc, mouseX, mouseY, cosmeticTip);
     }

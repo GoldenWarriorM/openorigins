@@ -16,15 +16,31 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  */
 @Mixin(AbstractContainerMenu.class)
 public abstract class MenuClickMixin {
+  @Inject(method = "clicked", at = @At("HEAD"))
+  private void openorigins$captureClean(int slotIndex, int button, ContainerInput clickType,
+      Player player, CallbackInfo ci) {
+    AbstractContainerMenu menu = (AbstractContainerMenu) (Object) this;
+    if (menu.containerId == 0) {
+      return;
+    }
+    Minecraft mc = Minecraft.getInstance();
+    if (mc == null || mc.player == null || player != mc.player) {
+      return;
+    }
+    try {
+      net.minecraft.world.inventory.Slot slot = menu.getSlot(slotIndex);
+      if (slot != null && slot.hasItem() && hasToggleMarker(slot.getItem())) {
+        com.openorigins.client.util.CosmeticCatalogCache.putClean(slot.getItem());
+      }
+    } catch (Throwable ignored) {
+    }
+  }
+
   @Inject(method = "clicked", at = @At("TAIL"))
   private void openorigins$optimistic(int slotIndex, int button, ContainerInput clickType,
       Player player, CallbackInfo ci) {
     AbstractContainerMenu menu = (AbstractContainerMenu) (Object) this;
     if (menu.containerId != 0) {
-      return;
-    }
-    Minecraft mc = Minecraft.getInstance();
-    if (mc == null || mc.player == null || player != mc.player) {
       return;
     }
     ItemStack armor5;
@@ -38,5 +54,22 @@ public abstract class MenuClickMixin {
     } else {
       com.openorigins.client.util.HelmetCosmeticTracker.optimisticStash(armor5);
     }
+  }
+
+  private static boolean hasToggleMarker(net.minecraft.world.item.ItemStack stack) {
+    if (stack == null || stack.isEmpty()) {
+      return false;
+    }
+    net.minecraft.world.item.component.ItemLore lore = stack.get(
+        net.minecraft.core.component.DataComponents.LORE);
+    if (lore == null) {
+      return false;
+    }
+    for (net.minecraft.network.chat.Component line : lore.lines()) {
+      if (line.getString().contains("Left-click to")) {
+        return true;
+      }
+    }
+    return false;
   }
 }

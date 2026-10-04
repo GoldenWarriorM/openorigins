@@ -41,11 +41,14 @@ public final class CosmeticCatalogCache {
     while (i < s.length() && (s.charAt(i) <= 0x20 || s.charAt(i) > 0x2000)) {
       i++;
     }
-    s = s.substring(i).strip();
-    if (s.endsWith(")") && s.contains("(")) {
-      s = s.substring(0, s.lastIndexOf('(')).strip();
+    return s.substring(i).strip();
+  }
+
+  private static String variantBase(String norm) {
+    if (norm.endsWith(")") && norm.contains("(")) {
+      return norm.substring(0, norm.lastIndexOf('(')).strip();
     }
-    return s;
+    return norm;
   }
 
   /** Memorized clean tooltip lines, or null. */
@@ -53,8 +56,35 @@ public final class CosmeticCatalogCache {
     if (cosmetic == null || cosmetic.isEmpty()) {
       return null;
     }
-    List<Component> lines = CLEAN.get(normName(cosmetic.getHoverName().getString()));
+    String key = normName(cosmetic.getHoverName().getString());
+    List<Component> lines = CLEAN.get(key);
+    if ((lines == null || lines.isEmpty())) {
+      lines = CLEAN.get(variantBase(key));
+    }
     return (lines == null || lines.isEmpty()) ? null : lines;
+  }
+
+  /** Stores a clean snapshot, e.g. captured at equip-click time. */
+  public static void putClean(ItemStack stack) {
+    if (stack == null || stack.isEmpty()) {
+      return;
+    }
+    ItemLore lore = stack.get(DataComponents.LORE);
+    if (lore == null || lore.lines().isEmpty()) {
+      return;
+    }
+    String key = normName(stack.getHoverName().getString());
+    if (key.isEmpty()) {
+      return;
+    }
+    List<Component> full = new java.util.ArrayList<>(lore.lines());
+    full.add(0, stack.getHoverName().copy());
+    List<Component> prev = CLEAN.get(key);
+    if (prev == null || !sameText(prev, full)) {
+      CLEAN.put(key, List.copyOf(full));
+      save();
+      LOG.info("[cosmetics] captured '{}' ({} lines)", key, full.size());
+    }
   }
 
   /** Scans any open container for catalog entries. */
