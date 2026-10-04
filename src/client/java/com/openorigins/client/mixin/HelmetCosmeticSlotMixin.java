@@ -198,7 +198,8 @@ public abstract class HelmetCosmeticSlotMixin {
         java.util.List<net.minecraft.network.chat.Component> memo =
             com.openorigins.client.util.CosmeticCatalogCache.cleanFor(cosmetic);
         org.slf4j.LoggerFactory.getLogger("openorigins").info("[cosmetic-tip] memo {} for '{}'",
-            memo == null ? "MISS" : "HIT", com.openorigins.client.util.CosmeticCatalogCache.normName(
+            memo == null ? "MISS" : ("HIT size=" + memo.size()),
+            com.openorigins.client.util.CosmeticCatalogCache.normName(
                 cosmetic.getHoverName().getString()));
         if (memo != null) {
           cosmeticTip = new java.util.ArrayList<>(memo);
