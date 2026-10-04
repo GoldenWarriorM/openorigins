@@ -34,8 +34,10 @@ public abstract class HelmetCosmeticSlotMixin {
       Identifier.withDefaultNamespace("container/slot_highlight_front");
   private static final int HELMET_X = 8;
   private static final int HELMET_Y = 8;
-  private static final int COSMETIC_X = 30;
+  private static final int COSMETIC_X = 77;
   private static final int COSMETIC_Y = 8;
+  private static final Identifier EMPTY_HELMET =
+      Identifier.withDefaultNamespace("container/slot/helmet");
 
   @Shadow
   protected int leftPos;
@@ -126,6 +128,8 @@ public abstract class HelmetCosmeticSlotMixin {
     if (!real.isEmpty() && !this.openorigins$heldOnCursor()) {
       graphics.item(real, HELMET_X, HELMET_Y);
       graphics.itemDecorations(Minecraft.getInstance().font, real, HELMET_X, HELMET_Y);
+    } else if (!HelmetCosmeticTracker.isCosmetic(cosmetic)) {
+      graphics.blitSprite(RenderPipelines.GUI_TEXTURED, EMPTY_HELMET, HELMET_X, HELMET_Y, 16, 16);
     }
   }
 

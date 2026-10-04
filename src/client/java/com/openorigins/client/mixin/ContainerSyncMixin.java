@@ -91,7 +91,7 @@ public abstract class ContainerSyncMixin {
   @Inject(method = "handleSetCursorItem", at = @At("TAIL"))
   private void openorigins$onCursor(
       net.minecraft.network.protocol.game.ClientboundSetCursorItemPacket packet, CallbackInfo ci) {
-    com.openorigins.client.util.HelmetCosmeticTracker.offerReal(packet.contents());
+    com.openorigins.client.util.HelmetCosmeticTracker.offerReal(packet.contents(), true);
     com.openorigins.client.util.HelmetCosmeticTracker.noteCursor(packet.contents());
     org.slf4j.LoggerFactory.getLogger("openorigins").info("[helmet] cursor <- {}",
         com.openorigins.client.util.HelmetCosmeticTracker.describe(packet.contents()));

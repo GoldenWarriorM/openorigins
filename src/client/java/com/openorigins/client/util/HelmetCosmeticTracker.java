@@ -10,6 +10,9 @@ public final class HelmetCosmeticTracker {
   private HelmetCosmeticTracker() {}
 
   private static volatile ItemStack realHelmet = ItemStack.EMPTY;
+  private static volatile ItemStack pendingHelmet = ItemStack.EMPTY;
+  private static volatile long pendingAt;
+  private static final long PENDING_TTL_MS = 2000;
   private static volatile String lastArmorKey = "";
   private static volatile long lastArmorChangeMs;
   private static volatile boolean cursorHoldingReal;
@@ -29,6 +32,15 @@ public final class HelmetCosmeticTracker {
       lastArmorKey = k;
       lastArmorChangeMs = System.currentTimeMillis();
       pendingClearAt = -1;
+      if (!pendingHelmet.isEmpty()) {
+        ItemStack cur = realHelmet;
+        if (cur.isEmpty() || !ItemStack.isSameItemSameComponents(cur, pendingHelmet)) {
+          org.slf4j.LoggerFactory.getLogger("openorigins").info("[helmet] commit {} (was {})",
+              describe(pendingHelmet), cur.isEmpty() ? "<empty>" : describe(cur));
+        }
+        realHelmet = pendingHelmet.copy();
+        pendingHelmet = ItemStack.EMPTY;
+      }
     }
   }
 
@@ -46,7 +58,13 @@ public final class HelmetCosmeticTracker {
 
   /** Drops the snapshot if the helmet left without any slot activity. */
   public static void resolvePending() {
-    if (pendingClearAt > 0 && System.currentTimeMillis() - pendingClearAt > 500) {
+    long now = System.currentTimeMillis();
+    if (!pendingHelmet.isEmpty() && now - pendingAt > PENDING_TTL_MS) {
+      org.slf4j.LoggerFactory.getLogger("openorigins").info("[helmet] pending expired {}",
+          describe(pendingHelmet));
+      pendingHelmet = ItemStack.EMPTY;
+    }
+    if (pendingClearAt > 0 && now - pendingClearAt > 500) {
       pendingClearAt = -1;
       org.slf4j.LoggerFactory.getLogger("openorigins").info("[helmet] pending clear fired, dropping {}",
           describe(realHelmet));
@@ -64,6 +82,14 @@ public final class HelmetCosmeticTracker {
 
   /** Feeds a candidate real helmet (armor slot or cursor): head armor only. */
   public static void offerReal(ItemStack stack) {
+    offerReal(stack, false);
+  }
+
+  /**
+   * @param provisional true when seen on cursor (transport?): commits only
+   *                    once the armor slot moves; expires after TTL.
+   */
+  public static void offerReal(ItemStack stack, boolean provisional) {
     if (stack == null || stack.isEmpty()) {
       return;
     }
@@ -78,6 +104,11 @@ public final class HelmetCosmeticTracker {
     if (slot != net.minecraft.world.entity.EquipmentSlot.HEAD) {
       org.slf4j.LoggerFactory.getLogger("openorigins").info("[helmet] skip non-head {} ({})",
           describe(stack), slot);
+      return;
+    }
+    if (provisional) {
+      pendingHelmet = stack.copy();
+      pendingAt = System.currentTimeMillis();
       return;
     }
     ItemStack cur = realHelmet;
