@@ -206,6 +206,9 @@ public class TeleportMenuScreen extends Screen implements HomePanelHost {
     this.panelX = this.width - panelW - 10;
     this.panelY = Math.max(48, (this.height - panelH) / 2);
     this.panelCount = cells.size();
+    org.slf4j.LoggerFactory.getLogger("openorigins").info("[homes] teleport cells: {}",
+        cells.stream().map(c -> c.plus() ? "+" : c.label() + "->" + c.command())
+            .collect(java.util.stream.Collectors.joining(", ")));
     for (int i = 0; i < cells.size(); i++) {
       HomeInfoCache.Cell cell = cells.get(i);
       int col = i / 5;

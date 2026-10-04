@@ -129,6 +129,9 @@ public class HomesMenuScreen extends Screen implements HomePanelHost {
       }
     }
     int btnY = Math.min(this.height - 30, y0 + gridH + 12);
+    org.slf4j.LoggerFactory.getLogger("openorigins").info("[homes] panel cells: {}",
+        cells.stream().map(c -> c.plus() ? "+" : c.label() + "->" + c.command())
+            .collect(java.util.stream.Collectors.joining(", ")));
     this.addRenderableWidget(Button.builder(
         Component.translatable("menu.openorigins.homes.details"), b -> HomeFetch.start(HomesMenuScreen::new))
         .bounds(cx - 60, btnY, 120, 20).build());

@@ -14,6 +14,13 @@ public class OpenOriginsClient implements ClientModInitializer {
 
   @Override
   public void onInitializeClient() {
+    try {
+      String jar = OpenOriginsClient.class.getProtectionDomain().getCodeSource()
+          .getLocation().toURI().getPath();
+      java.io.File f = new java.io.File(jar);
+      LOGGER.info("[OpenOrigins] build mtime={} size={}", f.lastModified(), f.length());
+    } catch (Throwable ignored) {
+    }
     OpenOriginsConfig.getInstance().load();
     com.openorigins.client.util.HomeInfoCache.load();
     com.openorigins.client.util.BadgerCache.load();
