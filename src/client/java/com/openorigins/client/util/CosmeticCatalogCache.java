@@ -129,7 +129,7 @@ public final class CosmeticCatalogCache {
   }
 
   public static boolean shouldFetchWorn() {
-    return System.currentTimeMillis() - lastProfileAttempt > 5 * 60000L;
+    return System.currentTimeMillis() - lastProfileAttempt > 30000L;
   }
 
   /** Called on container open/content; captures targets and returns when done. */
