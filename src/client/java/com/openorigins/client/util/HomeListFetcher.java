@@ -49,6 +49,7 @@ public final class HomeListFetcher {
         .filter(s -> !s.isBlank() && !s.contains(" "))
         .sorted(String.CASE_INSENSITIVE_ORDER)
         .toList();
+    org.slf4j.LoggerFactory.getLogger("openorigins").info("[homes] tab-complete: {}", names);
     Minecraft mc = Minecraft.getInstance();
     if (mc != null) {
       mc.execute(() -> callback.accept(names));
