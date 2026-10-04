@@ -67,10 +67,14 @@ public final class HotkeyFeatures {
         joinTicks = 0;
       } else {
         joinTicks++;
-        if (!joinFetchDone && joinTicks == 100 && client.player != null
-            && com.openorigins.client.util.HomeInfoCache.layout().isEmpty()) {
-          joinFetchDone = true;
-          com.openorigins.client.util.HomeFetch.start(() -> null);
+        if (joinTicks % 100 == 0 && client.gui.screen() == null && client.player != null
+            && !com.openorigins.client.util.HomeFetch.isArmed()) {
+          if (com.openorigins.client.util.HomeInfoCache.layout().isEmpty()) {
+            com.openorigins.client.util.HomeFetch.start(() -> null);
+          } else if (com.openorigins.client.util.OpenWorldCache.shouldFetch(
+              com.openorigins.client.util.HomeInfoCache.names())) {
+            com.openorigins.client.util.OpenWorldCache.fetch(() -> null);
+          }
         }
       }
       if (client.player != null && com.openorigins.client.ConnectionUtil.isConnected()) {

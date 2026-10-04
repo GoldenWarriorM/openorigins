@@ -38,6 +38,10 @@ public final class HomeFetch {
     start();
   }
 
+  public static boolean isArmed() {
+    return armed;
+  }
+
   /** Next opened menu re-reads slot positions from the server once names arrive. */
   public static void requestRefetch() {
     refetchRequested = true;

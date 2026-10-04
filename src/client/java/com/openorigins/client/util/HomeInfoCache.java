@@ -332,8 +332,15 @@ public final class HomeInfoCache {
 
   /** Drops a name immediately (e.g. server confirmed deletion). @return true if changed. */
   public static synchronized boolean removeName(String name) {
-    TOMBSTONES.add(key(name));
+    String k = key(name);
+    TOMBSTONES.add(k);
     boolean changed = NAMES.removeIf(n -> n.equalsIgnoreCase(name));
+    if (CONTAINER_NAMES.remove(k) != null) {
+      changed = true;
+    }
+    if (LAYOUT.removeIf(e -> e.equals("home:" + k))) {
+      changed = true;
+    }
     if (changed) {
       save();
     }
