@@ -14,12 +14,15 @@ public final class HelmetCosmeticTracker {
   private static volatile java.util.List<net.minecraft.network.chat.Component> realTip =
       java.util.Collections.emptyList();
   private static volatile String realTipKey = "";
+  private static volatile java.util.List<net.minecraft.network.chat.Component> frozenTip;
+  private static volatile String frozenTipKey = "";
   private static final Map<Integer, ItemStack> INV_HEADS = new java.util.concurrent.ConcurrentHashMap<>();
   private static volatile ItemStack pendingHelmet = ItemStack.EMPTY;
   private static volatile long pendingAt;
   private static final long PENDING_TTL_MS = 2000;
   private static volatile String lastArmorKey = "";
   private static volatile long lastArmorChangeMs;
+  private static volatile long lastCommitMs;
   private static volatile boolean cursorHoldingReal;
   private static volatile long pendingClearAt = -1;
 
@@ -45,6 +48,7 @@ public final class HelmetCosmeticTracker {
         }
         realHelmet = pendingHelmet.copy();
         setTip(pendingHelmet);
+        lastCommitMs = System.currentTimeMillis();
         pendingHelmet = ItemStack.EMPTY;
       }
       if (isFirework(stack)) {
@@ -119,6 +123,7 @@ public final class HelmetCosmeticTracker {
         ItemStack cur = realHelmet;
         realHelmet = gone.copy();
         setTip(gone);
+        lastCommitMs = System.currentTimeMillis();
         org.slf4j.LoggerFactory.getLogger("openorigins").info("[helmet] diff-stash {} (was {})",
             describe(gone), cur.isEmpty() ? "<empty>" : describe(cur));
         INV_HEADS.remove(e.getKey());
@@ -147,7 +152,7 @@ public final class HelmetCosmeticTracker {
           describe(pendingHelmet));
       pendingHelmet = ItemStack.EMPTY;
     }
-    if (!realHelmet.isEmpty() && isAvailableElsewhere()) {
+    if (!realHelmet.isEmpty() && now - lastCommitMs > 3000 && isAvailableElsewhere()) {
       org.slf4j.LoggerFactory.getLogger("openorigins").info("[helmet] snapshot found in inventory, clearing {}",
           describe(realHelmet));
       clear();
@@ -202,6 +207,7 @@ public final class HelmetCosmeticTracker {
     if (cur.isEmpty() || !ItemStack.isSameItemSameComponents(cur, stack)) {
       realHelmet = stack.copy();
       setTip(stack);
+      lastCommitMs = System.currentTimeMillis();
       org.slf4j.LoggerFactory.getLogger("openorigins").info("[helmet] stash {} (was {})",
           describe(stack), cur.isEmpty() ? "<empty>" : describe(cur));
     }
@@ -266,7 +272,27 @@ public final class HelmetCosmeticTracker {
     return false;
   }
 
-  /** Stable cosmetic identity: id + name without leading pack glyphs. */
+  /** Frozen cosmetic tooltip: stable across equip flips, refreshed on removal. */
+  public static java.util.List<net.minecraft.network.chat.Component> frozenCosmeticTip(
+      ItemStack cosmetic) {
+    String key = cosmeticKey(cosmetic);
+    if (frozenTip == null || !key.equals(frozenTipKey)) {
+      try {
+        net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
+        frozenTip = new java.util.ArrayList<>(
+            net.minecraft.client.gui.screens.Screen.getTooltipFromItem(mc, cosmetic));
+      } catch (Throwable ignored) {
+        frozenTip = java.util.Collections.emptyList();
+      }
+      frozenTipKey = key;
+    }
+    return frozenTip;
+  }
+
+  public static void invalidateCosmeticTip() {
+    frozenTip = null;
+    frozenTipKey = "";
+  }
   public static String cosmeticKey(ItemStack stack) {
     if (stack == null || stack.isEmpty()) {
       return "";
