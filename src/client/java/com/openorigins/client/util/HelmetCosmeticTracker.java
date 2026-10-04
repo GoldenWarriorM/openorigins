@@ -14,8 +14,12 @@ public final class HelmetCosmeticTracker {
   private static volatile java.util.List<net.minecraft.network.chat.Component> realTip =
       java.util.Collections.emptyList();
   private static volatile String realTipKey = "";
-  private static volatile java.util.List<net.minecraft.network.chat.Component> frozenTip;
-  private static volatile String frozenTipKey = "";
+  private static final java.util.Set<String> HELMET_NAMES =
+      java.util.Collections.newSetFromMap(new java.util.concurrent.ConcurrentHashMap<>());
+  private static final java.util.Set<String> HELMET_LINES =
+      java.util.Collections.newSetFromMap(new java.util.concurrent.ConcurrentHashMap<>());
+  private static final Map<String, net.minecraft.network.chat.Component> CLEAN_TITLES =
+      new java.util.concurrent.ConcurrentHashMap<>();
   private static final Map<Integer, ItemStack> INV_HEADS = new java.util.concurrent.ConcurrentHashMap<>();
   private static volatile Map<Integer, ItemStack> diffBase;
   private static volatile long diffAt;
@@ -253,6 +257,10 @@ public final class HelmetCosmeticTracker {
       realTip = new java.util.ArrayList<>(
           net.minecraft.client.gui.screens.Screen.getTooltipFromItem(mc, stack));
       realTipKey = describe(stack);
+      HELMET_NAMES.add(stack.getHoverName().getString());
+      for (net.minecraft.network.chat.Component line : realTip) {
+        HELMET_LINES.add(line.getString());
+      }
     } catch (Throwable ignored) {
       realTip = java.util.Collections.emptyList();
       realTipKey = "";
@@ -404,44 +412,37 @@ public final class HelmetCosmeticTracker {
   /** Frozen cosmetic tooltip: stable across equip flips, refreshed on removal. */
   public static java.util.List<net.minecraft.network.chat.Component> frozenCosmeticTip(
       ItemStack cosmetic) {
-    if (cleanTip != null && !cleanTip.isEmpty()) {
-      return cleanTip;
+    java.util.List<net.minecraft.network.chat.Component> lines;
+    try {
+      net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
+      lines = new java.util.ArrayList<>(
+          net.minecraft.client.gui.screens.Screen.getTooltipFromItem(mc, cosmetic));
+    } catch (Throwable ignored) {
+      return java.util.Collections.emptyList();
     }
-    String key = cosmeticKey(cosmetic);
-    if (frozenTip == null || !key.equals(frozenTipKey)) {
-      try {
-        net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
-        java.util.List<net.minecraft.network.chat.Component> lines = new java.util.ArrayList<>(
-            net.minecraft.client.gui.screens.Screen.getTooltipFromItem(mc, cosmetic));
-        if (realTip != null && !realTip.isEmpty()) {
-          java.util.Set<String> junk = new java.util.HashSet<>();
-          for (net.minecraft.network.chat.Component l : realTip) {
-            junk.add(l.getString());
-          }
-          java.util.List<net.minecraft.network.chat.Component> filtered = new java.util.ArrayList<>();
-          for (net.minecraft.network.chat.Component l : lines) {
-            if (!junk.contains(l.getString())) {
-              filtered.add(l);
-            }
-          }
-          if (!filtered.isEmpty()) {
-            lines = filtered;
-          }
-        }
-        frozenTip = lines;
-      } catch (Throwable ignored) {
-        frozenTip = java.util.Collections.emptyList();
+    if (lines.isEmpty()) {
+      return lines;
+    }
+    String normKey = cosmeticKey(cosmetic);
+    String title = lines.get(0).getString();
+    if (!HELMET_NAMES.contains(title)) {
+      CLEAN_TITLES.put(normKey, lines.get(0));
+    }
+    net.minecraft.network.chat.Component shownTitle =
+        CLEAN_TITLES.getOrDefault(normKey, lines.get(0));
+    java.util.List<net.minecraft.network.chat.Component> out = new java.util.ArrayList<>();
+    out.add(shownTitle);
+    for (int i = 1; i < lines.size(); i++) {
+      net.minecraft.network.chat.Component line = lines.get(i);
+      if (!HELMET_LINES.contains(line.getString())) {
+        out.add(line);
       }
-      frozenTipKey = key;
     }
-    return frozenTip;
+    return out;
   }
 
   public static void invalidateCosmeticTip() {
-    frozenTip = null;
-    frozenTipKey = "";
-    cleanTip = null;
-    cleanKey = "";
+    CLEAN_TITLES.clear();
   }
 
   private static volatile java.util.List<net.minecraft.network.chat.Component> cleanTip;
