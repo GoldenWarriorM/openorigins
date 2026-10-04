@@ -38,6 +38,7 @@ public final class HelmetCosmeticTracker {
 
   /** Called on every armor-slot-5 server sync. */
   public static void noteArmor(ItemStack stack) {
+    updateCleanTip(stack);
     String k = keyOf(stack);
     if (!k.equals(lastArmorKey)) {
       lastArmorKey = k;
@@ -403,12 +404,31 @@ public final class HelmetCosmeticTracker {
   /** Frozen cosmetic tooltip: stable across equip flips, refreshed on removal. */
   public static java.util.List<net.minecraft.network.chat.Component> frozenCosmeticTip(
       ItemStack cosmetic) {
+    if (cleanTip != null && !cleanTip.isEmpty()) {
+      return cleanTip;
+    }
     String key = cosmeticKey(cosmetic);
     if (frozenTip == null || !key.equals(frozenTipKey)) {
       try {
         net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
-        frozenTip = new java.util.ArrayList<>(
+        java.util.List<net.minecraft.network.chat.Component> lines = new java.util.ArrayList<>(
             net.minecraft.client.gui.screens.Screen.getTooltipFromItem(mc, cosmetic));
+        if (realTip != null && !realTip.isEmpty()) {
+          java.util.Set<String> junk = new java.util.HashSet<>();
+          for (net.minecraft.network.chat.Component l : realTip) {
+            junk.add(l.getString());
+          }
+          java.util.List<net.minecraft.network.chat.Component> filtered = new java.util.ArrayList<>();
+          for (net.minecraft.network.chat.Component l : lines) {
+            if (!junk.contains(l.getString())) {
+              filtered.add(l);
+            }
+          }
+          if (!filtered.isEmpty()) {
+            lines = filtered;
+          }
+        }
+        frozenTip = lines;
       } catch (Throwable ignored) {
         frozenTip = java.util.Collections.emptyList();
       }
@@ -420,6 +440,38 @@ public final class HelmetCosmeticTracker {
   public static void invalidateCosmeticTip() {
     frozenTip = null;
     frozenTipKey = "";
+    cleanTip = null;
+    cleanKey = "";
+  }
+
+  private static volatile java.util.List<net.minecraft.network.chat.Component> cleanTip;
+  private static volatile String cleanKey = "";
+
+  /**
+   * Captures the clean cosmetic description while no real helmet is merged.
+   * Call whenever a cosmetic item is observed.
+   */
+  public static void updateCleanTip(ItemStack cosmetic) {
+    if (cosmetic == null || cosmetic.isEmpty()) {
+      return;
+    }
+    if (!realHelmet.isEmpty()) {
+      return;
+    }
+    String key = cosmeticKey(cosmetic);
+    if (key.equals(cleanKey) && cleanTip != null) {
+      return;
+    }
+    try {
+      net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
+      if (mc == null) {
+        return;
+      }
+      cleanTip = new java.util.ArrayList<>(
+          net.minecraft.client.gui.screens.Screen.getTooltipFromItem(mc, cosmetic));
+      cleanKey = key;
+    } catch (Throwable ignored) {
+    }
   }
   public static String cosmeticKey(ItemStack stack) {
     if (stack == null || stack.isEmpty()) {
