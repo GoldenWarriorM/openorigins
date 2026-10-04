@@ -432,7 +432,18 @@ public final class HelmetCosmeticTracker {
     while (i < name.length() && (name.charAt(i) <= 0x20 || name.charAt(i) > 0x2000)) {
       i++;
     }
-    return id + "|" + name.substring(i);
+    StringBuilder key = new StringBuilder(id).append('|').append(name.substring(i));
+    try {
+      net.minecraft.world.item.component.ItemLore lore = stack.get(
+          net.minecraft.core.component.DataComponents.LORE);
+      if (lore != null) {
+        for (net.minecraft.network.chat.Component line : lore.lines()) {
+          key.append('\n').append(line.getString());
+        }
+      }
+    } catch (Throwable ignored) {
+    }
+    return key.toString();
   }
 
   /** Debug form: id + escaped hover name + count. */
