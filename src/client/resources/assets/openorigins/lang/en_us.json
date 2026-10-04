@@ -6,6 +6,7 @@
   "config.openorigins.corner.top_right": "Top Right",
   "config.openorigins.corner.bottom_left": "Bottom Left",
   "config.openorigins.corner.bottom_right": "Bottom Right",
+  "config.openorigins.capacity_hint": "Max home slots (saved)",
   "category.openorigins.fixes": "Fixes",
   "category.openorigins.notifications": "Notifications",
   "key.openorigins.navigator": "Open Navigator",

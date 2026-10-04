@@ -23,6 +23,8 @@ public final class HomeCreationConfirm {
 
   private static volatile String pending;
   private static volatile long pendingAt;
+  private static final java.util.Map<String, Long> FRESH = new java.util.concurrent.ConcurrentHashMap<>();
+  private static final java.util.Map<String, String> FRESH_NAMES = new java.util.concurrent.ConcurrentHashMap<>();
   private static final java.util.Set<String> BLOCKED =
       java.util.Collections.newSetFromMap(new java.util.concurrent.ConcurrentHashMap<>());
 
@@ -68,6 +70,7 @@ public final class HomeCreationConfirm {
       }
       BLOCKED.remove(norm(name));
       com.openorigins.client.util.HomeInfoCache.untomb(name);
+      confirmFresh(name);
       if (com.openorigins.client.util.HomeInfoCache.addName(name)) {
         refreshAdd(name);
       } else {
@@ -97,6 +100,39 @@ public final class HomeCreationConfirm {
       com.openorigins.client.util.HomeInfoCache.removeName(del.group(1).trim());
       refreshAfterDelete(del.group(1).trim());
     }
+  }
+
+  /** Freshly confirmed homes survive stale server answers for a minute. */
+  public static void confirmFresh(String name) {
+    long until = System.currentTimeMillis() + 60000L;
+    FRESH.put(norm(name), until);
+    FRESH_NAMES.put(norm(name), name);
+  }
+
+  public static boolean isFresh(String name) {
+    Long until = FRESH.get(norm(name));
+    if (until == null) {
+      return false;
+    }
+    if (until < System.currentTimeMillis()) {
+      FRESH.remove(norm(name));
+      FRESH_NAMES.remove(norm(name));
+      return false;
+    }
+    return true;
+  }
+
+  public static java.util.Map<String, String> freshNames() {
+    long now = System.currentTimeMillis();
+    FRESH.entrySet().removeIf(e -> e.getValue() < now);
+    java.util.Map<String, String> out = new java.util.HashMap<>();
+    for (java.util.Map.Entry<String, Long> e : FRESH.entrySet()) {
+      String n = FRESH_NAMES.get(e.getKey());
+      if (n != null) {
+        out.put(e.getKey(), n);
+      }
+    }
+    return out;
   }
 
   private static void refresh() {

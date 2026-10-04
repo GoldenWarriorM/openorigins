@@ -19,6 +19,7 @@ public final class OpenOriginsConfig {
   private final Map<OriginFeature, Boolean> enabled = new EnumMap<>(OriginFeature.class);
   private String discordClientId = "";
   private HudCorner badgerHudCorner = HudCorner.TOP_LEFT;
+  private int homeCapacity = 5;
 
   private OpenOriginsConfig() {
     for (OriginFeature f : OriginFeature.values()) enabled.put(f, f.getDefaultValue());
@@ -56,6 +57,16 @@ public final class OpenOriginsConfig {
         } catch (IllegalArgumentException ignored) {
         }
       }
+      String cap = props.getProperty("homes.capacity");
+      if (cap != null) {
+        try {
+          int v = Integer.parseInt(cap.trim());
+          if (v >= 0 && v <= 15) {
+            homeCapacity = v;
+          }
+        } catch (NumberFormatException ignored) {
+        }
+      }
     } catch (IOException ignored) {
     }
   }
@@ -67,6 +78,7 @@ public final class OpenOriginsConfig {
     }
     props.setProperty("discord.client.id", discordClientId);
     props.setProperty("badger.hud.corner", badgerHudCorner.name());
+    props.setProperty("homes.capacity", Integer.toString(homeCapacity));
     try {
       Files.createDirectories(configPath().getParent());
       try (OutputStream out = Files.newOutputStream(configPath())) {
@@ -79,6 +91,11 @@ public final class OpenOriginsConfig {
   public boolean isEnabled(OriginFeature f) { return enabled.getOrDefault(f, true); }
   public String getDiscordClientId() { return discordClientId; }
   public HudCorner getBadgerHudCorner() { return badgerHudCorner; }
+  public int getHomeCapacity() { return homeCapacity; }
+  public void setHomeCapacity(int v) {
+    homeCapacity = Math.max(0, Math.min(15, v));
+    save();
+  }
   public void cycleBadgerHudCorner() {
     HudCorner[] values = HudCorner.values();
     badgerHudCorner = values[(badgerHudCorner.ordinal() + 1) % values.length];

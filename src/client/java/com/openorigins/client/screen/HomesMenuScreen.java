@@ -123,7 +123,9 @@ public class HomesMenuScreen extends Screen implements HomePanelHost {
       return;
     }
     java.util.List<HomeInfoCache.Cell> cells = HomeInfoCache.cellsFor(this.homes);
-    int target = HomeInfoCache.capacity() > 0 ? HomeInfoCache.capacity()
+    int manual = com.openorigins.client.OpenOriginsConfig.getInstance().getHomeCapacity();
+    int target = manual > 0 ? Math.min(manual, 15)
+        : HomeInfoCache.capacity() > 0 ? HomeInfoCache.capacity()
         : Math.max(5, cells.size());
     while (cells.size() < target && cells.size() < 15) {
       cells.add(new HomeInfoCache.Cell("", "", true));

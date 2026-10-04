@@ -389,6 +389,19 @@ public final class HomeInfoCache {
         copy.add(n);
       }
     }
+    for (Map.Entry<String, String> e
+        : HomeCreationConfirm.freshNames().entrySet()) {
+      boolean known = false;
+      for (String n : copy) {
+        if (key(n).equals(e.getKey())) {
+          known = true;
+          break;
+        }
+      }
+      if (!known) {
+        copy.add(e.getValue());
+      }
+    }
     if (copy.equals(NAMES)) {
       return false;
     }
@@ -437,7 +450,7 @@ public final class HomeInfoCache {
       if (covered.contains(en.getKey())) {
         continue;
       }
-      if (authoritative) {
+      if (authoritative && !HomeCreationConfirm.isFresh(en.getValue())) {
         continue;
       }
       homes.add(new Cell(en.getValue(), en.getValue(), false));
