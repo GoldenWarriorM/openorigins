@@ -361,6 +361,24 @@ public final class HomeInfoCache {
     return true;
   }
 
+  /** A free slot was taken: drop one CMD placeholder for instant count. */
+  public static synchronized void consumeCmdSlot() {
+    for (int i = 0; i < LAYOUT.size(); i++) {
+      String e = LAYOUT.get(i);
+      if (e.toLowerCase(java.util.Locale.ROOT).startsWith("locked:cmd:")) {
+        LAYOUT.remove(i);
+        save();
+        return;
+      }
+    }
+  }
+
+  /** A slot was freed: append a CMD placeholder for instant count. */
+  public static synchronized void addCmdSlot() {
+    LAYOUT.add("locked:CMD: /sethome [name]");
+    save();
+  }
+
   /** Drops a name immediately (e.g. server confirmed deletion). @return true if changed. */
   public static synchronized boolean removeName(String name) {    String k = key(name);
     TOMBSTONES.add(k);

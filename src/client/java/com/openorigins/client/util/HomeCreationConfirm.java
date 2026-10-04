@@ -71,6 +71,7 @@ public final class HomeCreationConfirm {
       BLOCKED.remove(norm(name));
       com.openorigins.client.util.HomeInfoCache.untomb(name);
       confirmFresh(name);
+      com.openorigins.client.util.HomeInfoCache.consumeCmdSlot();
       if (com.openorigins.client.util.HomeInfoCache.addName(name)) {
         refreshAdd(name);
       } else {
@@ -98,6 +99,7 @@ public final class HomeCreationConfirm {
     Matcher del = DELETED.matcher(text);
     if (del.find()) {
       com.openorigins.client.util.HomeInfoCache.removeName(del.group(1).trim());
+      com.openorigins.client.util.HomeInfoCache.addCmdSlot();
       refreshAfterDelete(del.group(1).trim());
     }
   }
