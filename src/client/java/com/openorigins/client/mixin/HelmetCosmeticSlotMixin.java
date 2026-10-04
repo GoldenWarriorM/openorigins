@@ -190,7 +190,7 @@ public abstract class HelmetCosmeticSlotMixin {
       int x = this.leftPos + COSMETIC_X - 4;
       int y = this.topPos + COSMETIC_Y - 4;
       graphics.blitSprite(RenderPipelines.GUI_TEXTURED, HIGHLIGHT_FRONT, x, y, 24, 24);
-      String key = HelmetCosmeticTracker.describe(cosmetic);
+      String key = HelmetCosmeticTracker.cosmeticKey(cosmetic);
       if (cosmeticTip == null || !key.equals(cosmeticTipKey)) {
         cosmeticTip = new java.util.ArrayList<>(
             net.minecraft.client.gui.screens.Screen.getTooltipFromItem(mc, cosmetic));

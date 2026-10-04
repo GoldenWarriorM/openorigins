@@ -1,5 +1,6 @@
 package com.openorigins.client.util;
 
+import java.util.Map;
 import net.minecraft.world.item.ItemStack;
 
 /**
@@ -13,6 +14,7 @@ public final class HelmetCosmeticTracker {
   private static volatile java.util.List<net.minecraft.network.chat.Component> realTip =
       java.util.Collections.emptyList();
   private static volatile String realTipKey = "";
+  private static final Map<Integer, ItemStack> INV_HEADS = new java.util.concurrent.ConcurrentHashMap<>();
   private static volatile ItemStack pendingHelmet = ItemStack.EMPTY;
   private static volatile long pendingAt;
   private static final long PENDING_TTL_MS = 2000;
@@ -44,6 +46,83 @@ public final class HelmetCosmeticTracker {
         realHelmet = pendingHelmet.copy();
         setTip(pendingHelmet);
         pendingHelmet = ItemStack.EMPTY;
+      }
+      if (isFirework(stack)) {
+        diffStashVanished();
+      }
+    }
+  }
+
+  private static boolean isFirework(ItemStack stack) {
+    return stack != null && !stack.isEmpty()
+        && net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(stack.getItem())
+            .toString().equals("minecraft:firework_star");
+  }
+
+  /** Tracks head-armor items in player storage (menu slots 9-44). */
+  public static void noteInvSlot(int menuSlot, ItemStack stack) {
+    if (menuSlot < 9 || menuSlot > 44) {
+      return;
+    }
+    if (isHeadArmor(stack)) {
+      INV_HEADS.put(menuSlot, stack.copy());
+    } else {
+      INV_HEADS.remove(menuSlot);
+    }
+  }
+
+  public static void clearInv() {
+    INV_HEADS.clear();
+  }
+
+  private static boolean isHeadArmor(ItemStack stack) {
+    if (stack == null || stack.isEmpty() || isCosmetic(stack)) {
+      return false;
+    }
+    try {
+      net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
+      return mc != null && mc.player != null
+          && mc.player.getEquipmentSlotForItem(stack)
+              == net.minecraft.world.entity.EquipmentSlot.HEAD;
+    } catch (Throwable t) {
+      return false;
+    }
+  }
+
+  private static boolean presentAnywhere(ItemStack stack) {
+    try {
+      net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
+      if (mc == null || mc.player == null) {
+        return true;
+      }
+      if (isStashedReal(mc.player.containerMenu.getCarried())
+          && ItemStack.isSameItemSameComponents(stack, mc.player.containerMenu.getCarried())) {
+        return true;
+      }
+      net.minecraft.world.entity.player.Inventory inv = mc.player.getInventory();
+      for (int i = 0; i < inv.getContainerSize(); i++) {
+        if (ItemStack.isSameItemSameComponents(stack, inv.getItem(i))) {
+          return true;
+        }
+      }
+    } catch (Throwable ignored) {
+      return true;
+    }
+    return false;
+  }
+
+  /** A head item vanished from storage exactly when the combo formed: it got merged. */
+  private static void diffStashVanished() {
+    for (Map.Entry<Integer, ItemStack> e : INV_HEADS.entrySet()) {
+      ItemStack gone = e.getValue();
+      if (gone != null && !gone.isEmpty() && !presentAnywhere(gone)) {
+        ItemStack cur = realHelmet;
+        realHelmet = gone.copy();
+        setTip(gone);
+        org.slf4j.LoggerFactory.getLogger("openorigins").info("[helmet] diff-stash {} (was {})",
+            describe(gone), cur.isEmpty() ? "<empty>" : describe(cur));
+        INV_HEADS.remove(e.getKey());
+        return;
       }
     }
   }
@@ -184,9 +263,23 @@ public final class HelmetCosmeticTracker {
     return false;
   }
 
-  /** Debug form: id + escaped hover name + count. */
-  public static String describe(ItemStack stack) {
+  /** Stable cosmetic identity: id + name without leading pack glyphs. */
+  public static String cosmeticKey(ItemStack stack) {
     if (stack == null || stack.isEmpty()) {
+      return "";
+    }
+    String id = net.minecraft.core.registries.BuiltInRegistries.ITEM
+        .getKey(stack.getItem()).toString();
+    String name = stack.getHoverName().getString().strip();
+    int i = 0;
+    while (i < name.length() && (name.charAt(i) <= 0x20 || name.charAt(i) > 0x2000)) {
+      i++;
+    }
+    return id + "|" + name.substring(i);
+  }
+
+  /** Debug form: id + escaped hover name + count. */
+  public static String describe(ItemStack stack) {    if (stack == null || stack.isEmpty()) {
       return "<empty>";
     }
     String id = net.minecraft.core.registries.BuiltInRegistries.ITEM

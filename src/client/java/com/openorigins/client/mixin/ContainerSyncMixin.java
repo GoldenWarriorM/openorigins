@@ -71,20 +71,28 @@ public abstract class ContainerSyncMixin {
   @Inject(method = "handleContainerContent", at = @At("TAIL"))
   private void openorigins$onContent(ClientboundContainerSetContentPacket packet, CallbackInfo ci) {
     openorigins$recapture("content");
+    if (packet.containerId() == 0) {
+      com.openorigins.client.util.HelmetCosmeticTracker.clearInv();
+    }
   }
 
   @Inject(method = "handleContainerSetSlot", at = @At("TAIL"))
   private void openorigins$onSlot(ClientboundContainerSetSlotPacket packet, CallbackInfo ci) {
     openorigins$recapture("slot");
-    if (packet.getContainerId() == 0 && packet.getSlot() == 5) {
-      com.openorigins.client.util.HelmetCosmeticTracker.noteArmor(packet.getItem());
-      if (packet.getItem().isEmpty()) {
-        com.openorigins.client.util.HelmetCosmeticTracker.clear();
-      } else {
-        com.openorigins.client.util.HelmetCosmeticTracker.offerReal(packet.getItem());
+    if (packet.getContainerId() == 0) {
+      com.openorigins.client.util.HelmetCosmeticTracker.noteInvSlot(packet.getSlot(), packet.getItem());
+      if (packet.getSlot() == 5) {
+        noteArmor(packet.getItem());
       }
-      org.slf4j.LoggerFactory.getLogger("openorigins").info("[helmet] armor5 <- {}",
-          com.openorigins.client.util.HelmetCosmeticTracker.describe(packet.getItem()));
+    }
+  }
+
+  private static void noteArmor(net.minecraft.world.item.ItemStack stack) {
+    com.openorigins.client.util.HelmetCosmeticTracker.noteArmor(stack);
+    if (stack.isEmpty()) {
+      com.openorigins.client.util.HelmetCosmeticTracker.clear();
+    } else {
+      com.openorigins.client.util.HelmetCosmeticTracker.offerReal(stack);
     }
   }
 
