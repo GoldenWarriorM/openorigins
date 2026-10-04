@@ -91,7 +91,10 @@ public final class CosmeticCatalogCache {
       List<Component> full = new java.util.ArrayList<>(lore.lines());
       full.add(0, stack.getHoverName().copy());
       List<Component> prev = CLEAN.get(key);
-      if (prev == null || !sameText(prev, full)) {
+      if (prev == null) {
+        CLEAN.put(key, List.copyOf(full));
+        changed = true;
+      } else if (!sameText(prev, full) && full.size() <= prev.size()) {
         CLEAN.put(key, List.copyOf(full));
         changed = true;
       }
