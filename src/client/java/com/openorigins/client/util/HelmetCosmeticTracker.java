@@ -14,12 +14,6 @@ public final class HelmetCosmeticTracker {
   private static volatile java.util.List<net.minecraft.network.chat.Component> realTip =
       java.util.Collections.emptyList();
   private static volatile String realTipKey = "";
-  private static final java.util.Set<String> HELMET_NAMES =
-      java.util.Collections.newSetFromMap(new java.util.concurrent.ConcurrentHashMap<>());
-  private static final java.util.Set<String> HELMET_LINES =
-      java.util.Collections.newSetFromMap(new java.util.concurrent.ConcurrentHashMap<>());
-  private static final Map<String, net.minecraft.network.chat.Component> CLEAN_TITLES =
-      new java.util.concurrent.ConcurrentHashMap<>();
   private static final Map<Integer, ItemStack> INV_HEADS = new java.util.concurrent.ConcurrentHashMap<>();
   private static volatile Map<Integer, ItemStack> diffBase;
   private static volatile long diffAt;
@@ -42,7 +36,6 @@ public final class HelmetCosmeticTracker {
 
   /** Called on every armor-slot-5 server sync. */
   public static void noteArmor(ItemStack stack) {
-    updateCleanTip(stack);
     String k = keyOf(stack);
     if (!k.equals(lastArmorKey)) {
       lastArmorKey = k;
@@ -257,10 +250,6 @@ public final class HelmetCosmeticTracker {
       realTip = new java.util.ArrayList<>(
           net.minecraft.client.gui.screens.Screen.getTooltipFromItem(mc, stack));
       realTipKey = describe(stack);
-      HELMET_NAMES.add(stack.getHoverName().getString());
-      for (net.minecraft.network.chat.Component line : realTip) {
-        HELMET_LINES.add(line.getString());
-      }
     } catch (Throwable ignored) {
       realTip = java.util.Collections.emptyList();
       realTipKey = "";
@@ -409,71 +398,21 @@ public final class HelmetCosmeticTracker {
     return false;
   }
 
-  /** Frozen cosmetic tooltip: stable across equip flips, refreshed on removal. */
+  /** Live cosmetic tooltip (memoization from the change menu comes next). */
   public static java.util.List<net.minecraft.network.chat.Component> frozenCosmeticTip(
       ItemStack cosmetic) {
-    java.util.List<net.minecraft.network.chat.Component> lines;
     try {
       net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
-      lines = new java.util.ArrayList<>(
+      return new java.util.ArrayList<>(
           net.minecraft.client.gui.screens.Screen.getTooltipFromItem(mc, cosmetic));
     } catch (Throwable ignored) {
       return java.util.Collections.emptyList();
     }
-    if (lines.isEmpty()) {
-      return lines;
-    }
-    String normKey = cosmeticKey(cosmetic);
-    String title = lines.get(0).getString();
-    if (!HELMET_NAMES.contains(title)) {
-      CLEAN_TITLES.put(normKey, lines.get(0));
-    }
-    net.minecraft.network.chat.Component shownTitle =
-        CLEAN_TITLES.getOrDefault(normKey, lines.get(0));
-    java.util.List<net.minecraft.network.chat.Component> out = new java.util.ArrayList<>();
-    out.add(shownTitle);
-    for (int i = 1; i < lines.size(); i++) {
-      net.minecraft.network.chat.Component line = lines.get(i);
-      if (!HELMET_LINES.contains(line.getString())) {
-        out.add(line);
-      }
-    }
-    return out;
   }
 
   public static void invalidateCosmeticTip() {
-    CLEAN_TITLES.clear();
   }
 
-  private static volatile java.util.List<net.minecraft.network.chat.Component> cleanTip;
-  private static volatile String cleanKey = "";
-
-  /**
-   * Captures the clean cosmetic description while no real helmet is merged.
-   * Call whenever a cosmetic item is observed.
-   */
-  public static void updateCleanTip(ItemStack cosmetic) {
-    if (cosmetic == null || cosmetic.isEmpty()) {
-      return;
-    }
-    if (!realHelmet.isEmpty()) {
-      return;
-    }
-    String key = cosmeticKey(cosmetic);
-    if (key.equals(cleanKey) && cleanTip != null) {
-      return;
-    }
-    try {
-      net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
-      if (mc == null) {
-        return;
-      }
-      cleanTip = new java.util.ArrayList<>(
-          net.minecraft.client.gui.screens.Screen.getTooltipFromItem(mc, cosmetic));
-      cleanKey = key;
-    } catch (Throwable ignored) {
-    }
-  }
   public static String cosmeticKey(ItemStack stack) {
     if (stack == null || stack.isEmpty()) {
       return "";

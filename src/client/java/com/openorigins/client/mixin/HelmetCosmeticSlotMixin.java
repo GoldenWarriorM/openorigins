@@ -80,7 +80,6 @@ public abstract class HelmetCosmeticSlotMixin {
       return ItemStack.EMPTY;
     }
     HelmetCosmeticTracker.offerReal(worn);
-    HelmetCosmeticTracker.updateCleanTip(worn);
     try {
       Player player = Minecraft.getInstance().player;
       if (player != null) {
@@ -148,6 +147,8 @@ public abstract class HelmetCosmeticSlotMixin {
 
   private static java.util.List<net.minecraft.network.chat.Component> cosmeticTip;
   private static String cosmeticTipKey = "";
+  private static final java.util.Map<String, net.minecraft.network.chat.Component> CLEAN_NAMES =
+      new java.util.HashMap<>();
 
   private static boolean openorigins$isHoveringHelmet(HelmetCosmeticSlotMixin self, int mouseX, int mouseY) {
     return mouseX >= self.leftPos + HELMET_X - 1 && mouseX < self.leftPos + HELMET_X + 17
@@ -197,6 +198,15 @@ public abstract class HelmetCosmeticSlotMixin {
         cosmeticTip = new java.util.ArrayList<>(
             net.minecraft.client.gui.screens.Screen.getTooltipFromItem(mc, cosmetic));
         cosmeticTipKey = key;
+        String base = key.contains("\n") ? key.substring(0, key.indexOf('\n')) : key;
+        if (HelmetCosmeticTracker.realHelmet().isEmpty() && !cosmeticTip.isEmpty()) {
+          CLEAN_NAMES.put(base, cosmeticTip.get(0));
+        }
+      }
+      String base = key.contains("\n") ? key.substring(0, key.indexOf('\n')) : key;
+      net.minecraft.network.chat.Component cleanName = CLEAN_NAMES.get(base);
+      if (cleanName != null && !cosmeticTip.isEmpty()) {
+        cosmeticTip.set(0, cleanName);
       }
       this.openorigins$showTip(graphics, mc, mouseX, mouseY, cosmeticTip);
     }
