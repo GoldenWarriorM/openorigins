@@ -41,7 +41,11 @@ public final class CosmeticCatalogCache {
     while (i < s.length() && (s.charAt(i) <= 0x20 || s.charAt(i) > 0x2000)) {
       i++;
     }
-    return s.substring(i);
+    s = s.substring(i).strip();
+    if (s.endsWith(")") && s.contains("(")) {
+      s = s.substring(0, s.lastIndexOf('(')).strip();
+    }
+    return s;
   }
 
   /** Memorized clean tooltip lines, or null. */
