@@ -112,6 +112,7 @@ public class SetHomeScreen extends Screen {
       active = null;
     }
     if (this.minecraft != null) {
+      com.openorigins.client.util.HomeCreationConfirm.dropPending();
       this.minecraft.gui.setScreen(returnTo.get());
     }
   }

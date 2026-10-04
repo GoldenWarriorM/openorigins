@@ -239,11 +239,15 @@ public final class CosmeticCatalogCache {
         || t.startsWith("Shift-click") || t.startsWith("Middle-click");
   }
 
-  /** Drops menu-action lines, keeps the display content. */
+  /** Drops menu-action and blank lines, keeps the display content. */
   private static List<Component> withoutActions(List<Component> lines) {
     List<Component> out = new java.util.ArrayList<>(lines.size());
     for (int i = 0; i < lines.size(); i++) {
-      if (i > 0 && isActionLine(lines.get(i).getString())) {
+      String text = lines.get(i).getString();
+      if (i > 0 && text.strip().isEmpty()) {
+        continue;
+      }
+      if (i > 0 && isActionLine(text)) {
         continue;
       }
       out.add(lines.get(i));
@@ -324,16 +328,24 @@ public final class CosmeticCatalogCache {
         return;
       }
       int n = 0;
+      boolean cleaned = false;
       for (JsonElement el : arr) {
         JsonObject o = el.getAsJsonObject();
         List<Component> lore = new java.util.ArrayList<>();
         for (JsonElement le : o.getAsJsonArray("lore")) {
           lore.add(decode(le.getAsString()));
         }
-        if (!lore.isEmpty()) {
-          CLEAN.put(o.get("key").getAsString(), List.copyOf(lore));
+        List<Component> filtered = withoutActions(lore);
+        if (filtered.size() != lore.size()) {
+          cleaned = true;
+        }
+        if (!filtered.isEmpty()) {
+          CLEAN.put(o.get("key").getAsString(), List.copyOf(filtered));
           n++;
         }
+      }
+      if (cleaned) {
+        save();
       }
       LOG.info("[cosmetics] loaded {} entries from disk", n);
     } catch (Exception ex) {

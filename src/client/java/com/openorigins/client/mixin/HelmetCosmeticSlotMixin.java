@@ -221,8 +221,11 @@ public abstract class HelmetCosmeticSlotMixin {
             i++;
           }
           String t = s.substring(i);
-          if (t.startsWith("Left-click") || t.startsWith("Right-click")
-              || t.startsWith("Shift-click") || t.startsWith("Middle-click")) {
+          if (!t.isEmpty() && (t.startsWith("Left-click") || t.startsWith("Right-click")
+              || t.startsWith("Shift-click") || t.startsWith("Middle-click"))) {
+            continue;
+          }
+          if (t.isEmpty() && !cosmeticTip.isEmpty()) {
             continue;
           }
           cosmeticTip.add(line);

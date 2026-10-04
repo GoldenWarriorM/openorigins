@@ -25,6 +25,10 @@ public final class HomeCreationConfirm {
     pendingAt = System.currentTimeMillis();
   }
 
+  public static void dropPending() {
+    pending = null;
+  }
+
   /** @return true if the name is still awaiting confirmation (hide it). */
   public static boolean isPending(String name) {    String p = pending;
     if (p == null || !p.equalsIgnoreCase(name)) {
