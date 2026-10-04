@@ -28,9 +28,12 @@ public class ConfigScreen extends Screen {
       this.refreshCornerButton();
     }).width(200).build();
     this.refreshCornerButton();
-    this.layout.addToFooter(this.cornerButton);
-    this.layout.addToFooter(Button.builder(CommonComponents.GUI_DONE, button -> this.onClose())
+    net.minecraft.client.gui.layouts.LinearLayout row =
+        net.minecraft.client.gui.layouts.LinearLayout.horizontal().spacing(8);
+    row.addChild(this.cornerButton);
+    row.addChild(Button.builder(CommonComponents.GUI_DONE, button -> this.onClose())
         .width(200).build());
+    this.layout.addToFooter(row);
     this.layout.visitWidgets(this::addRenderableWidget);
     this.repositionElements();
   }
