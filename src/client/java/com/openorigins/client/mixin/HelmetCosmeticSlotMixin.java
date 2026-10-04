@@ -43,6 +43,8 @@ public abstract class HelmetCosmeticSlotMixin {
   protected int leftPos;
   @Shadow
   protected int topPos;
+  @Shadow
+  protected net.minecraft.world.inventory.Slot hoveredSlot;
 
   private boolean openorigins$active() {
     return OpenOriginsConfig.getInstance().isEnabled(OriginFeature.HELMET_COSMETIC_SLOT)
@@ -142,23 +144,70 @@ public abstract class HelmetCosmeticSlotMixin {
     }
   }
 
+  private static java.util.List<net.minecraft.network.chat.Component> cosmeticTip;
+  private static String cosmeticTipKey = "";
+
+  private static boolean openorigins$isHoveringHelmet(HelmetCosmeticSlotMixin self, int mouseX, int mouseY) {
+    return mouseX >= self.leftPos + HELMET_X - 1 && mouseX < self.leftPos + HELMET_X + 17
+        && mouseY >= self.topPos + HELMET_Y - 1 && mouseY < self.topPos + HELMET_Y + 17;
+  }
+
+  /** True while we wiped the helmet slot (its vanilla tooltip must stay hidden). */
+  private boolean openorigins$wiped() {
+    if (!this.openorigins$active()) {
+      return false;
+    }
+    ItemStack worn = this.openorigins$wornHelmet();
+    return !this.openorigins$cosmetic(worn).isEmpty();
+  }
+
+  @Inject(method = "extractTooltip", at = @At("HEAD"), cancellable = true)
+  private void openorigins$hideWipedTooltip(GuiGraphicsExtractor graphics, int mouseX, int mouseY,
+      CallbackInfo ci) {
+    if (this.hoveredSlot == null || this.hoveredSlot.index != 5) {
+      return;
+    }
+    if (this.openorigins$wiped()) {
+      ci.cancel();
+    }
+  }
+
   @Inject(method = "extractContents", at = @At("TAIL"))
   private void openorigins$drawHelmetHighlight(GuiGraphicsExtractor graphics, int mouseX, int mouseY,
       float partialTick, CallbackInfo ci) {
     if (!this.openorigins$active()) {
       return;
     }
-    ItemStack cosmetic = this.openorigins$cosmetic(this.openorigins$wornHelmet());
-    if (cosmetic.isEmpty() || !this.openorigins$isHoveringCosmetic(mouseX, mouseY)) {
+    Minecraft mc = Minecraft.getInstance();
+    if (mc == null) {
       return;
     }
-    int x = this.leftPos + COSMETIC_X - 4;
-    int y = this.topPos + COSMETIC_Y - 4;
-    graphics.blitSprite(RenderPipelines.GUI_TEXTURED, HIGHLIGHT_FRONT, x, y, 24, 24);
-    Minecraft mc = Minecraft.getInstance();
-    java.util.List<net.minecraft.network.chat.Component> lines =
-        new java.util.ArrayList<>(
+    ItemStack cosmetic = this.openorigins$cosmetic(this.openorigins$wornHelmet());
+    if (cosmetic.isEmpty()) {
+      cosmeticTip = null;
+      cosmeticTipKey = "";
+    } else if (this.openorigins$isHoveringCosmetic(mouseX, mouseY)) {
+      int x = this.leftPos + COSMETIC_X - 4;
+      int y = this.topPos + COSMETIC_Y - 4;
+      graphics.blitSprite(RenderPipelines.GUI_TEXTURED, HIGHLIGHT_FRONT, x, y, 24, 24);
+      String key = HelmetCosmeticTracker.describe(cosmetic);
+      if (cosmeticTip == null || !key.equals(cosmeticTipKey)) {
+        cosmeticTip = new java.util.ArrayList<>(
             net.minecraft.client.gui.screens.Screen.getTooltipFromItem(mc, cosmetic));
+        cosmeticTipKey = key;
+      }
+      this.openorigins$showTip(graphics, mc, mouseX, mouseY, cosmeticTip);
+    }
+    if (openorigins$isHoveringHelmet(this, mouseX, mouseY) && !cosmetic.isEmpty()) {
+      java.util.List<net.minecraft.network.chat.Component> tip = HelmetCosmeticTracker.realTip();
+      if (tip != null && !tip.isEmpty()) {
+        this.openorigins$showTip(graphics, mc, mouseX, mouseY, tip);
+      }
+    }
+  }
+
+  private void openorigins$showTip(GuiGraphicsExtractor graphics, Minecraft mc, int mouseX, int mouseY,
+      java.util.List<net.minecraft.network.chat.Component> lines) {
     java.util.List<net.minecraft.util.FormattedCharSequence> seqs = new java.util.ArrayList<>();
     for (net.minecraft.network.chat.Component line : lines) {
       seqs.add(line.getVisualOrderText());

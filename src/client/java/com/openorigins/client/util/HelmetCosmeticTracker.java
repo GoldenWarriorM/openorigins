@@ -10,6 +10,9 @@ public final class HelmetCosmeticTracker {
   private HelmetCosmeticTracker() {}
 
   private static volatile ItemStack realHelmet = ItemStack.EMPTY;
+  private static volatile java.util.List<net.minecraft.network.chat.Component> realTip =
+      java.util.Collections.emptyList();
+  private static volatile String realTipKey = "";
   private static volatile ItemStack pendingHelmet = ItemStack.EMPTY;
   private static volatile long pendingAt;
   private static final long PENDING_TTL_MS = 2000;
@@ -39,6 +42,7 @@ public final class HelmetCosmeticTracker {
               describe(pendingHelmet), cur.isEmpty() ? "<empty>" : describe(cur));
         }
         realHelmet = pendingHelmet.copy();
+        setTip(pendingHelmet);
         pendingHelmet = ItemStack.EMPTY;
       }
     }
@@ -69,6 +73,8 @@ public final class HelmetCosmeticTracker {
       org.slf4j.LoggerFactory.getLogger("openorigins").info("[helmet] pending clear fired, dropping {}",
           describe(realHelmet));
       realHelmet = ItemStack.EMPTY;
+      realTip = java.util.Collections.emptyList();
+      realTipKey = "";
     }
   }
 
@@ -112,14 +118,38 @@ public final class HelmetCosmeticTracker {
     ItemStack cur = realHelmet;
     if (cur.isEmpty() || !ItemStack.isSameItemSameComponents(cur, stack)) {
       realHelmet = stack.copy();
+      setTip(stack);
       org.slf4j.LoggerFactory.getLogger("openorigins").info("[helmet] stash {} (was {})",
           describe(stack), cur.isEmpty() ? "<empty>" : describe(cur));
     }
   }
 
+  private static void setTip(ItemStack stack) {
+    try {
+      net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
+      if (mc == null) {
+        realTip = java.util.Collections.emptyList();
+        realTipKey = "";
+        return;
+      }
+      realTip = new java.util.ArrayList<>(
+          net.minecraft.client.gui.screens.Screen.getTooltipFromItem(mc, stack));
+      realTipKey = describe(stack);
+    } catch (Throwable ignored) {
+      realTip = java.util.Collections.emptyList();
+      realTipKey = "";
+    }
+  }
+
+  public static java.util.List<net.minecraft.network.chat.Component> realTip() {
+    return realTip;
+  }
+
   /** Clears the snapshot (helmet fully removed). */
   public static void clear() {
     realHelmet = ItemStack.EMPTY;
+    realTip = java.util.Collections.emptyList();
+    realTipKey = "";
   }
 
   /** True if the stack equals the stashed real helmet. */
