@@ -50,6 +50,7 @@ public final class HelmetCosmeticTracker {
         }
         realHelmet = pendingHelmet.copy();
         setTip(pendingHelmet);
+        saveHelmet();
         lastCommitMs = System.currentTimeMillis();
         pendingHelmet = ItemStack.EMPTY;
       }
@@ -137,6 +138,7 @@ public final class HelmetCosmeticTracker {
         ItemStack cur = realHelmet;
         realHelmet = gone.copy();
         setTip(gone);
+        saveHelmet();
         lastCommitMs = System.currentTimeMillis();
         org.slf4j.LoggerFactory.getLogger("openorigins").info("[helmet] diff-stash {} (was {})",
             describe(gone), cur.isEmpty() ? "<empty>" : describe(cur));
@@ -233,6 +235,7 @@ public final class HelmetCosmeticTracker {
     if (cur.isEmpty() || !ItemStack.isSameItemSameComponents(cur, stack)) {
       realHelmet = stack.copy();
       setTip(stack);
+      saveHelmet();
       lastCommitMs = System.currentTimeMillis();
       org.slf4j.LoggerFactory.getLogger("openorigins").info("[helmet] stash {} (was {})",
           describe(stack), cur.isEmpty() ? "<empty>" : describe(cur));
@@ -266,6 +269,47 @@ public final class HelmetCosmeticTracker {
     realTip = java.util.Collections.emptyList();
     realTipKey = "";
     invalidateCosmeticTip();
+    saveHelmet();
+  }
+
+  private static java.nio.file.Path helmetFile() {
+    return net.fabricmc.loader.api.FabricLoader.getInstance().getConfigDir()
+        .resolve("openorigins_helmet.json");
+  }
+
+  /** Persists the snapshot (server-confirmed states only). */
+  public static synchronized void saveHelmet() {
+    try {
+      net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
+      com.google.gson.JsonObject root = new com.google.gson.JsonObject();
+      if (!realHelmet.isEmpty() && mc != null && mc.level != null) {
+        var ops = net.minecraft.resources.RegistryOps.create(
+            com.mojang.serialization.JsonOps.INSTANCE, mc.level.registryAccess());
+        com.google.gson.JsonElement el = net.minecraft.world.item.ItemStack.OPTIONAL_CODEC
+            .encodeStart(ops, realHelmet).getOrThrow();
+        root.add("stack", el);
+      }
+      java.nio.file.Files.writeString(helmetFile(), root.toString(),
+          java.nio.charset.StandardCharsets.UTF_8);
+    } catch (Throwable ignored) {
+    }
+  }
+
+  /** Loads the raw snapshot; decoded lazily once a level exists. */
+  public static synchronized void loadHelmet() {
+    try {
+      java.nio.file.Path f = helmetFile();
+      if (!java.nio.file.Files.isRegularFile(f)) {
+        return;
+      }
+      com.google.gson.JsonObject root = com.google.gson.JsonParser.parseString(
+          java.nio.file.Files.readString(f, java.nio.charset.StandardCharsets.UTF_8))
+          .getAsJsonObject();
+      if (root.has("stack")) {
+        rawSaved = root.get("stack");
+      }
+    } catch (Throwable ignored) {
+    }
   }
 
   /** True if the stack is currently held on cursor or in hands. */
@@ -459,6 +503,27 @@ public final class HelmetCosmeticTracker {
 
   public static ItemStack realHelmet() {
     ItemStack cur = realHelmet;
+    if ((cur == null || cur.isEmpty()) && rawSaved != null) {
+      try {
+        net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
+        if (mc != null && mc.level != null) {
+          var ops = net.minecraft.resources.RegistryOps.create(
+              com.mojang.serialization.JsonOps.INSTANCE, mc.level.registryAccess());
+          ItemStack decoded = net.minecraft.world.item.ItemStack.OPTIONAL_CODEC
+              .parse(ops, rawSaved).getOrThrow();
+          rawSaved = null;
+          if (!decoded.isEmpty()) {
+            realHelmet = decoded;
+            setTip(decoded);
+            return decoded;
+          }
+        }
+      } catch (Throwable ignored) {
+        rawSaved = null;
+      }
+    }
     return cur == null ? ItemStack.EMPTY : cur;
   }
+
+  private static volatile com.google.gson.JsonElement rawSaved;
 }
