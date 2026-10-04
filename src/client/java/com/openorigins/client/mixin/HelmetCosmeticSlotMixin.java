@@ -195,8 +195,14 @@ public abstract class HelmetCosmeticSlotMixin {
       graphics.blitSprite(RenderPipelines.GUI_TEXTURED, HIGHLIGHT_FRONT, x, y, 24, 24);
       String key = HelmetCosmeticTracker.cosmeticKey(cosmetic);
       if (cosmeticTip == null || !key.equals(cosmeticTipKey)) {
-        cosmeticTip = new java.util.ArrayList<>(
-            net.minecraft.client.gui.screens.Screen.getTooltipFromItem(mc, cosmetic));
+        java.util.List<net.minecraft.network.chat.Component> memo =
+            com.openorigins.client.util.CosmeticCatalogCache.cleanFor(cosmetic);
+        if (memo != null) {
+          cosmeticTip = new java.util.ArrayList<>(memo);
+        } else {
+          cosmeticTip = new java.util.ArrayList<>(
+              net.minecraft.client.gui.screens.Screen.getTooltipFromItem(mc, cosmetic));
+        }
         cosmeticTipKey = key;
         String base = key.contains("\n") ? key.substring(0, key.indexOf('\n')) : key;
         if (HelmetCosmeticTracker.realHelmet().isEmpty() && !cosmeticTip.isEmpty()) {

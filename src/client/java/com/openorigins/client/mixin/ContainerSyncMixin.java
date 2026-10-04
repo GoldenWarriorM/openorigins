@@ -29,6 +29,7 @@ public abstract class ContainerSyncMixin {
       }
       OpenWorldCache.scan(container);
       com.openorigins.client.util.BadgerCache.scan(container);
+      com.openorigins.client.util.CosmeticCatalogCache.scan(container);
       try {
         Object inv = mc.player != null ? mc.player.getInventory() : null;
         StringBuilder sig = new StringBuilder();
