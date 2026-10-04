@@ -151,10 +151,17 @@ public class TeleportMenuScreen extends Screen implements HomePanelHost {
 
   private void buildHomePanel() {
     this.panelCount = 0;
-    if (this.homes == null || this.homes.isEmpty()) {
+    List<String> cells;
+    if (this.homes == null) {
       return;
+    } else if (this.homes.isEmpty()) {
+      cells = HomeInfoCache.cellsFor(this.homes);
+      if (cells.isEmpty()) {
+        cells = new ArrayList<>(List.of("locked"));
+      }
+    } else {
+      cells = HomeInfoCache.cellsFor(this.homes);
     }
-    List<String> cells = HomeInfoCache.cellsFor(this.homes);
     if (cells.isEmpty()) {
       return;
     }

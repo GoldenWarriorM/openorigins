@@ -81,6 +81,9 @@ public class HomesMenuScreen extends Screen implements HomePanelHost {
       return;
     }
     List<String> cells = HomeInfoCache.cellsFor(this.homes);
+    if (cells.isEmpty() && this.homes.isEmpty()) {
+      cells = new ArrayList<>(List.of("locked"));
+    }
     int cellW = ICON + GAP;
     int rows = Math.max(1, (cells.size() + COLS - 1) / COLS);
     int gridW = COLS * cellW - GAP;

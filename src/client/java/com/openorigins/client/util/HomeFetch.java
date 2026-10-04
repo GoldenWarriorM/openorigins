@@ -51,7 +51,7 @@ public final class HomeFetch {
 
   /** Called with fresh tab-complete names; pulls missing details once per home. */
   public static void autoFetch(List<String> homes) {
-    if (homes == null || homes.isEmpty() || armed) {
+    if (homes == null || armed) {
       return;
     }
     boolean need = HomeInfoCache.layout().isEmpty() && !layoutFetchTried;

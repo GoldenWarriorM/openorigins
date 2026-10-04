@@ -376,9 +376,29 @@ public final class HelmetCosmeticTracker {
 
   /** Periodic cleanup for headless flows (no GUI open). */
   public static void tick() {
+    try {
+      net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
+      if (mc != null && mc.player != null) {
+        double v = mc.player.getAttributeValue(
+            net.minecraft.world.entity.ai.attributes.Attributes.ARMOR);
+        if (!pendingHelmet.isEmpty() && lastArmorValue >= 0 && v > lastArmorValue) {
+          ItemStack cur = realHelmet;
+          realHelmet = pendingHelmet.copy();
+          setTip(pendingHelmet);
+          lastCommitMs = System.currentTimeMillis();
+          pendingHelmet = ItemStack.EMPTY;
+          org.slf4j.LoggerFactory.getLogger("openorigins").info("[helmet] attr-commit {} (was {})",
+              describe(realHelmet), cur.isEmpty() ? "<empty>" : describe(cur));
+        }
+        lastArmorValue = v;
+      }
+    } catch (Throwable ignored) {
+    }
     checkOptimistic();
     resolvePending();
   }
+
+  private static volatile double lastArmorValue = -1;
 
   /** Optimistic stash from client prediction; rolled back if server disagrees. */
   public static void optimisticStash(ItemStack stack) {
