@@ -54,6 +54,7 @@ public final class HotkeyFeatures {
       if (client.player != null && com.openorigins.client.ConnectionUtil.isConnected()) {
         com.openorigins.client.util.HelmetCosmeticTracker.offerReal(
             client.player.getMainHandItem(), true);
+        com.openorigins.client.util.HelmetCosmeticTracker.tick();
       }
       while (scanKey.consumeClick()) {
         CosmeticScanner.scanAndReport();

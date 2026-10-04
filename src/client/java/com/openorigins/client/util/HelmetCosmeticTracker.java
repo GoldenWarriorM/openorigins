@@ -21,7 +21,7 @@ public final class HelmetCosmeticTracker {
   private static volatile long diffAt;
   private static volatile ItemStack pendingHelmet = ItemStack.EMPTY;
   private static volatile long pendingAt;
-  private static final long PENDING_TTL_MS = 8000;
+  private static final long PENDING_TTL_MS = 30000;
   private static volatile String lastArmorKey = "";
   private static volatile long lastArmorChangeMs;
   private static volatile long lastCommitMs;
@@ -172,6 +172,12 @@ public final class HelmetCosmeticTracker {
           describe(pendingHelmet));
       pendingHelmet = ItemStack.EMPTY;
     }
+    if (!pendingHelmet.isEmpty() && !heldAnywhere(pendingHelmet)
+        && storedAnywhere(pendingHelmet)) {
+      org.slf4j.LoggerFactory.getLogger("openorigins").info("[helmet] pending back in storage {}",
+          describe(pendingHelmet));
+      pendingHelmet = ItemStack.EMPTY;
+    }
     if (!realHelmet.isEmpty() && now - lastCommitMs > 3000 && isAvailableElsewhere()) {
       org.slf4j.LoggerFactory.getLogger("openorigins").info("[helmet] snapshot found in inventory, clearing {}",
           describe(realHelmet));
@@ -259,6 +265,49 @@ public final class HelmetCosmeticTracker {
     realHelmet = ItemStack.EMPTY;
     realTip = java.util.Collections.emptyList();
     realTipKey = "";
+    invalidateCosmeticTip();
+  }
+
+  /** True if the stack is currently held on cursor or in hands. */
+  private static boolean heldAnywhere(ItemStack stack) {
+    try {
+      net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
+      if (mc == null || mc.player == null) {
+        return true;
+      }
+      if (ItemStack.isSameItemSameComponents(stack, mc.player.containerMenu.getCarried())) {
+        return true;
+      }
+      if (ItemStack.isSameItemSameComponents(stack, mc.player.getMainHandItem())
+          || ItemStack.isSameItemSameComponents(stack, mc.player.getOffhandItem())) {
+        return true;
+      }
+    } catch (Throwable ignored) {
+      return true;
+    }
+    return false;
+  }
+
+  /** True if the stack sits in storage (not armor). */
+  private static boolean storedAnywhere(ItemStack stack) {
+    try {
+      net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
+      if (mc == null || mc.player == null) {
+        return false;
+      }
+      for (ItemStack s : mc.player.getInventory().getNonEquipmentItems()) {
+        if (ItemStack.isSameItemSameComponents(stack, s)) {
+          return true;
+        }
+      }
+    } catch (Throwable ignored) {
+    }
+    return false;
+  }
+
+  /** Periodic cleanup for headless flows (no GUI open). */
+  public static void tick() {
+    resolvePending();
   }
 
   /** True if the stack equals the stashed real helmet. */
