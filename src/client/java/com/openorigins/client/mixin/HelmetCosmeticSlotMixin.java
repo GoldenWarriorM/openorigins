@@ -49,6 +49,7 @@ public abstract class HelmetCosmeticSlotMixin {
   }
 
   private ItemStack openorigins$wornHelmet() {
+    HelmetCosmeticTracker.resolvePending();
     if (!(((Object) this) instanceof InventoryScreen)) {
       return ItemStack.EMPTY;
     }

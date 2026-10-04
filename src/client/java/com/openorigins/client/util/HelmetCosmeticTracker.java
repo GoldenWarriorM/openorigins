@@ -10,6 +10,47 @@ public final class HelmetCosmeticTracker {
   private HelmetCosmeticTracker() {}
 
   private static volatile ItemStack realHelmet = ItemStack.EMPTY;
+  private static volatile String lastArmorKey = "";
+  private static volatile long lastArmorChangeMs;
+  private static volatile boolean cursorHoldingReal;
+  private static volatile long pendingClearAt = -1;
+
+  private static String keyOf(ItemStack stack) {
+    if (stack == null || stack.isEmpty()) {
+      return "<empty>";
+    }
+    return describe(stack);
+  }
+
+  /** Called on every armor-slot-5 server sync. */
+  public static void noteArmor(ItemStack stack) {
+    String k = keyOf(stack);
+    if (!k.equals(lastArmorKey)) {
+      lastArmorKey = k;
+      lastArmorChangeMs = System.currentTimeMillis();
+      pendingClearAt = -1;
+    }
+  }
+
+  /** Called on every cursor sync. */
+  public static void noteCursor(ItemStack stack) {
+    boolean holding = isStashedReal(stack);
+    boolean was = cursorHoldingReal;
+    cursorHoldingReal = holding;
+    if (was && !holding && (stack == null || stack.isEmpty())) {
+      if (System.currentTimeMillis() - lastArmorChangeMs > 1000) {
+        pendingClearAt = System.currentTimeMillis();
+      }
+    }
+  }
+
+  /** Drops the snapshot if the helmet left without any slot activity. */
+  public static void resolvePending() {
+    if (pendingClearAt > 0 && System.currentTimeMillis() - pendingClearAt > 500) {
+      pendingClearAt = -1;
+      realHelmet = ItemStack.EMPTY;
+    }
+  }
 
   public static boolean isCosmetic(ItemStack stack) {
     if (stack == null || stack.isEmpty()) {

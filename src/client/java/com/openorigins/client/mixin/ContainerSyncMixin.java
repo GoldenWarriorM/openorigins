@@ -77,6 +77,7 @@ public abstract class ContainerSyncMixin {
   private void openorigins$onSlot(ClientboundContainerSetSlotPacket packet, CallbackInfo ci) {
     openorigins$recapture("slot");
     if (packet.getContainerId() == 0 && packet.getSlot() == 5) {
+      com.openorigins.client.util.HelmetCosmeticTracker.noteArmor(packet.getItem());
       if (packet.getItem().isEmpty()) {
         com.openorigins.client.util.HelmetCosmeticTracker.clear();
       } else {
@@ -91,6 +92,7 @@ public abstract class ContainerSyncMixin {
   private void openorigins$onCursor(
       net.minecraft.network.protocol.game.ClientboundSetCursorItemPacket packet, CallbackInfo ci) {
     com.openorigins.client.util.HelmetCosmeticTracker.offerReal(packet.contents());
+    com.openorigins.client.util.HelmetCosmeticTracker.noteCursor(packet.contents());
     org.slf4j.LoggerFactory.getLogger("openorigins").info("[helmet] cursor <- {}",
         com.openorigins.client.util.HelmetCosmeticTracker.describe(packet.contents()));
   }
