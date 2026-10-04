@@ -215,9 +215,14 @@ public abstract class HelmetCosmeticSlotMixin {
         }
         cosmeticTip = new java.util.ArrayList<>();
         for (net.minecraft.network.chat.Component line : base) {
-          String s = line.getString();
-          if (s.startsWith("Left-click") || s.startsWith("Right-click")
-              || s.startsWith("Shift-click") || s.startsWith("Middle-click")) {
+          String s = line.getString().strip();
+          int i = 0;
+          while (i < s.length() && (s.charAt(i) <= 0x20 || s.charAt(i) > 0x2000)) {
+            i++;
+          }
+          String t = s.substring(i);
+          if (t.startsWith("Left-click") || t.startsWith("Right-click")
+              || t.startsWith("Shift-click") || t.startsWith("Middle-click")) {
             continue;
           }
           cosmeticTip.add(line);

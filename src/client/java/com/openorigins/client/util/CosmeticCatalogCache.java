@@ -218,10 +218,7 @@ public final class CosmeticCatalogCache {
       full.add(0, stack.getHoverName().copy());
       full = withoutActions(full);
       List<Component> prev = CLEAN.get(key);
-      if (prev == null) {
-        CLEAN.put(key, List.copyOf(full));
-        changed = true;
-      } else if (!sameText(prev, full) && full.size() <= prev.size()) {
+      if (prev == null || !sameText(prev, full)) {
         CLEAN.put(key, List.copyOf(full));
         changed = true;
       }
@@ -232,8 +229,14 @@ public final class CosmeticCatalogCache {
   }
 
   private static boolean isActionLine(String s) {
-    return s.startsWith("Left-click") || s.startsWith("Right-click")
-        || s.startsWith("Shift-click") || s.startsWith("Middle-click");
+    String t = s.strip();
+    int i = 0;
+    while (i < t.length() && (t.charAt(i) <= 0x20 || t.charAt(i) > 0x2000)) {
+      i++;
+    }
+    t = t.substring(i);
+    return t.startsWith("Left-click") || t.startsWith("Right-click")
+        || t.startsWith("Shift-click") || t.startsWith("Middle-click");
   }
 
   /** Drops menu-action lines, keeps the display content. */
