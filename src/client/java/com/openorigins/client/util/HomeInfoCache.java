@@ -328,6 +328,15 @@ public final class HomeInfoCache {
     return List.copyOf(LAYOUT);
   }
 
+  /** Drops a name immediately (e.g. server confirmed deletion). @return true if changed. */
+  public static synchronized boolean removeName(String name) {
+    boolean changed = NAMES.removeIf(n -> n.equalsIgnoreCase(name));
+    if (changed) {
+      save();
+    }
+    return changed;
+  }
+
   /** Reconciles the cached name list with a fresh server response. @return true if changed. */
   public static synchronized boolean setNames(List<String> names) {
     List<String> copy = List.copyOf(names);

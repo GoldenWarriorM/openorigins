@@ -18,6 +18,8 @@ public final class HomeCreationConfirm {
       Pattern.compile("You cannot create a home here!");
   private static final Pattern NO_HOME =
       Pattern.compile("You don't have a home with the name (.+?)!\\s*$");
+  private static final Pattern DELETED =
+      Pattern.compile("You've deleted your home,\\s*(.+?)!\\s*$");
 
   private static volatile String pending;
   private static volatile long pendingAt;
@@ -83,6 +85,12 @@ public final class HomeCreationConfirm {
     if (no.find()) {
       BLOCKED.add(norm(no.group(1).trim()));
       refresh();
+      return;
+    }
+    Matcher del = DELETED.matcher(text);
+    if (del.find()) {
+      com.openorigins.client.util.HomeInfoCache.removeName(del.group(1).trim());
+      refreshAfterDelete(del.group(1).trim());
     }
   }
 
@@ -92,6 +100,17 @@ public final class HomeCreationConfirm {
       mc.execute(() -> {
         if (mc.gui.screen() instanceof com.openorigins.client.screen.HomePanelHost host) {
           host.rebuildHomeWidgets();
+        }
+      });
+    }
+  }
+
+  private static void refreshAfterDelete(String name) {
+    Minecraft mc = Minecraft.getInstance();
+    if (mc != null) {
+      mc.execute(() -> {
+        if (mc.gui.screen() instanceof com.openorigins.client.screen.HomePanelHost host) {
+          host.forgetHome(name);
         }
       });
     }

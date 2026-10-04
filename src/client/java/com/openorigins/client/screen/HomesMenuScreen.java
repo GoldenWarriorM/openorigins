@@ -89,6 +89,14 @@ public class HomesMenuScreen extends Screen implements HomePanelHost {
     this.layoutWidgets();
   }
 
+  @Override
+  public void forgetHome(String name) {
+    if (this.homes != null) {
+      this.homes.removeIf(n -> n.equalsIgnoreCase(name));
+    }
+    this.layoutWidgets();
+  }
+
   void refresh() {
     this.homes = null;
     this.failed = false;

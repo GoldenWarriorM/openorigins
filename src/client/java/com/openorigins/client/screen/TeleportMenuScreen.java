@@ -132,6 +132,15 @@ public class TeleportMenuScreen extends Screen implements HomePanelHost {
   }
 
   @Override
+  public void forgetHome(String name) {
+    if (this.homes != null) {
+      this.homes.removeIf(n -> n.equalsIgnoreCase(name));
+    }
+    this.clearWidgets();
+    this.buildAll();
+  }
+
+  @Override
   public void tick() {
     super.tick();
     if (this.retryAt > 0 && System.currentTimeMillis() >= this.retryAt) {
