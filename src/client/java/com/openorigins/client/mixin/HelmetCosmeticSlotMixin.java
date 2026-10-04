@@ -49,6 +49,18 @@ public abstract class HelmetCosmeticSlotMixin {
   }
 
   private ItemStack openorigins$wornHelmet() {
+    if (!(((Object) this) instanceof InventoryScreen)) {
+      return ItemStack.EMPTY;
+    }
+    try {
+      net.minecraft.client.gui.screens.inventory.AbstractContainerScreen<?> self =
+          (net.minecraft.client.gui.screens.inventory.AbstractContainerScreen<?>) (Object) this;
+      if (self.getMenu() instanceof net.minecraft.world.inventory.InventoryMenu menu) {
+        ItemStack stack = menu.getSlot(5).getItem();
+        return stack == null ? ItemStack.EMPTY : stack;
+      }
+    } catch (Throwable ignored) {
+    }
     Player player = Minecraft.getInstance().player;
     if (player == null) {
       return ItemStack.EMPTY;
@@ -57,15 +69,32 @@ public abstract class HelmetCosmeticSlotMixin {
     return stack == null ? ItemStack.EMPTY : stack;
   }
 
-  private ItemStack openorigins$cosmetic() {
-    ItemStack worn = this.openorigins$wornHelmet();
-    if (!worn.isEmpty()) {
-      HelmetCosmeticTracker.offerReal(worn);
-      if (HelmetCosmeticTracker.isCosmetic(worn)) {
-        return worn;
-      }
+  /** Cosmetic presence: glyph-named item, or its plain placeholder while combo active. */
+  private ItemStack openorigins$cosmetic(ItemStack worn) {
+    if (worn.isEmpty()) {
+      return ItemStack.EMPTY;
+    }
+    HelmetCosmeticTracker.offerReal(worn);
+    if (HelmetCosmeticTracker.isCosmetic(worn)) {
+      return worn;
+    }
+    if (!HelmetCosmeticTracker.realHelmet().isEmpty()
+        && worn.getHoverName().getString().contains("Marauder Helmet")) {
+      return worn;
     }
     return ItemStack.EMPTY;
+  }
+
+  private boolean openorigins$heldOnCursor() {
+    Player player = Minecraft.getInstance().player;
+    if (player == null) {
+      return false;
+    }
+    try {
+      return HelmetCosmeticTracker.isStashedReal(player.containerMenu.getCarried());
+    } catch (Throwable ignored) {
+      return false;
+    }
   }
 
   private boolean openorigins$isHoveringCosmetic(int mouseX, int mouseY) {
@@ -79,7 +108,8 @@ public abstract class HelmetCosmeticSlotMixin {
     if (!this.openorigins$active()) {
       return;
     }
-    ItemStack cosmetic = this.openorigins$cosmetic();
+    ItemStack worn = this.openorigins$wornHelmet();
+    ItemStack cosmetic = this.openorigins$cosmetic(worn);
     if (cosmetic.isEmpty()) {
       return;
     }
@@ -90,7 +120,7 @@ public abstract class HelmetCosmeticSlotMixin {
     graphics.item(cosmetic, COSMETIC_X, COSMETIC_Y);
     graphics.itemDecorations(Minecraft.getInstance().font, cosmetic, COSMETIC_X, COSMETIC_Y);
     ItemStack real = HelmetCosmeticTracker.realHelmet();
-    if (!real.isEmpty()) {
+    if (!real.isEmpty() && !this.openorigins$heldOnCursor()) {
       graphics.item(real, HELMET_X, HELMET_Y);
       graphics.itemDecorations(Minecraft.getInstance().font, real, HELMET_X, HELMET_Y);
     }
@@ -102,7 +132,7 @@ public abstract class HelmetCosmeticSlotMixin {
     if (!this.openorigins$active()) {
       return;
     }
-    ItemStack cosmetic = this.openorigins$cosmetic();
+    ItemStack cosmetic = this.openorigins$cosmetic(this.openorigins$wornHelmet());
     if (cosmetic.isEmpty() || !this.openorigins$isHoveringCosmetic(mouseX, mouseY)) {
       return;
     }

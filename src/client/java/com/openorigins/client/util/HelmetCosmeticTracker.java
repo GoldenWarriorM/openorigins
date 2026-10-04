@@ -19,9 +19,17 @@ public final class HelmetCosmeticTracker {
     return !s.isEmpty() && s.charAt(0) > 0x2000;
   }
 
-  /** Feeds a candidate real helmet (armor slot or cursor). */
+  /** Feeds a candidate real helmet (armor slot or cursor): head armor only. */
   public static void offerReal(ItemStack stack) {
     if (stack == null || stack.isEmpty() || isCosmetic(stack)) {
+      return;
+    }
+    net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
+    if (mc == null || mc.player == null) {
+      return;
+    }
+    if (mc.player.getEquipmentSlotForItem(stack)
+        != net.minecraft.world.entity.EquipmentSlot.HEAD) {
       return;
     }
     ItemStack cur = realHelmet;
@@ -33,6 +41,13 @@ public final class HelmetCosmeticTracker {
   /** Clears the snapshot (helmet fully removed). */
   public static void clear() {
     realHelmet = ItemStack.EMPTY;
+  }
+
+  /** True if the stack equals the stashed real helmet. */
+  public static boolean isStashedReal(ItemStack stack) {
+    ItemStack cur = realHelmet;
+    return stack != null && !stack.isEmpty() && !cur.isEmpty()
+        && ItemStack.isSameItemSameComponents(cur, stack);
   }
 
   /** Debug form: id + escaped hover name + count. */
