@@ -61,10 +61,6 @@ public class HomesMenuScreen extends Screen implements HomePanelHost {
           }
           if (HomeFetch.consumeRefetch()) {
             HomeFetch.start(HomesMenuScreen::new);
-          } else if (!HomeInfoCache.containerFresh()) {
-            HomeFetch.start(HomesMenuScreen::new);
-          } else {
-            HomeFetch.autoFetch(this.homes);
           }
         });
       } else {

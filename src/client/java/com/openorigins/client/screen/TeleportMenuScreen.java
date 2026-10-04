@@ -115,10 +115,6 @@ public class TeleportMenuScreen extends Screen implements HomePanelHost {
         }
         if (HomeFetch.consumeRefetch()) {
           HomeFetch.start(TeleportMenuScreen::new);
-        } else if (OpenWorldCache.shouldFetch(this.homes)) {
-          OpenWorldCache.fetch(TeleportMenuScreen::new);
-        } else if (!HomeInfoCache.containerFresh()) {
-          HomeFetch.start(TeleportMenuScreen::new);
         }
       });
     }
