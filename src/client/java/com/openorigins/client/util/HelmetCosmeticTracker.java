@@ -21,7 +21,7 @@ public final class HelmetCosmeticTracker {
   private static volatile long diffAt;
   private static volatile ItemStack pendingHelmet = ItemStack.EMPTY;
   private static volatile long pendingAt;
-  private static final long PENDING_TTL_MS = 2000;
+  private static final long PENDING_TTL_MS = 8000;
   private static volatile String lastArmorKey = "";
   private static volatile long lastArmorChangeMs;
   private static volatile long lastCommitMs;
