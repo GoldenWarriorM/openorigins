@@ -102,8 +102,6 @@ public final class HelmetCosmeticTracker {
     }
     net.minecraft.world.entity.EquipmentSlot slot = mc.player.getEquipmentSlotForItem(stack);
     if (slot != net.minecraft.world.entity.EquipmentSlot.HEAD) {
-      org.slf4j.LoggerFactory.getLogger("openorigins").info("[helmet] skip non-head {} ({})",
-          describe(stack), slot);
       return;
     }
     if (provisional) {
@@ -129,6 +127,31 @@ public final class HelmetCosmeticTracker {
     ItemStack cur = realHelmet;
     return stack != null && !stack.isEmpty() && !cur.isEmpty()
         && ItemStack.isSameItemSameComponents(cur, stack);
+  }
+
+  /** True if the stashed helmet is currently sitting in inventory or on cursor. */
+  public static boolean isAvailableElsewhere() {
+    ItemStack cur = realHelmet;
+    if (cur.isEmpty()) {
+      return false;
+    }
+    net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
+    if (mc == null || mc.player == null) {
+      return false;
+    }
+    try {
+      if (isStashedReal(mc.player.containerMenu.getCarried())) {
+        return true;
+      }
+      net.minecraft.world.entity.player.Inventory inv = mc.player.getInventory();
+      for (int i = 0; i < inv.getContainerSize(); i++) {
+        if (isStashedReal(inv.getItem(i))) {
+          return true;
+        }
+      }
+    } catch (Throwable ignored) {
+    }
+    return false;
   }
 
   /** Debug form: id + escaped hover name + count. */

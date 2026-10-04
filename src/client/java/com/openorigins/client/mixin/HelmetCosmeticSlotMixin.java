@@ -125,10 +125,12 @@ public abstract class HelmetCosmeticSlotMixin {
     graphics.itemDecorations(Minecraft.getInstance().font, cosmetic, COSMETIC_X, COSMETIC_Y);
     graphics.blitSprite(RenderPipelines.GUI_TEXTURED, SLOT_SPRITE, HELMET_X - 1, HELMET_Y - 1, 18, 18);
     ItemStack real = HelmetCosmeticTracker.realHelmet();
-    if (!real.isEmpty() && !this.openorigins$heldOnCursor()) {
+    boolean showReal = !real.isEmpty() && !this.openorigins$heldOnCursor()
+        && !HelmetCosmeticTracker.isAvailableElsewhere();
+    if (showReal) {
       graphics.item(real, HELMET_X, HELMET_Y);
       graphics.itemDecorations(Minecraft.getInstance().font, real, HELMET_X, HELMET_Y);
-    } else if (!HelmetCosmeticTracker.isCosmetic(cosmetic)) {
+    } else {
       graphics.blitSprite(RenderPipelines.GUI_TEXTURED, EMPTY_HELMET, HELMET_X, HELMET_Y, 16, 16);
     }
   }
