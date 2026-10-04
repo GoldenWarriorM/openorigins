@@ -326,6 +326,9 @@ public final class HomeInfoCache {
   public static List<String> cellsFor(List<String> names) {
     Map<String, String> byKey = new java.util.HashMap<>();
     for (String n : names) {
+      if (HomeCreationConfirm.isPending(n)) {
+        continue;
+      }
       byKey.put(key(n), n);
     }
     List<String> cells = new ArrayList<>();

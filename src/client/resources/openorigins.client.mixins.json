@@ -11,6 +11,7 @@
     "CommandSuggestionsMixin",
     "ContainerLoreMixin",
     "ContainerSyncMixin",
+    "ChatConfirmMixin",
     "ContainerHotkeyMixin",
     "RegistryDesyncMixin",
     "HelmetCosmeticSlotMixin",
