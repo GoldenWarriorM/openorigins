@@ -399,34 +399,42 @@ public final class HomeInfoCache {
     TOMBSTONES.remove(key(name));
   }
 
-  /** Reconciles the cached name list with a fresh server response. @return true if changed. */
+  /** Merges a fresh server response: only adds, removals come from verdicts. */
   public static synchronized boolean setNames(List<String> names) {
-    List<String> copy = new ArrayList<>();
+    boolean changed = false;
     for (String n : names) {
-      if (!TOMBSTONES.contains(key(n))) {
-        copy.add(n);
+      if (TOMBSTONES.contains(key(n))) {
+        continue;
+      }
+      boolean known = false;
+      for (String e : NAMES) {
+        if (e.equalsIgnoreCase(n)) {
+          known = true;
+          break;
+        }
+      }
+      if (!known) {
+        NAMES.add(n);
+        changed = true;
       }
     }
-    for (Map.Entry<String, String> e
-        : HomeCreationConfirm.freshNames().entrySet()) {
+    for (Map.Entry<String, String> e : HomeCreationConfirm.freshNames().entrySet()) {
       boolean known = false;
-      for (String n : copy) {
+      for (String n : NAMES) {
         if (key(n).equals(e.getKey())) {
           known = true;
           break;
         }
       }
       if (!known) {
-        copy.add(e.getValue());
+        NAMES.add(e.getValue());
+        changed = true;
       }
     }
-    if (copy.equals(NAMES)) {
-      return false;
+    if (changed) {
+      save();
     }
-    NAMES.clear();
-    NAMES.addAll(copy);
-    save();
-    return true;
+    return changed;
   }
 
   /**
