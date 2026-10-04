@@ -86,9 +86,13 @@ public final class BadgerCache {
 
   /** Scans any open container; parses only when it looks like the streaks menu. */
   public static void scan(AbstractContainerScreen<?> screen) {
-    if (screen == null || screen.getMenu() == null) {
-      return;
-    }
+    if (screen == null || screen.getMenu() == null) return;
+    scanMenu(screen.getMenu());
+  }
+
+  public static void scanMenu(net.minecraft.world.inventory.AbstractContainerMenu menu) {
+    if (menu == null) return;
+
     Minecraft mc = Minecraft.getInstance();
     Object playerInv = (mc != null && mc.player != null) ? mc.player.getInventory() : null;
     List<Required> req = new ArrayList<>();
@@ -97,7 +101,7 @@ public final class BadgerCache {
     int high = -1;
     int days = -1;
     String timeLeft = null;
-    for (Slot slot : screen.getMenu().slots) {
+    for (Slot slot : menu.slots) {
       if (!slot.hasItem()) {
         continue;
       }
@@ -175,7 +179,9 @@ public final class BadgerCache {
       org.slf4j.LoggerFactory.getLogger("openorigins").info(
           "[badger] task: {} streak={} resetDays={} tiers={}", REQUIRED, score, days, TIERS);
     }
+  
   }
+
 
   private static Path file() {
     return FabricLoader.getInstance().getConfigDir().resolve("openorigins_badger.json");

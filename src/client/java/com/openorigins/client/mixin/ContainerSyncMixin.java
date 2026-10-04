@@ -19,6 +19,10 @@ public abstract class ContainerSyncMixin {
   private static String lastTopSig = "";
 
   private static void openorigins$recapture(String why) {
+    if (com.openorigins.client.util.BackgroundMenu.isArmed()) {
+      com.openorigins.client.util.BackgroundMenu.poll();
+      return;
+    }
     Minecraft mc = Minecraft.getInstance();
     if (mc != null && mc.gui.screen() instanceof AbstractContainerScreen<?> container) {
       int n = HomeInfoCache.captureFrom(container);

@@ -59,9 +59,7 @@ public class HomesMenuScreen extends Screen implements HomePanelHost {
             this.homes = new ArrayList<>(names);
             this.layoutWidgets();
           }
-          if (HomeFetch.consumeRefetch()) {
-            HomeFetch.start(HomesMenuScreen::new);
-          }
+          HomeFetch.consumeRefetch();
         });
       } else {
         this.failed = true;
@@ -193,7 +191,7 @@ public class HomesMenuScreen extends Screen implements HomePanelHost {
       this.minecraft.player.connection.sendCommand("delhome " + name);
       com.openorigins.client.util.HomeListFetcher.noteMutation();
     }
-    HomeFetch.requestRefetch();
+    HomeFetch.requestIdleRefresh();
     this.refresh();
   }
 

@@ -219,7 +219,15 @@ public final class HomeInfoCache {
    * not by title — server titles are pack glyphs). Returns captures count.
    */
   public static int captureFrom(AbstractContainerScreen<?> screen) {
-    if (screen == null || screen.getMenu() == null) {
+    if (screen == null) {
+      return 0;
+    }
+    return captureMenu(screen.getMenu());
+  }
+
+  /** Core capture working on a bare menu (visible screen or background). */
+  public static int captureMenu(net.minecraft.world.inventory.AbstractContainerMenu menu) {
+    if (menu == null) {
       return 0;
     }
     net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
@@ -232,7 +240,7 @@ public final class HomeInfoCache {
     Map<String, String> guiNames = new java.util.HashMap<>();
     boolean sawRank = false;
     boolean sawCmd = false;
-    for (Slot slot : screen.getMenu().slots) {
+    for (Slot slot : menu.slots) {
       if (!slot.hasItem()) {
         continue;
       }

@@ -29,21 +29,17 @@ public final class OpenWorldCache {
     return worldColor == null ? null : RESETS.get(worldColor);
   }
 
-  private static boolean armed;
-  private static long deadline;
   private static long lastAttempt;
-  private static java.util.function.Supplier<net.minecraft.client.gui.screens.Screen> returnTo =
-      com.openorigins.client.screen.TeleportMenuScreen::new;
 
   /** Silent background fetch via the server open-world menu. */
   public static void fetch(java.util.function.Supplier<net.minecraft.client.gui.screens.Screen> ret) {
+    if (!BackgroundMenu.tryArm()) {
+      return;
+    }
     net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
     if (mc == null || mc.player == null) {
       return;
     }
-    returnTo = ret;
-    armed = true;
-    deadline = System.currentTimeMillis() + 10000;
     lastAttempt = System.currentTimeMillis();
     mc.player.connection.sendCommand("navigator worlds");
   }
@@ -168,13 +164,17 @@ public final class OpenWorldCache {
 
   /** Scans any open container for world reset lore. Returns new findings count. */
   public static int scan(AbstractContainerScreen<?> screen) {
-    if (screen == null || screen.getMenu() == null) {
-      return 0;
-    }
+    if (screen == null || screen.getMenu() == null) return 0;
+    return scanMenu(screen.getMenu());
+  }
+
+  public static int scanMenu(net.minecraft.world.inventory.AbstractContainerMenu menu) {
+    if (menu == null) return 0;
+
     Minecraft mc = Minecraft.getInstance();
     Object playerInv = (mc != null && mc.player != null) ? mc.player.getInventory() : null;
     int found = 0;
-    for (Slot slot : screen.getMenu().slots) {
+    for (Slot slot : menu.slots) {
       if (!slot.hasItem()) {
         continue;
       }
@@ -228,23 +228,10 @@ public final class OpenWorldCache {
           color, new java.util.Date(at), resetLine, name, all);
       found++;
     }
-    if (found > 0 && armed && System.currentTimeMillis() <= deadline) {
-      armed = false;
-      net.minecraft.client.Minecraft mc2 = net.minecraft.client.Minecraft.getInstance();
-      if (mc2 != null) {
-        mc2.execute(() -> {
-          if (mc2.gui.screen() != null
-              && !(mc2.gui.screen() instanceof com.openorigins.client.screen.HomePanelHost)) {
-            if (mc2.player != null) {
-              mc2.player.closeContainer();
-            }
-            mc2.gui.setScreen(returnTo.get());
-          }
-        });
-      }
-    }
     return found;
+
   }
+
 
   private static String colorOf(String name, List<Component> lore) {
     StringBuilder sb = new StringBuilder(name).append(' ');

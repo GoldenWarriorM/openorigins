@@ -113,9 +113,7 @@ public class TeleportMenuScreen extends Screen implements HomePanelHost {
           this.clearWidgets();
           this.buildAll();
         }
-        if (HomeFetch.consumeRefetch()) {
-          HomeFetch.start(TeleportMenuScreen::new);
-        }
+        HomeFetch.consumeRefetch();
       });
     }
     this.buildAll();
@@ -243,7 +241,7 @@ public class TeleportMenuScreen extends Screen implements HomePanelHost {
       this.minecraft.player.connection.sendCommand("delhome " + name);
       com.openorigins.client.util.HomeListFetcher.noteMutation();
     }
-    com.openorigins.client.util.HomeFetch.requestRefetch();
+    com.openorigins.client.util.HomeFetch.requestIdleRefresh();
     if (this.minecraft != null) {
       this.minecraft.gui.setScreen(new TeleportMenuScreen());
     }

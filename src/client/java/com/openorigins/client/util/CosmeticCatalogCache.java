@@ -121,7 +121,9 @@ public final class CosmeticCatalogCache {
     if (PROFILE_TARGETS.isEmpty()) {
       return;
     }
-    profileReturn = ret;
+    if (!BackgroundMenu.tryArm()) {
+      return;
+    }
     profileArmed = true;
     profileDeadline = System.currentTimeMillis() + 10000;
     lastProfileAttempt = System.currentTimeMillis();
@@ -133,6 +135,37 @@ public final class CosmeticCatalogCache {
   }
 
   /** Called on container open/content; captures targets and returns when done. */
+  /** Menu-based poll for background fetches. @return true if a target was captured. */
+  public static boolean profilePollMenu(net.minecraft.world.inventory.AbstractContainerMenu menu) {
+    if (!profileArmed || menu == null) {
+      return false;
+    }
+    Minecraft m = mc();
+    if (m == null) {
+      profileArmed = false;
+      return false;
+    }
+    boolean found = false;
+    try {
+      Object inv = m.player != null ? m.player.getInventory() : null;
+      for (Slot slot : menu.slots) {
+        if (!slot.hasItem()) {
+          continue;
+        }
+        if (inv != null && slot.container == inv) {
+          continue;
+        }
+        ItemStack stack = slot.getItem();
+        if (PROFILE_TARGETS.contains(normName(stack.getHoverName().getString()))) {
+          putClean(stack);
+          found = true;
+        }
+      }
+    } catch (Throwable ignored) {
+    }
+    return found;
+  }
+
   public static void profilePoll(AbstractContainerScreen<?> screen) {
     if (!profileArmed) {
       return;
@@ -142,7 +175,6 @@ public final class CosmeticCatalogCache {
       profileArmed = false;
       return;
     }
-    boolean done = System.currentTimeMillis() > profileDeadline;
     try {
       Object inv = m.player != null ? m.player.getInventory() : null;
       for (Slot slot : screen.getMenu().slots) {
@@ -155,39 +187,30 @@ public final class CosmeticCatalogCache {
         ItemStack stack = slot.getItem();
         if (PROFILE_TARGETS.contains(normName(stack.getHoverName().getString()))) {
           putClean(stack);
-          done = true;
+          profileArmed = false;
+          return;
         }
       }
     } catch (Throwable ignored) {
     }
-    if (done) {
+    if (System.currentTimeMillis() > profileDeadline) {
       profileArmed = false;
-      m.execute(() -> {
-        try {
-          if (m.player != null) {
-            m.player.closeContainer();
-          }
-          net.minecraft.client.gui.screens.Screen ret = profileReturn.get();
-          if (ret != null) {
-            m.gui.setScreen(ret);
-          } else {
-            m.gui.setScreen(null);
-          }
-        } catch (Throwable ignored) {
-        }
-      });
     }
   }
 
   /** Scans any open container for catalog entries. */
   public static void scan(AbstractContainerScreen<?> screen) {
-    if (screen == null || screen.getMenu() == null) {
-      return;
-    }
+    if (screen == null || screen.getMenu() == null) return;
+    scanMenu(screen.getMenu());
+  }
+
+  public static void scanMenu(net.minecraft.world.inventory.AbstractContainerMenu menu) {
+    if (menu == null) return;
+
     Minecraft mc = Minecraft.getInstance();
     Object playerInv = (mc != null && mc.player != null) ? mc.player.getInventory() : null;
     boolean changed = false;
-    for (Slot slot : screen.getMenu().slots) {
+    for (Slot slot : menu.slots) {
       if (!slot.hasItem()) {
         continue;
       }
@@ -226,7 +249,9 @@ public final class CosmeticCatalogCache {
     if (changed) {
       save();
     }
+  
   }
+
 
   private static boolean isActionLine(String s) {
     String t = s.strip();
