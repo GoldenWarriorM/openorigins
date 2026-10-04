@@ -123,8 +123,10 @@ public class HomesMenuScreen extends Screen implements HomePanelHost {
       return;
     }
     java.util.List<HomeInfoCache.Cell> cells = HomeInfoCache.cellsFor(this.homes);
-    if (cells.isEmpty() && this.homes.isEmpty()) {
-      cells = new ArrayList<>(List.of(new HomeInfoCache.Cell("", "", true)));
+    int target = HomeInfoCache.capacity() > 0 ? HomeInfoCache.capacity()
+        : Math.max(5, cells.size());
+    while (cells.size() < target && cells.size() < 15) {
+      cells.add(new HomeInfoCache.Cell("", "", true));
     }
     int cellW = ICON + GAP;
     int rows = Math.max(1, (cells.size() + COLS - 1) / COLS);

@@ -206,6 +206,11 @@ public class TeleportMenuScreen extends Screen implements HomePanelHost {
     } else {
       cells = HomeInfoCache.cellsFor(this.homes);
     }
+    int target = HomeInfoCache.capacity() > 0 ? HomeInfoCache.capacity()
+        : Math.max(5, cells.size());
+    while (cells.size() < target && cells.size() < 15) {
+      cells.add(new HomeInfoCache.Cell("", "", true));
+    }
     if (cells.isEmpty()) {
       return;
     }
