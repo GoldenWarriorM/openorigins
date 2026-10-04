@@ -25,6 +25,7 @@ public final class HelmetCosmeticTracker {
   private static volatile String lastArmorKey = "";
   private static volatile long lastArmorChangeMs;
   private static volatile long lastCommitMs;
+  private static volatile long optimisticMs = -1;
   private static volatile boolean cursorHoldingReal;
   private static volatile long pendingClearAt = -1;
 
@@ -42,6 +43,7 @@ public final class HelmetCosmeticTracker {
       lastArmorKey = k;
       lastArmorChangeMs = System.currentTimeMillis();
       pendingClearAt = -1;
+      confirmOptimistic();
       if (!pendingHelmet.isEmpty()) {
         ItemStack cur = realHelmet;
         if (cur.isEmpty() || !ItemStack.isSameItemSameComponents(cur, pendingHelmet)) {
@@ -307,10 +309,67 @@ public final class HelmetCosmeticTracker {
 
   /** Periodic cleanup for headless flows (no GUI open). */
   public static void tick() {
+    checkOptimistic();
     resolvePending();
   }
 
-  /** True if the stack equals the stashed real helmet. */
+  /** Optimistic stash from client prediction; rolled back if server disagrees. */
+  public static void optimisticStash(ItemStack stack) {
+    if (stack == null || stack.isEmpty() || isCosmetic(stack)) {
+      return;
+    }
+    net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
+    if (mc == null || mc.player == null) {
+      return;
+    }
+    try {
+      if (mc.player.getEquipmentSlotForItem(stack)
+          != net.minecraft.world.entity.EquipmentSlot.HEAD) {
+        return;
+      }
+    } catch (Throwable t) {
+      return;
+    }
+    ItemStack cur = realHelmet;
+    realHelmet = stack.copy();
+    setTip(stack);
+    optimisticMs = System.currentTimeMillis();
+    lastCommitMs = optimisticMs;
+    org.slf4j.LoggerFactory.getLogger("openorigins").info("[helmet] optimistic stash {} (was {})",
+        describe(stack), cur.isEmpty() ? "<empty>" : describe(cur));
+  }
+
+  /** Optimistic clear from client prediction. */
+  public static void optimisticClear() {
+    if (!realHelmet.isEmpty()) {
+      org.slf4j.LoggerFactory.getLogger("openorigins").info("[helmet] optimistic clear (was {})",
+          describe(realHelmet));
+    }
+    realHelmet = ItemStack.EMPTY;
+    realTip = java.util.Collections.emptyList();
+    realTipKey = "";
+    invalidateCosmeticTip();
+    optimisticMs = System.currentTimeMillis();
+    lastCommitMs = optimisticMs;
+  }
+
+  /** Server confirmed (any armor change after the optimistic write): keep it. */
+  private static void confirmOptimistic() {
+    if (optimisticMs > 0 && lastArmorChangeMs >= optimisticMs) {
+      optimisticMs = -1;
+    }
+  }
+
+  /** Called periodically: rolls back unconfirmed optimistic writes. */
+  public static void checkOptimistic() {
+    if (optimisticMs > 0 && System.currentTimeMillis() - optimisticMs > 3000
+        && lastArmorChangeMs < optimisticMs) {
+      optimisticMs = -1;
+      org.slf4j.LoggerFactory.getLogger("openorigins").info("[helmet] optimistic rollback, dropping {}",
+          describe(realHelmet));
+      clear();
+    }
+  }
   public static boolean isStashedReal(ItemStack stack) {
     ItemStack cur = realHelmet;
     return stack != null && !stack.isEmpty() && !cur.isEmpty()

@@ -12,6 +12,7 @@
     "ContainerLoreMixin",
     "ContainerSyncMixin",
     "HelmetCosmeticSlotMixin",
+    "MenuClickMixin",
     "TeamPacketMixin",
     "ClientSpawnMixin",
     "EntityNameTagMixin",
