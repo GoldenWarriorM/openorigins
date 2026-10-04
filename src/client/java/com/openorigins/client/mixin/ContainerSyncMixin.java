@@ -76,5 +76,14 @@ public abstract class ContainerSyncMixin {
   @Inject(method = "handleContainerSetSlot", at = @At("TAIL"))
   private void openorigins$onSlot(ClientboundContainerSetSlotPacket packet, CallbackInfo ci) {
     openorigins$recapture("slot");
+    if (packet.getContainerId() == 0 && packet.getSlot() == 5) {
+      com.openorigins.client.util.HelmetCosmeticTracker.offerReal(packet.getItem());
+    }
+  }
+
+  @Inject(method = "handleSetCursorItem", at = @At("TAIL"))
+  private void openorigins$onCursor(
+      net.minecraft.network.protocol.game.ClientboundSetCursorItemPacket packet, CallbackInfo ci) {
+    com.openorigins.client.util.HelmetCosmeticTracker.offerReal(packet.contents());
   }
 }

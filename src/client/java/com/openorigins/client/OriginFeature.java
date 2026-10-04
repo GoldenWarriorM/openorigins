@@ -7,6 +7,7 @@ public enum OriginFeature {
   BLOCK_ENHANCEMENTS(FeatureCategory.FIXES, "Block Enhancements"),
   GHOST_BLOCK_FIX(FeatureCategory.FIXES, false, "Ghost Block Fix"),
   BACK_SWAG_SLOT(FeatureCategory.GENERAL, "Back Swag Slot"),
+  HELMET_COSMETIC_SLOT(FeatureCategory.GENERAL, "Helmet Cosmetic Slot"),
   EXPAND_MODEL_BOUNDING_BOX(FeatureCategory.GENERAL, "Expand Model Bounding Box"),
   HIDE_NAMES(FeatureCategory.GENERAL, "Hide Names"),
   AUCTION_PING(FeatureCategory.NOTIFICATIONS, "Auction Ping"),
