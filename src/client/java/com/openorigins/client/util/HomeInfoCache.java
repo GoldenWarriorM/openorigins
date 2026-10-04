@@ -384,7 +384,8 @@ public final class HomeInfoCache {
       tabByKey.put(key(n), n);
     }
     boolean authoritative = containerFresh();
-    java.util.List<Cell> cells = new ArrayList<>();
+    java.util.List<Cell> homes = new ArrayList<>();
+    java.util.List<Cell> pluses = new ArrayList<>();
     java.util.Set<String> covered = new java.util.HashSet<>();
     for (String e : LAYOUT) {
       if (e.startsWith("home:")) {
@@ -392,14 +393,14 @@ public final class HomeInfoCache {
         String display = CONTAINER_NAMES.get(k);
         String cmd = tabByKey.get(k);
         if (display != null && (cmd != null || authoritative)) {
-          cells.add(new Cell(display, cmd != null ? cmd : display, false));
+          homes.add(new Cell(display, cmd != null ? cmd : display, false));
           covered.add(k);
         } else if (cmd != null && !authoritative) {
-          cells.add(new Cell(cmd, cmd, false));
+          homes.add(new Cell(cmd, cmd, false));
           covered.add(k);
         }
       } else if (e.toLowerCase(java.util.Locale.ROOT).startsWith("locked:cmd:")) {
-        cells.add(new Cell("", "", true));
+        pluses.add(new Cell("", "", true));
       }
     }
     for (Map.Entry<String, String> en : tabByKey.entrySet()) {
@@ -409,8 +410,10 @@ public final class HomeInfoCache {
       if (authoritative) {
         continue;
       }
-      cells.add(new Cell(en.getValue(), en.getValue(), false));
+      homes.add(new Cell(en.getValue(), en.getValue(), false));
     }
+    java.util.List<Cell> cells = new ArrayList<>(homes);
+    cells.addAll(pluses);
     return cells.size() > 15 ? cells.subList(0, 15) : cells;
   }
 
