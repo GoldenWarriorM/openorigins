@@ -481,7 +481,20 @@ public final class HomeInfoCache {
     }
     java.util.List<Cell> cells = new ArrayList<>(homes);
     cells.addAll(pluses);
-    return cells.size() > 15 ? cells.subList(0, 15) : cells;
+    int max = com.openorigins.client.OpenOriginsConfig.getInstance().getHomeCapacity();
+    if (max < 1 || max > 15) {
+      max = 5;
+    }
+    java.util.List<Cell> homesOnly = new ArrayList<>();
+    java.util.List<Cell> plusOnly = new ArrayList<>();
+    for (Cell c : cells) {
+      (c.plus() ? plusOnly : homesOnly).add(c);
+    }
+    java.util.List<Cell> out = new ArrayList<>(homesOnly);
+    while (out.size() < max && out.size() < 15 && !plusOnly.isEmpty()) {
+      out.add(plusOnly.remove(0));
+    }
+    return out.size() > 15 ? out.subList(0, 15) : out;
   }
 
   private static Path file() {
