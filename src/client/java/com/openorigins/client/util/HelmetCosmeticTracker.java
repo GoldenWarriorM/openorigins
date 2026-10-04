@@ -147,13 +147,17 @@ public final class HelmetCosmeticTracker {
           describe(pendingHelmet));
       pendingHelmet = ItemStack.EMPTY;
     }
+    if (!realHelmet.isEmpty() && isAvailableElsewhere()) {
+      org.slf4j.LoggerFactory.getLogger("openorigins").info("[helmet] snapshot found in inventory, clearing {}",
+          describe(realHelmet));
+      clear();
+      return;
+    }
     if (pendingClearAt > 0 && now - pendingClearAt > 500) {
       pendingClearAt = -1;
       org.slf4j.LoggerFactory.getLogger("openorigins").info("[helmet] pending clear fired, dropping {}",
           describe(realHelmet));
-      realHelmet = ItemStack.EMPTY;
-      realTip = java.util.Collections.emptyList();
-      realTipKey = "";
+      clear();
     }
   }
 
@@ -252,9 +256,8 @@ public final class HelmetCosmeticTracker {
       if (isStashedReal(mc.player.containerMenu.getCarried())) {
         return true;
       }
-      net.minecraft.world.entity.player.Inventory inv = mc.player.getInventory();
-      for (int i = 0; i < inv.getContainerSize(); i++) {
-        if (isStashedReal(inv.getItem(i))) {
+      for (ItemStack stack : mc.player.getInventory().getNonEquipmentItems()) {
+        if (isStashedReal(stack)) {
           return true;
         }
       }
