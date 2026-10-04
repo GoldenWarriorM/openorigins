@@ -70,7 +70,7 @@ public abstract class HelmetCosmeticSlotMixin {
     return stack == null ? ItemStack.EMPTY : stack;
   }
 
-  /** Cosmetic presence: glyph-named item, or its plain placeholder while combo active. */
+  /** Cosmetic presence: glyph-named item, or the server firework placeholder. */
   private ItemStack openorigins$cosmetic(ItemStack worn) {
     if (worn.isEmpty()) {
       return ItemStack.EMPTY;
@@ -79,8 +79,9 @@ public abstract class HelmetCosmeticSlotMixin {
     if (HelmetCosmeticTracker.isCosmetic(worn)) {
       return worn;
     }
-    if (!HelmetCosmeticTracker.realHelmet().isEmpty()
-        && worn.getHoverName().getString().contains("Marauder Helmet")) {
+    String id = net.minecraft.core.registries.BuiltInRegistries.ITEM
+        .getKey(worn.getItem()).toString();
+    if (id.equals("minecraft:firework_star")) {
       return worn;
     }
     return ItemStack.EMPTY;
