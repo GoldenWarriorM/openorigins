@@ -30,6 +30,31 @@ public final class HelmetCosmeticTracker {
     }
   }
 
+  /** Clears the snapshot (helmet fully removed). */
+  public static void clear() {
+    realHelmet = ItemStack.EMPTY;
+  }
+
+  /** Debug form: id + escaped hover name + count. */
+  public static String describe(ItemStack stack) {
+    if (stack == null || stack.isEmpty()) {
+      return "<empty>";
+    }
+    String id = net.minecraft.core.registries.BuiltInRegistries.ITEM
+        .getKey(stack.getItem()).toString();
+    String name = stack.getHoverName().getString();
+    StringBuilder sb = new StringBuilder();
+    for (int i = 0; i < name.length(); i++) {
+      char c = name.charAt(i);
+      if (c < 0x20 || c > 0x2000) {
+        sb.append(String.format("\\u%04x", (int) c));
+      } else {
+        sb.append(c);
+      }
+    }
+    return id + " '" + sb + "' x" + stack.getCount();
+  }
+
   public static ItemStack realHelmet() {
     ItemStack cur = realHelmet;
     return cur == null ? ItemStack.EMPTY : cur;
