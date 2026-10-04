@@ -67,6 +67,7 @@ public final class HomeCreationConfirm {
         pending = null;
       }
       BLOCKED.remove(norm(name));
+      com.openorigins.client.util.HomeInfoCache.untomb(name);
       com.openorigins.client.screen.SetHomeScreen.onServerResult(true, name);
       refresh();
       return;

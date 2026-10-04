@@ -49,6 +49,8 @@ public final class HomeInfoCache {
   }
   private static final List<String> LAYOUT = new java.util.concurrent.CopyOnWriteArrayList<>();
   private static final List<String> NAMES = new java.util.concurrent.CopyOnWriteArrayList<>();
+  private static final java.util.Set<String> TOMBSTONES =
+      java.util.Collections.newSetFromMap(new java.util.concurrent.ConcurrentHashMap<>());
   private static volatile int CAPACITY;
   public static final String DEFAULT_ICON = "textures/custom_ui/transport_menu/button_homes.png";
   public static final String PLUS_ICON = "textures/custom/ui/slot_add.png";
@@ -330,6 +332,7 @@ public final class HomeInfoCache {
 
   /** Drops a name immediately (e.g. server confirmed deletion). @return true if changed. */
   public static synchronized boolean removeName(String name) {
+    TOMBSTONES.add(key(name));
     boolean changed = NAMES.removeIf(n -> n.equalsIgnoreCase(name));
     if (changed) {
       save();
@@ -337,9 +340,18 @@ public final class HomeInfoCache {
     return changed;
   }
 
+  public static void untomb(String name) {
+    TOMBSTONES.remove(key(name));
+  }
+
   /** Reconciles the cached name list with a fresh server response. @return true if changed. */
   public static synchronized boolean setNames(List<String> names) {
-    List<String> copy = List.copyOf(names);
+    List<String> copy = new ArrayList<>();
+    for (String n : names) {
+      if (!TOMBSTONES.contains(key(n))) {
+        copy.add(n);
+      }
+    }
     if (copy.equals(NAMES)) {
       return false;
     }
@@ -453,6 +465,11 @@ public final class HomeInfoCache {
         nm.add(n);
       }
       root.add("names", nm);
+      JsonArray tb = new JsonArray();
+      for (String t : TOMBSTONES) {
+        tb.add(t);
+      }
+      root.add("tombstones", tb);
       if (CAPACITY > 0) {
         root.addProperty("capacity", CAPACITY);
       }
@@ -515,6 +532,13 @@ public final class HomeInfoCache {
         NAMES.clear();
         for (JsonElement el : nm) {
           NAMES.add(el.getAsString());
+        }
+      }
+      JsonArray tb = root.getAsJsonArray("tombstones");
+      if (tb != null) {
+        TOMBSTONES.clear();
+        for (JsonElement el : tb) {
+          TOMBSTONES.add(el.getAsString());
         }
       }
       JsonObject res = root.getAsJsonObject("resets");

@@ -19,6 +19,8 @@ public final class HotkeyFeatures {
   private static KeyMapping greenBalloonKey;
   private static KeyMapping yellowBalloonKey;
   private static KeyMapping redBalloonKey;
+  private static boolean joinFetchDone;
+  private static int joinTicks;
 
   private HotkeyFeatures() {}
 
@@ -60,6 +62,17 @@ public final class HotkeyFeatures {
         new KeyMapping("key.openorigins.balloon_red", InputConstants.UNKNOWN.getValue(), category));
 
     ClientTickEvents.END_CLIENT_TICK.register(client -> {
+      if (!com.openorigins.client.ConnectionUtil.isConnected()) {
+        joinFetchDone = false;
+        joinTicks = 0;
+      } else {
+        joinTicks++;
+        if (!joinFetchDone && joinTicks == 100 && client.player != null
+            && com.openorigins.client.util.HomeInfoCache.layout().isEmpty()) {
+          joinFetchDone = true;
+          com.openorigins.client.util.HomeFetch.start(() -> null);
+        }
+      }
       if (client.player != null && com.openorigins.client.ConnectionUtil.isConnected()) {
         com.openorigins.client.util.HelmetCosmeticTracker.offerReal(
             client.player.getMainHandItem(), true);
