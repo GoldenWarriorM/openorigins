@@ -16,15 +16,24 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  */
 @Mixin(AbstractContainerMenu.class)
 public abstract class MenuClickMixin {
+  private static ItemStack preClickItem = ItemStack.EMPTY;
+  private static int preClickSlot = -1;
+
   @Inject(method = "clicked", at = @At("HEAD"))
   private void openorigins$captureClean(int slotIndex, int button, ContainerInput clickType,
       Player player, CallbackInfo ci) {
     AbstractContainerMenu menu = (AbstractContainerMenu) (Object) this;
-    if (menu.containerId == 0) {
-      return;
-    }
     Minecraft mc = Minecraft.getInstance();
     if (mc == null || mc.player == null || player != mc.player) {
+      return;
+    }
+    if (menu.containerId == 0) {
+      preClickSlot = slotIndex;
+      try {
+        preClickItem = menu.getSlot(slotIndex).getItem().copy();
+      } catch (Throwable ignored) {
+        preClickItem = ItemStack.EMPTY;
+      }
       return;
     }
     try {
@@ -53,6 +62,17 @@ public abstract class MenuClickMixin {
       com.openorigins.client.util.HelmetCosmeticTracker.optimisticClear();
     } else {
       com.openorigins.client.util.HelmetCosmeticTracker.optimisticStash(armor5);
+    }
+    try {
+      ItemStack post = menu.getSlot(slotIndex).getItem();
+      ItemStack pre = preClickItem;
+      preClickItem = ItemStack.EMPTY;
+      preClickSlot = -1;
+      if (!pre.isEmpty() && (post == null || post.isEmpty()
+          || !ItemStack.isSameItemSameComponents(pre, post))) {
+        com.openorigins.client.util.HelmetCosmeticTracker.optimisticEquipFrom(pre, armor5);
+      }
+    } catch (Throwable ignored) {
     }
   }
 

@@ -427,6 +427,38 @@ public final class HelmetCosmeticTracker {
     }
   }
 
+  /**
+   * A head item left its slot while cosmetic is (or becomes) present:
+   * assume it is being equipped, server confirms or rolls back.
+   */
+  public static void optimisticEquipFrom(ItemStack moved, ItemStack armorNow) {
+    if (moved == null || moved.isEmpty() || isCosmetic(moved)) {
+      return;
+    }
+    net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
+    if (mc == null || mc.player == null) {
+      return;
+    }
+    try {
+      if (mc.player.getEquipmentSlotForItem(moved)
+          != net.minecraft.world.entity.EquipmentSlot.HEAD) {
+        return;
+      }
+    } catch (Throwable t) {
+      return;
+    }
+    if (armorNow == null || armorNow.isEmpty()) {
+      return;
+    }
+    ItemStack cur = realHelmet;
+    realHelmet = moved.copy();
+    setTip(moved);
+    optimisticMs = System.currentTimeMillis();
+    lastCommitMs = optimisticMs;
+    org.slf4j.LoggerFactory.getLogger("openorigins").info("[helmet] optimistic equip {} (was {})",
+        describe(moved), cur.isEmpty() ? "<empty>" : describe(cur));
+  }
+
   /** Called periodically: rolls back unconfirmed optimistic writes. */
   public static void checkOptimistic() {
     if (optimisticMs > 0 && System.currentTimeMillis() - optimisticMs > 3000
