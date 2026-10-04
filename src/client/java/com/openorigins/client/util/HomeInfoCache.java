@@ -335,7 +335,7 @@ public final class HomeInfoCache {
           cells.add("home:" + real);
           covered.add(k);
         }
-      } else if (e.regionMatches(true, 0, "locked:CMD:", 0, 12)) {
+      } else if (e.toLowerCase(java.util.Locale.ROOT).startsWith("locked:cmd:")) {
         cells.add("locked");
       }
     }
