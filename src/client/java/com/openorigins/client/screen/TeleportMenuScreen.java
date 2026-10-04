@@ -243,6 +243,7 @@ public class TeleportMenuScreen extends Screen implements HomePanelHost {
       this.minecraft.player.connection.sendCommand("delhome " + name);
       com.openorigins.client.util.HomeListFetcher.noteMutation();
     }
+    com.openorigins.client.util.HomeFetch.requestRefetch();
     if (this.minecraft != null) {
       this.minecraft.gui.setScreen(new TeleportMenuScreen());
     }
