@@ -84,6 +84,7 @@ public class SetHomeScreen extends Screen {
     String name = this.nameBox == null ? "" : this.nameBox.getValue().trim().replaceAll("[^a-zA-Z0-9_]", "");
     if (!name.isEmpty() && this.minecraft != null && this.minecraft.player != null) {
       com.openorigins.client.util.HomeCreationConfirm.expect(name);
+      com.openorigins.client.util.HomeListFetcher.noteMutation();
       this.minecraft.player.connection.sendCommand("sethome " + name);
       this.waiting = true;
       this.sentAt = System.currentTimeMillis();

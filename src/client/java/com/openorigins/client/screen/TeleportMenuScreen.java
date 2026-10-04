@@ -51,6 +51,8 @@ public class TeleportMenuScreen extends Screen implements HomePanelHost {
   private int panelX;
   private int panelY;
   private int panelCount;
+  private long retryAt;
+  private int retries;
   private static boolean navigatorProbed;
 
   /** Radial center: screen center unless the homes panel would overlap it. */
@@ -98,6 +100,13 @@ public class TeleportMenuScreen extends Screen implements HomePanelHost {
         if (this.minecraft == null || this.minecraft.gui.screen() != this) {
           return;
         }
+        if (names.isEmpty() && this.homes != null && !this.homes.isEmpty()
+            && !HomeListFetcher.trustEmpty() && this.retries < 5) {
+          this.retries++;
+          this.retryAt = System.currentTimeMillis() + 3000;
+          return;
+        }
+        this.retries = 0;
         boolean changed = HomeInfoCache.setNames(names);
         if (changed || this.homes == null) {
           this.homes = new ArrayList<>(names);
@@ -118,6 +127,16 @@ public class TeleportMenuScreen extends Screen implements HomePanelHost {
   public void rebuildHomeWidgets() {
     this.clearWidgets();
     this.buildAll();
+  }
+
+  @Override
+  public void tick() {
+    super.tick();
+    if (this.retryAt > 0 && System.currentTimeMillis() >= this.retryAt) {
+      this.retryAt = 0;
+      this.homes = null;
+      this.init();
+    }
   }
 
   private void buildAll() {
@@ -212,6 +231,7 @@ public class TeleportMenuScreen extends Screen implements HomePanelHost {
   private void deleteHome(String name) {
     if (this.minecraft != null && this.minecraft.player != null) {
       this.minecraft.player.connection.sendCommand("delhome " + name);
+      com.openorigins.client.util.HomeListFetcher.noteMutation();
     }
     if (this.minecraft != null) {
       this.minecraft.gui.setScreen(new TeleportMenuScreen());

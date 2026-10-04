@@ -27,6 +27,8 @@ public class HomesMenuScreen extends Screen implements HomePanelHost {
 
   private List<String> homes;
   private boolean failed;
+  private long retryAt;
+  private int retries;
 
   public HomesMenuScreen() {
     super(Component.translatable("menu.openorigins.homes.title"));
@@ -45,6 +47,13 @@ public class HomesMenuScreen extends Screen implements HomePanelHost {
           if (this.minecraft == null || this.minecraft.gui.screen() != this) {
             return;
           }
+          if (names.isEmpty() && this.homes != null && !this.homes.isEmpty()
+              && !HomeListFetcher.trustEmpty() && this.retries < 5) {
+            this.retries++;
+            this.retryAt = System.currentTimeMillis() + 3000;
+            return;
+          }
+          this.retries = 0;
           boolean changed = HomeInfoCache.setNames(names);
           if (changed || this.homes == null) {
             this.homes = new ArrayList<>(names);
@@ -61,6 +70,16 @@ public class HomesMenuScreen extends Screen implements HomePanelHost {
       }
     }
     this.layoutWidgets();
+  }
+
+  @Override
+  public void tick() {
+    super.tick();
+    if (this.retryAt > 0 && System.currentTimeMillis() >= this.retryAt) {
+      this.retryAt = 0;
+      this.homes = null;
+      this.init();
+    }
   }
 
   @Override
@@ -135,7 +154,7 @@ public class HomesMenuScreen extends Screen implements HomePanelHost {
     if (li != null) {
       return new HomeIconButton(x, y, size,
           Component.translatable("menu.openorigins.homes.new"), li.textureId(),
-          li.width(), li.height(), false, "+", tip, openInput, openInput);
+          li.width(), li.height(), false, "", tip, openInput, openInput);
     } else {
       return Button.builder(Component.translatable("menu.openorigins.homes.new"),
           b -> openInput.run()).bounds(x, y, size, 20).build();
@@ -163,6 +182,7 @@ public class HomesMenuScreen extends Screen implements HomePanelHost {
   private void delete(String name) {
     if (this.minecraft != null && this.minecraft.player != null) {
       this.minecraft.player.connection.sendCommand("delhome " + name);
+      com.openorigins.client.util.HomeListFetcher.noteMutation();
     }
     HomeFetch.requestRefetch();
     this.refresh();

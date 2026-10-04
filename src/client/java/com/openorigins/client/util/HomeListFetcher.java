@@ -19,6 +19,16 @@ public final class HomeListFetcher {
 
   private static final AtomicInteger NEXT_ID = new AtomicInteger(0x4F000000);
   private static final Map<Integer, Consumer<List<String>>> PENDING = new ConcurrentHashMap<>();
+  private static volatile long lastMutationMs;
+
+  /** Call after our own delete/create commands: trust the next answers. */
+  public static void noteMutation() {
+    lastMutationMs = System.currentTimeMillis();
+  }
+
+  public static boolean trustEmpty() {
+    return System.currentTimeMillis() - lastMutationMs < 15000;
+  }
 
   public static void fetchHomes(Consumer<List<String>> callback) {
     fetchRaw("/home ", true, callback);

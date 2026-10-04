@@ -293,12 +293,6 @@ public final class HomeInfoCache {
     return n;
   }
 
-  /** True for filler entries that are never free slots (rank locks, close button). */
-  public static boolean isFiller(String layoutEntry) {
-    String e = layoutEntry.toLowerCase(java.util.Locale.ROOT);
-    return e.contains("rank") || e.contains("close");
-  }
-
   public static List<String> names() {
     return List.copyOf(NAMES);
   }
@@ -333,9 +327,6 @@ public final class HomeInfoCache {
     }
     List<String> cells = new ArrayList<>();
     java.util.Set<String> covered = new java.util.HashSet<>();
-    int plusLeft = CAPACITY > 0 ? Math.max(0, CAPACITY - names.size()) : -1;
-    int needed = ((names.size() + 4) / 5) * 5;
-    int pos = 0;
     for (String e : LAYOUT) {
       if (e.startsWith("home:")) {
         String k = e.substring(5);
@@ -343,17 +334,9 @@ public final class HomeInfoCache {
         if (real != null) {
           cells.add("home:" + real);
           covered.add(k);
-          pos++;
         }
-      } else if (e.toLowerCase(java.util.Locale.ROOT).contains("close")) {
-        continue;
-      } else if (plusLeft > 0) {
+      } else if (e.regionMatches(true, 0, "locked:CMD:", 0, 12)) {
         cells.add("locked");
-        plusLeft--;
-        pos++;
-      } else if (plusLeft < 0 && pos < needed) {
-        cells.add("locked");
-        pos++;
       }
     }
     for (String n : names) {
