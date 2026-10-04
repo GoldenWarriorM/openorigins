@@ -48,6 +48,8 @@ public final class HelmetCosmeticTracker {
   public static void resolvePending() {
     if (pendingClearAt > 0 && System.currentTimeMillis() - pendingClearAt > 500) {
       pendingClearAt = -1;
+      org.slf4j.LoggerFactory.getLogger("openorigins").info("[helmet] pending clear fired, dropping {}",
+          describe(realHelmet));
       realHelmet = ItemStack.EMPTY;
     }
   }
@@ -62,20 +64,27 @@ public final class HelmetCosmeticTracker {
 
   /** Feeds a candidate real helmet (armor slot or cursor): head armor only. */
   public static void offerReal(ItemStack stack) {
-    if (stack == null || stack.isEmpty() || isCosmetic(stack)) {
+    if (stack == null || stack.isEmpty()) {
+      return;
+    }
+    if (isCosmetic(stack)) {
       return;
     }
     net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
     if (mc == null || mc.player == null) {
       return;
     }
-    if (mc.player.getEquipmentSlotForItem(stack)
-        != net.minecraft.world.entity.EquipmentSlot.HEAD) {
+    net.minecraft.world.entity.EquipmentSlot slot = mc.player.getEquipmentSlotForItem(stack);
+    if (slot != net.minecraft.world.entity.EquipmentSlot.HEAD) {
+      org.slf4j.LoggerFactory.getLogger("openorigins").info("[helmet] skip non-head {} ({})",
+          describe(stack), slot);
       return;
     }
     ItemStack cur = realHelmet;
     if (cur.isEmpty() || !ItemStack.isSameItemSameComponents(cur, stack)) {
       realHelmet = stack.copy();
+      org.slf4j.LoggerFactory.getLogger("openorigins").info("[helmet] stash {} (was {})",
+          describe(stack), cur.isEmpty() ? "<empty>" : describe(cur));
     }
   }
 
