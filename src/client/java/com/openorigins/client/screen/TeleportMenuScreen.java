@@ -70,7 +70,7 @@ public class TeleportMenuScreen extends Screen implements HomePanelHost {
   }
 
   private int homePanelWidth() {
-    List<String> cells = this.homes == null ? List.of() : HomeInfoCache.cellsFor(this.homes);
+    List<HomeInfoCache.Cell> cells = this.homes == null ? List.of() : HomeInfoCache.cellsFor(this.homes);
     if (cells.isEmpty()) {
       return 0;
     }
@@ -117,6 +117,8 @@ public class TeleportMenuScreen extends Screen implements HomePanelHost {
           HomeFetch.start(TeleportMenuScreen::new);
         } else if (OpenWorldCache.shouldFetch(this.homes)) {
           OpenWorldCache.fetch(TeleportMenuScreen::new);
+        } else if (!HomeInfoCache.containerFresh()) {
+          HomeFetch.start(TeleportMenuScreen::new);
         }
       });
     }
@@ -170,13 +172,13 @@ public class TeleportMenuScreen extends Screen implements HomePanelHost {
 
   private void buildHomePanel() {
     this.panelCount = 0;
-    List<String> cells;
+    java.util.List<HomeInfoCache.Cell> cells;
     if (this.homes == null) {
       return;
     } else if (this.homes.isEmpty()) {
       cells = HomeInfoCache.cellsFor(this.homes);
       if (cells.isEmpty()) {
-        cells = new ArrayList<>(List.of("locked"));
+        cells = new ArrayList<>(List.of(new HomeInfoCache.Cell("", "", true)));
       }
     } else {
       cells = HomeInfoCache.cellsFor(this.homes);
@@ -185,10 +187,9 @@ public class TeleportMenuScreen extends Screen implements HomePanelHost {
       return;
     }
     java.util.Map<String, ServerPackIcons.LoadedIcon> icons = new java.util.HashMap<>();
-    for (String c : cells) {
-      if (c.startsWith("home:")) {
-        String n = c.substring(5);
-        ServerPackIcons.get(HomeInfoCache.iconPath(n)).ifPresent(li -> icons.put(n, li));
+    for (HomeInfoCache.Cell c : cells) {
+      if (!c.plus()) {
+        ServerPackIcons.get(HomeInfoCache.iconPath(c.label())).ifPresent(li -> icons.put(c.label(), li));
       }
     }
     ServerPackIcons.get(HomeInfoCache.PLUS_ICON).ifPresent(li -> icons.put("\0plus", li));
@@ -201,15 +202,16 @@ public class TeleportMenuScreen extends Screen implements HomePanelHost {
     this.panelY = Math.max(48, (this.height - panelH) / 2);
     this.panelCount = cells.size();
     for (int i = 0; i < cells.size(); i++) {
-      String cell = cells.get(i);
+      HomeInfoCache.Cell cell = cells.get(i);
       int col = i / 5;
       int row = i % 5;
       int x = this.panelX + col * cellW;
       int y = this.panelY + row * (HOME_ICON + HOME_LABEL_H + HOME_GAP);
-      if (cell.startsWith("home:")) {
-        String name = cell.substring(5);
+      if (!cell.plus()) {
+        String name = cell.label();
+        String cmd = cell.command();
         this.addRenderableWidget(HomesMenuScreen.makeHomeCell(this.minecraft, x, y, HOME_ICON, name,
-            () -> teleportHome(name), () -> deleteHome(name)));
+            () -> teleportHome(cmd), () -> deleteHome(cmd)));
       } else {
         this.addRenderableWidget(HomesMenuScreen.makePlusCell(x, y, HOME_ICON, () -> {
           if (this.minecraft != null) {

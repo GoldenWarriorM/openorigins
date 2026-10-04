@@ -61,6 +61,8 @@ public class HomesMenuScreen extends Screen implements HomePanelHost {
           }
           if (HomeFetch.consumeRefetch()) {
             HomeFetch.start(HomesMenuScreen::new);
+          } else if (!HomeInfoCache.containerFresh()) {
+            HomeFetch.start(HomesMenuScreen::new);
           } else {
             HomeFetch.autoFetch(this.homes);
           }
@@ -99,9 +101,9 @@ public class HomesMenuScreen extends Screen implements HomePanelHost {
     if (this.homes == null) {
       return;
     }
-    List<String> cells = HomeInfoCache.cellsFor(this.homes);
+    java.util.List<HomeInfoCache.Cell> cells = HomeInfoCache.cellsFor(this.homes);
     if (cells.isEmpty() && this.homes.isEmpty()) {
-      cells = new ArrayList<>(List.of("locked"));
+      cells = new ArrayList<>(List.of(new HomeInfoCache.Cell("", "", true)));
     }
     int cellW = ICON + GAP;
     int rows = Math.max(1, (cells.size() + COLS - 1) / COLS);
@@ -109,14 +111,14 @@ public class HomesMenuScreen extends Screen implements HomePanelHost {
     int gridH = rows * (ICON + LABEL_H + GAP) - GAP;
     int y0 = Math.max(44, (this.height - gridH) / 2 - 10);
     for (int i = 0; i < cells.size(); i++) {
-      String cell = cells.get(i);
+      HomeInfoCache.Cell cell = cells.get(i);
       int col = i % COLS;
       int row = i / COLS;
       int x = cx - gridW / 2 + col * cellW;
       int y = y0 + row * (ICON + LABEL_H + GAP);
-      if (cell.startsWith("home:")) {
-        this.addRenderableWidget(makeHomeCell(this.minecraft, x, y, ICON, cell.substring(5),
-            () -> teleport(cell.substring(5)), () -> delete(cell.substring(5))));
+      if (!cell.plus()) {
+        this.addRenderableWidget(makeHomeCell(this.minecraft, x, y, ICON, cell.label(),
+            () -> teleport(cell.command()), () -> delete(cell.command())));
       } else {
         this.addRenderableWidget(makePlusCell(x, y, ICON,
             () -> openSetHome(HomesMenuScreen::new)));

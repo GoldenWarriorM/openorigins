@@ -36,6 +36,17 @@ public final class HomeInfoCache {
   private record Info(List<Component> lore, String worldColor, long resetAt) {}
 
   private static final Map<String, Info> CACHE = new ConcurrentHashMap<>();
+  private static final Map<String, String> CONTAINER_NAMES = new ConcurrentHashMap<>();
+  private static volatile long lastHomesGuiMs;
+
+  /** Authoritative display names from /homes (empty when none). */
+  public static Map<String, String> containerNames() {
+    return Map.copyOf(CONTAINER_NAMES);
+  }
+
+  public static boolean containerFresh() {
+    return System.currentTimeMillis() - lastHomesGuiMs < 5 * 60000L;
+  }
   private static final List<String> LAYOUT = new java.util.concurrent.CopyOnWriteArrayList<>();
   private static final List<String> NAMES = new java.util.concurrent.CopyOnWriteArrayList<>();
   private static volatile int CAPACITY;
@@ -216,6 +227,9 @@ public final class HomeInfoCache {
     String sample = null;
     List<String> layout = new ArrayList<>();
     java.util.Set<String> others = new java.util.TreeSet<>();
+    Map<String, String> guiNames = new java.util.HashMap<>();
+    boolean sawRank = false;
+    boolean sawCmd = false;
     for (Slot slot : screen.getMenu().slots) {
       if (!slot.hasItem()) {
         continue;
@@ -257,8 +271,16 @@ public final class HomeInfoCache {
       if (looksLikeHome) {
         put(name, lore.lines());
         layout.add("home:" + key(name));
+        guiNames.put(key(name), name);
         n++;
       } else {
+        String lower = name.toLowerCase(java.util.Locale.ROOT);
+        if (lower.contains("rank up to unlock")) {
+          sawRank = true;
+        }
+        if (lower.startsWith("cmd:")) {
+          sawCmd = true;
+        }
         layout.add("locked:" + name);
         String fullLore = "<no lore>";
         if (hasLore) {
@@ -290,6 +312,11 @@ public final class HomeInfoCache {
             .info("[homes-lore] layout: {} homes, {} other. others: {}", n, layout.size() - n, others);
       }
     }
+    if (n > 0 || sawRank || sawCmd) {
+      CONTAINER_NAMES.clear();
+      CONTAINER_NAMES.putAll(guiNames);
+      lastHomesGuiMs = System.currentTimeMillis();
+    }
     return n;
   }
 
@@ -314,35 +341,47 @@ public final class HomeInfoCache {
   }
 
   /**
-   * Ordered panel cells for the given home names: {@code "home:<realName>"}
-   * or {@code "locked"} for free slots. Capped at 15 (3x5).
+   * Ordered panel cells. Label is the display name (/homes), command is the
+   * exact tab-complete name when paired, otherwise the label itself.
+   * When fresh /homes data exists it is authoritative; otherwise tab-complete.
    */
-  public static List<String> cellsFor(List<String> names) {
-    Map<String, String> byKey = new java.util.HashMap<>();
-    for (String n : names) {
-      if (HomeCreationConfirm.isPending(n)) {
+  public record Cell(String label, String command, boolean plus) {}
+
+  public static List<Cell> cellsFor(List<String> tabNames) {
+    Map<String, String> tabByKey = new java.util.HashMap<>();
+    for (String n : tabNames) {
+      if (HomeCreationConfirm.isPending(n) || HomeCreationConfirm.isBlocked(n)) {
         continue;
       }
-      byKey.put(key(n), n);
+      tabByKey.put(key(n), n);
     }
-    List<String> cells = new ArrayList<>();
+    boolean authoritative = containerFresh();
+    java.util.List<Cell> cells = new ArrayList<>();
     java.util.Set<String> covered = new java.util.HashSet<>();
     for (String e : LAYOUT) {
       if (e.startsWith("home:")) {
         String k = e.substring(5);
-        String real = byKey.get(k);
-        if (real != null) {
-          cells.add("home:" + real);
+        String display = CONTAINER_NAMES.get(k);
+        String cmd = tabByKey.get(k);
+        if (display != null && (cmd != null || authoritative)) {
+          cells.add(new Cell(display, cmd != null ? cmd : display, false));
+          covered.add(k);
+        } else if (cmd != null && !authoritative) {
+          cells.add(new Cell(cmd, cmd, false));
           covered.add(k);
         }
       } else if (e.toLowerCase(java.util.Locale.ROOT).startsWith("locked:cmd:")) {
-        cells.add("locked");
+        cells.add(new Cell("", "", true));
       }
     }
-    for (String n : names) {
-      if (!covered.contains(key(n))) {
-        cells.add("home:" + n);
+    for (Map.Entry<String, String> en : tabByKey.entrySet()) {
+      if (covered.contains(en.getKey())) {
+        continue;
       }
+      if (authoritative) {
+        continue;
+      }
+      cells.add(new Cell(en.getValue(), en.getValue(), false));
     }
     return cells.size() > 15 ? cells.subList(0, 15) : cells;
   }

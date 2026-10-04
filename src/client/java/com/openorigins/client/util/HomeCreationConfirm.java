@@ -16,9 +16,22 @@ public final class HomeCreationConfirm {
       Pattern.compile("You have created a new home,\\s*(.+?)!\\s*$");
   private static final Pattern CREATE_FAILED =
       Pattern.compile("You cannot create a home here!");
+  private static final Pattern NO_HOME =
+      Pattern.compile("You don't have a home with the name (.+?)!\\s*$");
 
   private static volatile String pending;
   private static volatile long pendingAt;
+  private static final java.util.Set<String> BLOCKED =
+      java.util.Collections.newSetFromMap(new java.util.concurrent.ConcurrentHashMap<>());
+
+  private static String norm(String name) {
+    return name == null ? "" : name.strip().toLowerCase(java.util.Locale.ROOT);
+  }
+
+  /** Names the server disowned: never display until it confirms them. */
+  public static boolean isBlocked(String name) {
+    return BLOCKED.contains(norm(name));
+  }
 
   public static void expect(String name) {
     pending = name;
@@ -51,14 +64,24 @@ public final class HomeCreationConfirm {
       if (pending != null && pending.equalsIgnoreCase(name)) {
         pending = null;
       }
+      BLOCKED.remove(norm(name));
       com.openorigins.client.screen.SetHomeScreen.onServerResult(true, name);
       refresh();
       return;
     }
     Matcher fail = CREATE_FAILED.matcher(text);
     if (fail.find()) {
-      pending = null;
+      if (pending != null) {
+        BLOCKED.add(norm(pending));
+        pending = null;
+      }
       com.openorigins.client.screen.SetHomeScreen.onServerResult(false, text.trim());
+      refresh();
+      return;
+    }
+    Matcher no = NO_HOME.matcher(text);
+    if (no.find()) {
+      BLOCKED.add(norm(no.group(1).trim()));
       refresh();
     }
   }
