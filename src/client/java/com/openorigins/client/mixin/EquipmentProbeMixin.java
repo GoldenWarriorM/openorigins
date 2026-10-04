@@ -20,8 +20,7 @@ public abstract class EquipmentProbeMixin {
       org.slf4j.LoggerFactory.getLogger("openorigins");
 
   @Inject(method = "handleSetEquipment", at = @At("HEAD"))
-  private void openorigins$logEquipment(ClientboundSetEquipmentPacket packet, CallbackInfo ci) {
-    Minecraft mc = Minecraft.getInstance();
+  private void openorigins$logEquipment(ClientboundSetEquipmentPacket packet, CallbackInfo ci) {    Minecraft mc = Minecraft.getInstance();
     if (mc == null || mc.level == null) {
       return;
     }
@@ -35,5 +34,24 @@ public abstract class EquipmentProbeMixin {
           : stack.getHoverName().getString() + " x" + stack.getCount();
       PROBE_LOG.info("[equip] {} slot={} -> {}", who, pair.getFirst(), what);
     }
+  }
+
+  @Inject(method = "handleContainerSetSlot", at = @At("HEAD"))
+  private void openorigins$logSlot(
+      net.minecraft.network.protocol.game.ClientboundContainerSetSlotPacket packet, CallbackInfo ci) {
+    if (packet.getContainerId() == 0 && packet.getSlot() >= 5 && packet.getSlot() <= 8) {
+      net.minecraft.world.item.ItemStack stack = packet.getItem();
+      PROBE_LOG.info("[equip] self armor slot={} -> {}",
+          packet.getSlot(), stack.isEmpty() ? "<empty>"
+              : stack.getHoverName().getString() + " x" + stack.getCount());
+    }
+  }
+
+  @Inject(method = "handleSetCursorItem", at = @At("HEAD"))
+  private void openorigins$logCursor(
+      net.minecraft.network.protocol.game.ClientboundSetCursorItemPacket packet, CallbackInfo ci) {
+    net.minecraft.world.item.ItemStack stack = packet.contents();
+    PROBE_LOG.info("[equip] self cursor -> {}",
+        stack.isEmpty() ? "<empty>" : stack.getHoverName().getString() + " x" + stack.getCount());
   }
 }
