@@ -20,8 +20,6 @@ public final class HotkeyFeatures {
   private static KeyMapping yellowBalloonKey;
   private static KeyMapping redBalloonKey;
   private static KeyMapping badgerHudKey;
-  private static KeyMapping armsPlusKey;
-  private static KeyMapping armsMinusKey;
   private static boolean joinFetchDone;
   private static boolean badgerFetchDone;
   private static boolean worldsFetchDone;
@@ -161,15 +159,9 @@ public final class HotkeyFeatures {
         new KeyMapping("key.openorigins.balloon_red", InputConstants.UNKNOWN.getValue(), category));
     badgerHudKey = KeyMappingHelper.registerKeyMapping(
         new KeyMapping("key.openorigins.badger_hud", InputConstants.UNKNOWN.getValue(), category));
-    armsPlusKey = KeyMappingHelper.registerKeyMapping(
-        new KeyMapping("key.openorigins.allay_arms_plus", InputConstants.UNKNOWN.getValue(), category));
-    armsMinusKey = KeyMappingHelper.registerKeyMapping(
-        new KeyMapping("key.openorigins.allay_arms_minus", InputConstants.UNKNOWN.getValue(), category));
 
     ClientTickEvents.END_CLIENT_TICK.register(client -> {
       while (badgerHudKey.consumeClick()) OpenOriginsConfig.getInstance().toggleBadgerHudVisible();
-      while (armsPlusKey.consumeClick()) nudgeArms(client, 0.25f);
-      while (armsMinusKey.consumeClick()) nudgeArms(client, -0.25f);
       if (joinTicks % 100 == 0) sampleAllayParts(client);
       if (!com.openorigins.client.ConnectionUtil.isConnected()) {
         joinFetchDone = false;
@@ -349,24 +341,6 @@ public final class HotkeyFeatures {
         }
       }
     } catch (Throwable ignored) {
-    }
-  }
-
-  private static void nudgeArms(net.minecraft.client.Minecraft client, float delta) {    java.util.Set<String> out = new java.util.LinkedHashSet<>();
-    com.openorigins.client.util.AllayArmsFix.nudge(delta, out);
-    if (com.openorigins.client.util.AllayArmsFix.statusLine().contains("seen: 0")) {
-      out.add("[OpenOrigins] nearby carriers:");
-      java.util.List<String> census = com.openorigins.client.util.AllayArmsFix.census(client);
-      if (census.isEmpty()) {
-        out.add("  (none within 48m)");
-      } else {
-        out.addAll(census);
-      }
-    }
-    for (String line : out) {
-      if (client.gui != null && client.gui.hud != null && client.gui.hud.getChat() != null) {
-        client.gui.hud.getChat().addClientSystemMessage(net.minecraft.network.chat.Component.literal(line));
-      }
     }
   }
 }

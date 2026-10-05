@@ -116,6 +116,10 @@ public abstract class ItemDisplayArmsFixMixin {
     if (!OPENORIGINS$ARMS.remove(state)) {
       return;
     }
+    if (!com.openorigins.client.OpenOriginsConfig.getInstance()
+        .isEnabled(com.openorigins.client.OriginFeature.ALLAY_ARMS_FIX)) {
+      return;
+    }
     float dx = AllayArmsFix.shiftBlocks();
     if (dx != 0.0f) {
       poseStack.translate(dx, 0.0f, 0.0f);
