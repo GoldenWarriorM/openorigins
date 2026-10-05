@@ -96,6 +96,23 @@ public final class BackgroundMenu {
       return;
     }
     contentPackets++;
+    int top = 0;
+    int filled = 0;
+    try {
+      net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
+      Object inv = mc != null && mc.player != null ? mc.player.getInventory() : null;
+      for (net.minecraft.world.inventory.Slot s : menu.slots) {
+        if (inv != null && s.container == inv) {
+          continue;
+        }
+        top++;
+        if (s.hasItem()) {
+          filled++;
+        }
+      }
+    } catch (Throwable ignored) {
+    }
+    LOG.info("[bgmenu] poll #{} top={} filled={}", contentPackets, top, filled);
     boolean progress = false;
     try {
       if (HomeInfoCache.captureMenu(menu) > 0) {
