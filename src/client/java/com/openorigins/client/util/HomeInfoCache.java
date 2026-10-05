@@ -236,6 +236,7 @@ public final class HomeInfoCache {
     Object playerInv = (mc != null && mc.player != null) ? mc.player.getInventory() : null;
     int n = 0;
     int loreSlots = 0;
+    int topCount = 0;
     String sample = null;
     List<String> layout = new ArrayList<>();
     java.util.Set<String> others = new java.util.TreeSet<>();
@@ -249,6 +250,7 @@ public final class HomeInfoCache {
       if (playerInv != null && slot.container == playerInv) {
         continue;
       }
+      topCount++;
       ItemStack stack = slot.getItem();
       String name = stack.getHoverName().getString();
       ItemLore lore = stack.get(DataComponents.LORE);
@@ -331,6 +333,30 @@ public final class HomeInfoCache {
       lastHomesGuiMs = System.currentTimeMillis();
       if (n == 0) {
         lastZeroGuiMs = System.currentTimeMillis();
+      }
+      for (Map.Entry<String, String> e : guiNames.entrySet()) {
+        if (TOMBSTONES.containsKey(e.getKey())) {
+          continue;
+        }
+        boolean known = false;
+        for (String x : NAMES) {
+          if (key(x).equals(e.getKey())) {
+            known = true;
+            break;
+          }
+        }
+        if (!known) {
+          NAMES.add(e.getValue());
+        }
+      }
+      if (n == 0 && topCount >= 10) {
+        if (!NAMES.isEmpty() || LAYOUT.stream().anyMatch(x -> x.startsWith("home:"))) {
+          NAMES.clear();
+          LAYOUT.removeIf(x -> x.startsWith("home:"));
+          save();
+          org.slf4j.LoggerFactory.getLogger("openorigins")
+              .info("[homes] pruned to empty by authoritative menu");
+        }
       }
     }
     return n;

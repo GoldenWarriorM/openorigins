@@ -99,7 +99,9 @@ public abstract class ContainerSyncMixin {
   private static void noteArmor(net.minecraft.world.item.ItemStack stack) {
     com.openorigins.client.util.HelmetCosmeticTracker.noteArmor(stack);
     if (stack.isEmpty()) {
-      com.openorigins.client.util.HelmetCosmeticTracker.clear();
+      if (com.openorigins.client.util.HelmetCosmeticTracker.hasSeenArmor()) {
+        com.openorigins.client.util.HelmetCosmeticTracker.clear();
+      }
     } else {
       com.openorigins.client.util.HelmetCosmeticTracker.offerReal(stack);
     }

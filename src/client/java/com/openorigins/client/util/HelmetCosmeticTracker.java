@@ -21,6 +21,8 @@ public final class HelmetCosmeticTracker {
   private static volatile long pendingAt;
   private static final long PENDING_TTL_MS = 30000;
   private static volatile String lastArmorKey = "";
+  private static volatile boolean everNonEmptyArmor;
+  private static volatile net.minecraft.world.entity.player.Player lastPlayer;
   private static volatile long lastArmorChangeMs;
   private static volatile long lastCommitMs;
   private static volatile long optimisticMs = -1;
@@ -36,6 +38,18 @@ public final class HelmetCosmeticTracker {
 
   /** Called on every armor-slot-5 server sync. */
   public static void noteArmor(ItemStack stack) {
+    try {
+      net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
+      if (mc != null && mc.player != lastPlayer) {
+        lastPlayer = mc.player;
+        everNonEmptyArmor = false;
+        lastArmorKey = "";
+      }
+    } catch (Throwable ignored) {
+    }
+    if (stack != null && !stack.isEmpty()) {
+      everNonEmptyArmor = true;
+    }
     String k = keyOf(stack);
     if (!k.equals(lastArmorKey)) {
       lastArmorKey = k;
@@ -493,6 +507,11 @@ public final class HelmetCosmeticTracker {
     ItemStack cur = realHelmet;
     return stack != null && !stack.isEmpty() && !cur.isEmpty()
         && ItemStack.isSameItemSameComponents(cur, stack);
+  }
+
+  /** True once real armor content was seen (guards login-sync empties). */
+  public static boolean hasSeenArmor() {
+    return everNonEmptyArmor;
   }
 
   /** True if the stashed helmet is currently sitting in inventory or on cursor. */
