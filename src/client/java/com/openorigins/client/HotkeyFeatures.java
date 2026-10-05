@@ -40,6 +40,8 @@ public final class HotkeyFeatures {
         sb.append(" shown=").append(
             net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(ds.getItem()));
         appendCmd(sb, ds);
+      } else if (e instanceof net.minecraft.world.entity.Display.ItemDisplay) {
+        sb.append(" shown=<unsynced>");
       } else if (e instanceof net.minecraft.world.entity.decoration.ArmorStand stand) {
         for (net.minecraft.world.entity.EquipmentSlot slot : new net.minecraft.world.entity.EquipmentSlot[] {
             net.minecraft.world.entity.EquipmentSlot.MAINHAND,
@@ -212,7 +214,17 @@ public final class HotkeyFeatures {
             net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE.getKey(e.getType())
                 .toString();
         // Full nearby-entity dump (once per entity): catches non-display carriers too.
-        if (distSq < 8 * 8 && OPENORIGINS$NEAR_SEEN.add(e.getId())) {
+        // Displays with no synced item yet are retried until their data arrives.
+        boolean defers = false;
+        if (e instanceof net.minecraft.world.entity.Display.ItemDisplay disp2) {
+          try {
+            net.minecraft.world.entity.Display.ItemDisplay.ItemRenderState rs2 = disp2.itemRenderState();
+            defers = rs2 == null || rs2.itemStack() == null || rs2.itemStack().isEmpty();
+          } catch (Throwable ignored) {
+            defers = true;
+          }
+        }
+        if (distSq < 8 * 8 && (defers || OPENORIGINS$NEAR_SEEN.add(e.getId()))) {
           StringBuilder nb = new StringBuilder();
           nb.append(type).append("#").append(e.getId()).append(" ")
               .append(String.format(java.util.Locale.ROOT, "%.0fm", Math.sqrt(distSq)));
