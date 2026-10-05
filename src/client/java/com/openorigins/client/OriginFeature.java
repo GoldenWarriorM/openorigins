@@ -16,7 +16,7 @@ public enum OriginFeature {
   DEBUG_LOGGING(FeatureCategory.MISC, false, "Debug Logging"),
   SCOREBOARD_DESYNC_FIX(FeatureCategory.FIXES, "Scoreboard Desync Fix"),
   REGISTRY_DESYNC_FIX(FeatureCategory.FIXES, "Registry Desync Fix"),
-  BADGER_TASK_HUD(FeatureCategory.GENERAL, "Badger Task HUD");
+  BADGER_TASK_HUD(FeatureCategory.GENERAL, "Badger Task HUD"),
   ALLAY_ARMS_FIX(FeatureCategory.FIXES, "Allay Arms Fix");
 
   private final FeatureCategory category;
