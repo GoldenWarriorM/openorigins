@@ -273,6 +273,16 @@ public final class HotkeyFeatures {
           } catch (Throwable ignored) {
           }
           describeCarried(e, nb);
+          if (e instanceof net.minecraft.world.entity.Display display) {
+            try {
+              com.mojang.math.Transformation t = display.renderState().transformation().get(1.0f);
+              org.joml.Vector3fc tr = t.translation();
+              org.joml.Vector3fc sc = t.scale();
+              nb.append(String.format(java.util.Locale.ROOT, " t=[%.2f,%.2f,%.2f] s=[%.2f,%.2f,%.2f]",
+                  tr.x(), tr.y(), tr.z(), sc.x(), sc.y(), sc.z()));
+            } catch (Throwable ignored) {
+            }
+          }
           org.slf4j.LoggerFactory.getLogger("openorigins")
               .info("[allay-scan] near {}", nb);
         }
