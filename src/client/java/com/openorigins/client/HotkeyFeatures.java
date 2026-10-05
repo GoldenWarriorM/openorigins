@@ -32,14 +32,35 @@ public final class HotkeyFeatures {
   /** One-line summary of items an entity carries/shows (stands, displays, living hands). */
   private static void describeCarried(net.minecraft.world.entity.Entity e, StringBuilder sb) {
     try {
-      if (e instanceof net.minecraft.world.entity.Display.ItemDisplay disp
-          && disp.itemRenderState() != null
-          && disp.itemRenderState().itemStack() != null
-          && !disp.itemRenderState().itemStack().isEmpty()) {
-        net.minecraft.world.item.ItemStack ds = disp.itemRenderState().itemStack();
-        sb.append(" shown=").append(
-            net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(ds.getItem()));
-        appendCmd(sb, ds);
+      if (e instanceof net.minecraft.world.entity.Display.ItemDisplay disp) {
+        net.minecraft.world.entity.Display.ItemDisplay.ItemRenderState rrs = null;
+        String rrsErr = null;
+        try {
+          rrs = disp.itemRenderState();
+        } catch (Throwable t) {
+          rrsErr = t.toString();
+        }
+        if (rrsErr != null) {
+          sb.append(" shown=<err ").append(rrsErr.length() > 80 ? rrsErr.substring(0, 80) : rrsErr)
+              .append(">");
+        } else if (rrs == null) {
+          sb.append(" shown=<rs-null>");
+        } else {
+          net.minecraft.world.item.ItemStack ds = null;
+          try {
+            ds = rrs.itemStack();
+          } catch (Throwable t) {
+            sb.append(" shown=<stack-err>");
+          }
+          if (ds != null && !ds.isEmpty()) {
+            sb.append(" shown=").append(
+                net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(ds.getItem()));
+            appendCmd(sb, ds);
+            appendPatch(sb, ds);
+          } else if (ds != null) {
+            sb.append(" shown=<empty-stack>");
+          }
+        }
       } else if (e instanceof net.minecraft.world.entity.Display.ItemDisplay) {
         sb.append(" shown=<unsynced>");
       } else if (e instanceof net.minecraft.world.entity.decoration.ArmorStand stand) {
@@ -71,6 +92,25 @@ public final class HotkeyFeatures {
         st.get(net.minecraft.core.component.DataComponents.CUSTOM_MODEL_DATA);
     if (cmd != null && !cmd.floats().isEmpty()) {
       sb.append(cmd.floats());
+    }
+  }
+
+  /** Full component patch of a stack (what the server actually sent). */
+  private static void appendPatch(StringBuilder sb, net.minecraft.world.item.ItemStack st) {
+    try {
+      java.util.Set<net.minecraft.core.component.DataComponentType<?>> types =
+          st.getComponents().keySet();
+      if (!types.isEmpty()) {
+        java.util.List<String> names = new java.util.ArrayList<>();
+        for (net.minecraft.core.component.DataComponentType<?> t : types) {
+          names.add(t.toString());
+        }
+        java.util.Collections.sort(names);
+        String joined = String.join(",", names);
+        sb.append(" patch=[")
+            .append(joined.length() > 220 ? joined.substring(0, 220) + "..." : joined).append("]");
+      }
+    } catch (Throwable ignored) {
     }
   }
 
