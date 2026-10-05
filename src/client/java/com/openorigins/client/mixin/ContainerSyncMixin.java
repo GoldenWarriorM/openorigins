@@ -67,7 +67,7 @@ public abstract class ContainerSyncMixin {
         String s = sig.toString();
         if (!s.isEmpty() && !s.equals(lastTopSig)) {
           lastTopSig = s;
-          org.slf4j.LoggerFactory.getLogger("openorigins").info("[menu-top] {}", dump);
+          com.openorigins.client.util.DebugLog.info("[menu-top] {}", dump);
         }
       } catch (Throwable ignored) {
       }
@@ -76,7 +76,7 @@ public abstract class ContainerSyncMixin {
 
   @Inject(method = "handleContainerContent", at = @At("TAIL"))
   private void openorigins$onContent(ClientboundContainerSetContentPacket packet, CallbackInfo ci) {
-    org.slf4j.LoggerFactory.getLogger("openorigins").info("[pkts] content window={} items={}",
+    com.openorigins.client.util.DebugLog.info("[pkts] content window={} items={}",
         packet.containerId(), packet.items().size());
     openorigins$recapture("content");
     if (packet.containerId() == 0) {
@@ -90,7 +90,7 @@ public abstract class ContainerSyncMixin {
   @Inject(method = "handleContainerSetSlot", at = @At("TAIL"))
   private void openorigins$onSlot(ClientboundContainerSetSlotPacket packet, CallbackInfo ci) {
     if (packet.getContainerId() != 0) {
-      org.slf4j.LoggerFactory.getLogger("openorigins").info("[pkts] slot window={} slot={}",
+      com.openorigins.client.util.DebugLog.info("[pkts] slot window={} slot={}",
           packet.getContainerId(), packet.getSlot());
     }
     openorigins$recapture("slot");
@@ -118,7 +118,7 @@ public abstract class ContainerSyncMixin {
       net.minecraft.network.protocol.game.ClientboundSetCursorItemPacket packet, CallbackInfo ci) {
     com.openorigins.client.util.HelmetCosmeticTracker.offerReal(packet.contents(), true);
     com.openorigins.client.util.HelmetCosmeticTracker.noteCursor(packet.contents());
-    org.slf4j.LoggerFactory.getLogger("openorigins").info("[helmet] cursor <- {}",
+    com.openorigins.client.util.DebugLog.info("[helmet] cursor <- {}",
         com.openorigins.client.util.HelmetCosmeticTracker.describe(packet.contents()));
   }
 }

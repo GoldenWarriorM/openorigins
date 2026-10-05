@@ -59,7 +59,7 @@ public final class HelmetCosmeticTracker {
       if (!pendingHelmet.isEmpty()) {
         ItemStack cur = realHelmet;
         if (cur.isEmpty() || !ItemStack.isSameItemSameComponents(cur, pendingHelmet)) {
-          org.slf4j.LoggerFactory.getLogger("openorigins").info("[helmet] commit {} (was {})",
+          com.openorigins.client.util.DebugLog.info("[helmet] commit {} (was {})",
               describe(pendingHelmet), cur.isEmpty() ? "<empty>" : describe(cur));
         }
         realHelmet = pendingHelmet.copy();
@@ -84,7 +84,7 @@ public final class HelmetCosmeticTracker {
           realHelmet = departedHelmet.copy();
           setTip(departedHelmet);
           lastCommitMs = System.currentTimeMillis();
-          org.slf4j.LoggerFactory.getLogger("openorigins").info("[helmet] departed-stash {} (was {})",
+          com.openorigins.client.util.DebugLog.info("[helmet] departed-stash {} (was {})",
               describe(departedHelmet), cur.isEmpty() ? "<empty>" : describe(cur));
           departedHelmet = ItemStack.EMPTY;
         } else {
@@ -179,7 +179,7 @@ public final class HelmetCosmeticTracker {
         setTip(gone);
         saveHelmet();
         lastCommitMs = System.currentTimeMillis();
-        org.slf4j.LoggerFactory.getLogger("openorigins").info("[helmet] diff-stash {} (was {})",
+        com.openorigins.client.util.DebugLog.info("[helmet] diff-stash {} (was {})",
             describe(gone), cur.isEmpty() ? "<empty>" : describe(cur));
         diffBase = null;
         return;
@@ -209,25 +209,25 @@ public final class HelmetCosmeticTracker {
       }
     }
     if (!pendingHelmet.isEmpty() && now - pendingAt > PENDING_TTL_MS) {
-      org.slf4j.LoggerFactory.getLogger("openorigins").info("[helmet] pending expired {}",
+      com.openorigins.client.util.DebugLog.info("[helmet] pending expired {}",
           describe(pendingHelmet));
       pendingHelmet = ItemStack.EMPTY;
     }
     if (!pendingHelmet.isEmpty() && !heldAnywhere(pendingHelmet)
         && storedAnywhere(pendingHelmet)) {
-      org.slf4j.LoggerFactory.getLogger("openorigins").info("[helmet] pending back in storage {}",
+      com.openorigins.client.util.DebugLog.info("[helmet] pending back in storage {}",
           describe(pendingHelmet));
       pendingHelmet = ItemStack.EMPTY;
     }
     if (!realHelmet.isEmpty() && now - lastCommitMs > 3000 && isAvailableElsewhere()) {
-      org.slf4j.LoggerFactory.getLogger("openorigins").info("[helmet] snapshot found in inventory, clearing {}",
+      com.openorigins.client.util.DebugLog.info("[helmet] snapshot found in inventory, clearing {}",
           describe(realHelmet));
       clear();
       return;
     }
     if (pendingClearAt > 0 && now - pendingClearAt > 500) {
       pendingClearAt = -1;
-      org.slf4j.LoggerFactory.getLogger("openorigins").info("[helmet] pending clear fired, dropping {}",
+      com.openorigins.client.util.DebugLog.info("[helmet] pending clear fired, dropping {}",
           describe(realHelmet));
       clear();
     }
@@ -276,7 +276,7 @@ public final class HelmetCosmeticTracker {
       setTip(stack);
       saveHelmet();
       lastCommitMs = System.currentTimeMillis();
-      org.slf4j.LoggerFactory.getLogger("openorigins").info("[helmet] stash {} (was {})",
+      com.openorigins.client.util.DebugLog.info("[helmet] stash {} (was {})",
           describe(stack), cur.isEmpty() ? "<empty>" : describe(cur));
     }
   }
@@ -401,7 +401,7 @@ public final class HelmetCosmeticTracker {
           setTip(pendingHelmet);
           lastCommitMs = System.currentTimeMillis();
           pendingHelmet = ItemStack.EMPTY;
-          org.slf4j.LoggerFactory.getLogger("openorigins").info("[helmet] attr-commit {} (was {})",
+          com.openorigins.client.util.DebugLog.info("[helmet] attr-commit {} (was {})",
               describe(realHelmet), cur.isEmpty() ? "<empty>" : describe(cur));
         }
         lastArmorValue = v;
@@ -436,14 +436,14 @@ public final class HelmetCosmeticTracker {
     setTip(stack);
     optimisticMs = System.currentTimeMillis();
     lastCommitMs = optimisticMs;
-    org.slf4j.LoggerFactory.getLogger("openorigins").info("[helmet] optimistic stash {} (was {})",
+    com.openorigins.client.util.DebugLog.info("[helmet] optimistic stash {} (was {})",
         describe(stack), cur.isEmpty() ? "<empty>" : describe(cur));
   }
 
   /** Optimistic clear from client prediction. */
   public static void optimisticClear() {
     if (!realHelmet.isEmpty()) {
-      org.slf4j.LoggerFactory.getLogger("openorigins").info("[helmet] optimistic clear (was {})",
+      com.openorigins.client.util.DebugLog.info("[helmet] optimistic clear (was {})",
           describe(realHelmet));
     }
     realHelmet = ItemStack.EMPTY;
@@ -489,7 +489,7 @@ public final class HelmetCosmeticTracker {
     setTip(moved);
     optimisticMs = System.currentTimeMillis();
     lastCommitMs = optimisticMs;
-    org.slf4j.LoggerFactory.getLogger("openorigins").info("[helmet] optimistic equip {} (was {})",
+    com.openorigins.client.util.DebugLog.info("[helmet] optimistic equip {} (was {})",
         describe(moved), cur.isEmpty() ? "<empty>" : describe(cur));
   }
 
@@ -498,7 +498,7 @@ public final class HelmetCosmeticTracker {
     if (optimisticMs > 0 && System.currentTimeMillis() - optimisticMs > 3000
         && lastArmorChangeMs < optimisticMs) {
       optimisticMs = -1;
-      org.slf4j.LoggerFactory.getLogger("openorigins").info("[helmet] optimistic rollback, dropping {}",
+      com.openorigins.client.util.DebugLog.info("[helmet] optimistic rollback, dropping {}",
           describe(realHelmet));
       clear();
     }

@@ -16,7 +16,7 @@ public abstract class SpawnLoggerMixin {
 
   @Inject(method = "handleAddEntity", at = @At("HEAD"))
   private void openorigins$logSpawn(ClientboundAddEntityPacket packet, CallbackInfo ci) {
-    SPAWN_LOG.info("[OpenOrigins spawn] {} id={}",
+    com.openorigins.client.util.DebugLog.info("[OpenOrigins spawn] {} id={}",
         net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE.getKey(packet.getType()),
         packet.getId());
   }

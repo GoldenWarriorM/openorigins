@@ -40,7 +40,7 @@ public final class LegacyTranslator {
     try (InputStream in = LegacyTranslator.class
         .getResourceAsStream("/assets/openorigins/tables/reg121.json")) {
       if (in == null) {
-        LOGGER.warn("[OpenOrigins] reg121 tables missing");
+        com.openorigins.client.util.DebugLog.warn("[OpenOrigins] reg121 tables missing");
         return;
       }
       JsonObject root = JsonParser.parseReader(new InputStreamReader(in, StandardCharsets.UTF_8))
@@ -50,7 +50,7 @@ public final class LegacyTranslator {
       root.getAsJsonObject("components").entrySet()
           .forEach(e -> COMPONENTS_121.put(Integer.parseInt(e.getKey()), e.getValue().getAsString()));
     } catch (Throwable t) {
-      LOGGER.warn("[OpenOrigins] failed to load reg121 tables", t);
+      com.openorigins.client.util.DebugLog.warn("[OpenOrigins] failed to load reg121 tables", t);
     }
   }
 

@@ -41,7 +41,7 @@ public final class CosmeticScanner {
             net.minecraft.core.component.DataComponents.CUSTOM_MODEL_DATA);
         if (data != null) cmd = " cmd=" + data;
       }
-      SCAN_LOG.info("[OpenOrigins autospawn] stand#{} head={}{}", stand.getId(), head.getItem(), cmd);
+      com.openorigins.client.util.DebugLog.info("[OpenOrigins autospawn] stand#{} head={}{}", stand.getId(), head.getItem(), cmd);
     }
   }
 

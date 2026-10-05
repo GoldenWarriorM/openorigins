@@ -176,7 +176,7 @@ public final class BadgerCache {
     TIERS.addAll(tiers);
     if (changed) {
       save();
-      org.slf4j.LoggerFactory.getLogger("openorigins").info(
+      com.openorigins.client.util.DebugLog.info(
           "[badger] task: {} streak={} resetDays={} tiers={}", REQUIRED, score, days, TIERS);
     }
   
@@ -214,7 +214,7 @@ public final class BadgerCache {
       root.add("tiers", ta);
       Files.writeString(file(), root.toString(), StandardCharsets.UTF_8);
     } catch (Exception ex) {
-      org.slf4j.LoggerFactory.getLogger("openorigins").warn("[badger] save failed: {}", ex.toString());
+      com.openorigins.client.util.DebugLog.warn("[badger] save failed: {}", ex.toString());
     }
   }
 
@@ -249,7 +249,7 @@ public final class BadgerCache {
       org.slf4j.LoggerFactory.getLogger("openorigins")
           .info("[badger] loaded {} required from disk", REQUIRED.size());
     } catch (Exception ex) {
-      org.slf4j.LoggerFactory.getLogger("openorigins").warn("[badger] load failed: {}", ex.toString());
+      com.openorigins.client.util.DebugLog.warn("[badger] load failed: {}", ex.toString());
     }
   }
 }

@@ -43,7 +43,7 @@ public final class RemoteRegistry {
         parse(response.body());
       }
     }).exceptionally(t -> {
-      LOGGER.warn("[OpenOrigins] remote registry fetch failed, using empty registry");
+      com.openorigins.client.util.DebugLog.warn("[OpenOrigins] remote registry fetch failed, using empty registry");
       return null;
     });
   }
@@ -70,7 +70,7 @@ public final class RemoteRegistry {
       this.locations = Collections.unmodifiableMap(parsed);
       this.loaded = true;
     } catch (Throwable t) {
-      LOGGER.warn("[OpenOrigins] remote registry parse failed");
+      com.openorigins.client.util.DebugLog.warn("[OpenOrigins] remote registry parse failed");
     }
   }
 

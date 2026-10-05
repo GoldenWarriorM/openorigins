@@ -21,7 +21,7 @@ public final class OEPackets {
 
   public static void dispatch(int id, OEBuffer buf) {
     if (loggedIds.add(id)) {
-      LOGGER.info("[OpenOrigins] first channel packet id={}", id);
+      com.openorigins.client.util.DebugLog.info("[OpenOrigins] first channel packet id={}", id);
     }
     switch (id) {
       case OEChannel.IN_HANDSHAKE -> onHandshake(buf);
@@ -35,7 +35,7 @@ public final class OEPackets {
 
   private static void onHandshake(OEBuffer buf) {
     int version = buf.readVarInt();
-    LOGGER.info("[OpenOrigins] handshake received, protocol version {}", version);
+    com.openorigins.client.util.DebugLog.info("[OpenOrigins] handshake received, protocol version {}", version);
     if (version == OEChannel.PROTOCOL_VERSION) {
       HandshakeState.setHandshakeComplete(true);
     } else {
@@ -52,7 +52,7 @@ public final class OEPackets {
   private static void onLocation(OEBuffer buf) {
     boolean present = buf.readBoolean();
     String location = present ? buf.readString() : null;
-    LOGGER.info("[OpenOrigins] location update: {}", location);
+    com.openorigins.client.util.DebugLog.info("[OpenOrigins] location update: {}", location);
     OriginStateTracker.INSTANCE.update(location);
   }
 
@@ -85,7 +85,7 @@ public final class OEPackets {
     }
     if (!loggedTag) {
       loggedTag = true;
-      LOGGER.info("[OpenOrigins] first nametag packet applied");
+      com.openorigins.client.util.DebugLog.info("[OpenOrigins] first nametag packet applied");
     }
   }
 
@@ -96,7 +96,7 @@ public final class OEPackets {
       return;
     }
     net.minecraft.world.entity.Entity target = mc.level.getEntity(entityId);
-    LOGGER.info("[OpenOrigins] backitem for {}#{} (you={})", target.getType().toShortString(), entityId,
+    com.openorigins.client.util.DebugLog.info("[OpenOrigins] backitem for {}#{} (you={})", target.getType().toShortString(), entityId,
         target == mc.player);
     ItemStack stack;
     RegistryFriendlyByteBuf regBuf = buf.registryBuf();
@@ -109,7 +109,7 @@ public final class OEPackets {
       for (int i = 0; i < Math.min(raw.length, 96); i++) {
         hex.append(String.format("%02x", raw[i]));
       }
-      LOGGER.warn("[OpenOrigins] backitem decode failed: {}: {} ({} bytes, head={})",
+      com.openorigins.client.util.DebugLog.warn("[OpenOrigins] backitem decode failed: {}: {} ({} bytes, head={})",
           t.getClass().getSimpleName(), t.getMessage(), raw.length, hex);
       stack = ItemStack.EMPTY;
     }
@@ -132,7 +132,7 @@ public final class OEPackets {
           nameJson = customName.getString();
         }
       }
-      LOGGER.info("[OpenOrigins] first backitem packet applied (empty={}) rarity={} patch=[{}] custom_name={}",
+      com.openorigins.client.util.DebugLog.info("[OpenOrigins] first backitem packet applied (empty={}) rarity={} patch=[{}] custom_name={}",
           stack.isEmpty(), stack.getRarity(), keys, nameJson);
     }
   }

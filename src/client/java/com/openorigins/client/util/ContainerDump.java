@@ -43,7 +43,7 @@ public final class ContainerDump {
           }
         }
       }
-      LOG.info("[menu-slot] {} {} '{}' x{} lore: {}", tag, idx,
+      com.openorigins.client.util.DebugLog.info("[menu-slot] {} {} '{}' x{} lore: {}", tag, idx,
           stack.getHoverName().getString(), stack.getCount(), lb);
       idx++;
     }

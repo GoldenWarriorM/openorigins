@@ -471,7 +471,7 @@ public final class HomeInfoCache {
     if (dropped) {
       save();
     }
-    org.slf4j.LoggerFactory.getLogger("openorigins").info("[homes] rollback, fresh tombstones dropped={}", dropped);
+    com.openorigins.client.util.DebugLog.info("[homes] rollback, fresh tombstones dropped={}", dropped);
     HomeFetch.start();
   }
 
@@ -504,7 +504,7 @@ public final class HomeInfoCache {
     lastEmptyCompleteMs = 0;
     lastZeroGuiMs = 0;
     save();
-    org.slf4j.LoggerFactory.getLogger("openorigins").info("[homes] pruned stale cache by consensus");
+    com.openorigins.client.util.DebugLog.info("[homes] pruned stale cache by consensus");
     return true;
   }
 

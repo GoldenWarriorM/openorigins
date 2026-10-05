@@ -119,7 +119,7 @@ public final class DiscordPresence {
       Files.move(tmp, target, StandardCopyOption.ATOMIC_MOVE,
           StandardCopyOption.REPLACE_EXISTING);
     } catch (IOException e) {
-      LOGGER.warn("[OpenOrigins] failed to write presence state: {}", e.toString());
+      com.openorigins.client.util.DebugLog.warn("[OpenOrigins] failed to write presence state: {}", e.toString());
     }
   }
 }

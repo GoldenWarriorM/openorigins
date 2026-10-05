@@ -26,6 +26,7 @@ public final class BackgroundMenu {
   private static String pendingCommand;
   private static long lastSentMs;
   private static int attempts;
+  private static String lastTopSig;
 
   /** @return false if a fetch is already in flight. */
   public static synchronized boolean tryArm(String command) {
@@ -36,6 +37,7 @@ public final class BackgroundMenu {
     deadline = System.currentTimeMillis() + 30000;
     menu = null;
     contentPackets = 0;
+    lastTopSig = null;
     pendingCommand = command;
     lastSentMs = 0;
     attempts = 0;
@@ -66,7 +68,7 @@ public final class BackgroundMenu {
     }
     Player player = mc.player;
     if (player.containerMenu.containerId != 0) {
-      LOG.info("[bgmenu] busy (window {}), skipping silent fetch", player.containerMenu.containerId);
+      com.openorigins.client.util.DebugLog.info("[bgmenu] busy (window {}), skipping silent fetch", player.containerMenu.containerId);
       disarm();
       return false;
     }
@@ -80,10 +82,10 @@ public final class BackgroundMenu {
       player.containerMenu = created;
       menu = created;
       Component title = packet.getTitle();
-      LOG.info("[bgmenu] opened '{}' silently (window {})",
+      com.openorigins.client.util.DebugLog.info("[bgmenu] opened '{}' silently (window {})",
           title == null ? "?" : title.getString(), packet.getContainerId());
     } catch (Throwable t) {
-      LOG.warn("[bgmenu] open failed: {}", t.toString());
+      com.openorigins.client.util.DebugLog.warn("[bgmenu] open failed: {}", t.toString());
       disarm();
       return false;
     }
@@ -120,7 +122,7 @@ public final class BackgroundMenu {
       }
     } catch (Throwable ignored) {
     }
-    LOG.info("[bgmenu] poll #{} top={} filled={} sample=[{}]", contentPackets, top, filled,
+    com.openorigins.client.util.DebugLog.info("[bgmenu] poll #{} top={} filled={} sample=[{}]", contentPackets, top, filled,
         topNames.toString());
     boolean progress = false;
     try {
@@ -136,7 +138,7 @@ public final class BackgroundMenu {
         progress = true;
       }
     } catch (Throwable t) {
-      LOG.warn("[bgmenu] capture failed: {}", t.toString());
+      com.openorigins.client.util.DebugLog.warn("[bgmenu] capture failed: {}", t.toString());
     }
     if (progress || contentPackets >= 3) {
       finish();
@@ -150,7 +152,7 @@ public final class BackgroundMenu {
     }
     long now = System.currentTimeMillis();
     if (now > deadline) {
-      LOG.info("[bgmenu] deadline, closing");
+      com.openorigins.client.util.DebugLog.info("[bgmenu] deadline, closing");
       finish();
       return;
     }
@@ -160,7 +162,7 @@ public final class BackgroundMenu {
         mc.player.connection.sendCommand(pendingCommand);
         lastSentMs = now;
         attempts++;
-        LOG.info("[bgmenu] sending '{}' (attempt {})", pendingCommand, attempts);
+        com.openorigins.client.util.DebugLog.info("[bgmenu] sending '{}' (attempt {})", pendingCommand, attempts);
       }
     }
   }
@@ -183,9 +185,9 @@ public final class BackgroundMenu {
         } catch (Throwable ignored) {
         }
       }
-      LOG.info("[bgmenu] closed window {}", id);
+      com.openorigins.client.util.DebugLog.info("[bgmenu] closed window {}", id);
     } catch (Throwable t) {
-      LOG.warn("[bgmenu] close failed: {}", t.toString());
+      com.openorigins.client.util.DebugLog.warn("[bgmenu] close failed: {}", t.toString());
     }
     if (mc.gui.screen() instanceof com.openorigins.client.screen.HomePanelHost host) {
       host.rebuildHomeWidgets();

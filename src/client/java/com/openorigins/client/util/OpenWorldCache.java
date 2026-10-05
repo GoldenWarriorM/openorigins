@@ -218,7 +218,7 @@ public final class OpenWorldCache {
         }
         all.append(line.getString());
       }
-      org.slf4j.LoggerFactory.getLogger("openorigins").info(
+      com.openorigins.client.util.DebugLog.info(
           "[openworld] {} reset at {} (in '{}', item '{}', lore: {})",
           color, new java.util.Date(at), resetLine, name, all);
       found++;

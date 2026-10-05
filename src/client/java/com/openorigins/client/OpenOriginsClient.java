@@ -18,7 +18,7 @@ public class OpenOriginsClient implements ClientModInitializer {
       String jar = OpenOriginsClient.class.getProtectionDomain().getCodeSource()
           .getLocation().toURI().getPath();
       java.io.File f = new java.io.File(jar);
-      LOGGER.info("[OpenOrigins] build mtime={} size={}", f.lastModified(), f.length());
+      com.openorigins.client.util.DebugLog.info("[OpenOrigins] build mtime={} size={}", f.lastModified(), f.length());
     } catch (Throwable ignored) {
     }
     OpenOriginsConfig.getInstance().load();
@@ -30,7 +30,7 @@ public class OpenOriginsClient implements ClientModInitializer {
     OriginStateTracker.INSTANCE.setup();
     RemoteRegistry.get().fetchAsync();
     FeatureRegistry.registerAll();
-    LOGGER.info("[OpenOrigins] initialized: dev={}, connected={}", net.fabricmc.loader.api.FabricLoader.getInstance().isDevelopmentEnvironment(), ConnectionUtil.isConnected());
-    if (Minecraft.getInstance() == null) LOGGER.info("[OpenOrigins] pre-window init OK");
+    com.openorigins.client.util.DebugLog.info("[OpenOrigins] initialized: dev={}, connected={}", net.fabricmc.loader.api.FabricLoader.getInstance().isDevelopmentEnvironment(), ConnectionUtil.isConnected());
+    if (Minecraft.getInstance() == null) com.openorigins.client.util.DebugLog.info("[OpenOrigins] pre-window init OK");
   }
 }

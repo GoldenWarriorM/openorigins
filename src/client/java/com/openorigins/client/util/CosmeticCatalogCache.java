@@ -84,7 +84,7 @@ public final class CosmeticCatalogCache {
     if (prev == null || !sameText(prev, full)) {
       CLEAN.put(key, List.copyOf(full));
       save();
-      LOG.info("[cosmetics] captured '{}' ({} lines)", key, full.size());
+      com.openorigins.client.util.DebugLog.info("[cosmetics] captured '{}' ({} lines)", key, full.size());
     }
   }
 
@@ -336,7 +336,7 @@ public final class CosmeticCatalogCache {
       root.add("cosmetics", arr);
       Files.writeString(file(), root.toString(), StandardCharsets.UTF_8);
     } catch (Exception ex) {
-      LOG.warn("[cosmetics] save failed: {}", ex.toString());
+      com.openorigins.client.util.DebugLog.warn("[cosmetics] save failed: {}", ex.toString());
     }
   }
 
@@ -371,9 +371,9 @@ public final class CosmeticCatalogCache {
       if (cleaned) {
         save();
       }
-      LOG.info("[cosmetics] loaded {} entries from disk", n);
+      com.openorigins.client.util.DebugLog.info("[cosmetics] loaded {} entries from disk", n);
     } catch (Exception ex) {
-      LOG.warn("[cosmetics] load failed: {}", ex.toString());
+      com.openorigins.client.util.DebugLog.warn("[cosmetics] load failed: {}", ex.toString());
     }
   }
 }

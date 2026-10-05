@@ -11,6 +11,7 @@ public enum OriginFeature {
   EXPAND_MODEL_BOUNDING_BOX(FeatureCategory.GENERAL, "Expand Model Bounding Box"),
   HIDE_NAMES(FeatureCategory.GENERAL, "Hide Names"),
   AUCTION_PING(FeatureCategory.NOTIFICATIONS, "Auction Ping"),
+  DEBUG_LOGGING(FeatureCategory.MISC, false, "Debug Logging"),
   SCOREBOARD_DESYNC_FIX(FeatureCategory.FIXES, "Scoreboard Desync Fix"),
   REGISTRY_DESYNC_FIX(FeatureCategory.FIXES, "Registry Desync Fix"),
   BADGER_TASK_HUD(FeatureCategory.GENERAL, "Badger Task HUD");

@@ -9,6 +9,8 @@
   "config.openorigins.capacity_hint": "Max home slots (saved)",
   "category.openorigins.fixes": "Fixes",
   "category.openorigins.notifications": "Notifications",
+  "category.openorigins.misc": "Misc",
+  "feature.openorigins.debug_logging.desc": "Verbose diagnostic logging (spammy, off by default).",
   "key.openorigins.navigator": "Open Navigator",
   "key.openorigins.gesture_menu": "Open Gesture Menu",
   "key.openorigins.spawn": "Go to Spawn",

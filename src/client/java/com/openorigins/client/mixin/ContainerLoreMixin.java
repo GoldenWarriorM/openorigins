@@ -16,10 +16,10 @@ public abstract class ContainerLoreMixin {
   @Inject(method = "init()V", at = @At("TAIL"))
   private void openorigins$captureHomesLore(CallbackInfo ci) {
     AbstractContainerScreen<?> self = (AbstractContainerScreen<?>) (Object) this;
-    LORE_LOG.info("[homes-lore] container opened: '{}'", self.getTitle().getString().trim());
+    com.openorigins.client.util.DebugLog.info("[homes-lore] container opened: '{}'", self.getTitle().getString().trim());
     int n = HomeInfoCache.captureFrom(self);
     if (n > 0) {
-      LORE_LOG.info("[homes-lore] captured {} homes on open", n);
+      com.openorigins.client.util.DebugLog.info("[homes-lore] captured {} homes on open", n);
     }
     com.openorigins.client.util.OpenWorldCache.scan(self);
     com.openorigins.client.util.BadgerCache.scan(self);
@@ -54,7 +54,7 @@ public abstract class ContainerLoreMixin {
             firstLore = firstLore.substring(0, 60);
           }
         }
-        LORE_LOG.info("[menu-slot] {} {} '{}' x{} lore1: '{}'", tag, idx,
+        com.openorigins.client.util.DebugLog.info("[menu-slot] {} {} '{}' x{} lore1: '{}'", tag, idx,
             stack.getHoverName().getString(), stack.getCount(), firstLore);
         idx++;
       }

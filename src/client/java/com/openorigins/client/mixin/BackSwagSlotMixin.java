@@ -122,7 +122,7 @@ public abstract class BackSwagSlotMixin {
     for (int i = 0; i < depth; i++) {
       indent.append("  ");
     }
-    org.slf4j.LoggerFactory.getLogger("openorigins").info("[OpenOrigins] name tree: {}{} style={}",
+    com.openorigins.client.util.DebugLog.info("[OpenOrigins] name tree: {}{} style={}",
         indent, escape(node.getString()), node.getStyle());
     for (net.minecraft.network.chat.Component child : node.getSiblings()) {
       dumpTree(child, depth + 1);
@@ -188,7 +188,7 @@ public abstract class BackSwagSlotMixin {
       for (net.minecraft.network.chat.Component line : lines) {
         sb.append('[').append(line.getString()).append(']');
       }
-      org.slf4j.LoggerFactory.getLogger("openorigins").info("[OpenOrigins] slot tooltip lines: {}", sb);
+      com.openorigins.client.util.DebugLog.info("[OpenOrigins] slot tooltip lines: {}", sb);
       if (!lines.isEmpty()) {
         dumpTree(lines.get(0), 0);
       }

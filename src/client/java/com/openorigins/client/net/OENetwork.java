@@ -40,16 +40,16 @@ public final class OENetwork {
       java.util.function.Consumer<io.netty.channel.ChannelFutureListener> listenerAdder) {
     try {
       int id = buf.readShort();
-      LOGGER.info("[OpenOrigins] login query id={}", id);
+      com.openorigins.client.util.DebugLog.info("[OpenOrigins] login query id={}", id);
       if (id == OEChannel.IN_HANDSHAKE && buf.readVarInt() == OEChannel.PROTOCOL_VERSION) {
         HandshakeState.setHandshakeComplete(true);
-        LOGGER.info("[OpenOrigins] login handshake complete, responding");
+        com.openorigins.client.util.DebugLog.info("[OpenOrigins] login handshake complete, responding");
         FriendlyByteBuf out = new FriendlyByteBuf(Unpooled.buffer());
         OEBuffer.writeShortVarInt(out, OEChannel.OUT_HANDSHAKE_RESPONSE, OEChannel.PROTOCOL_VERSION);
         return CompletableFuture.<FriendlyByteBuf>completedFuture(out);
       }
     } catch (Throwable t) {
-      LOGGER.warn("[OpenOrigins] failed to parse login handshake", t);
+      com.openorigins.client.util.DebugLog.warn("[OpenOrigins] failed to parse login handshake", t);
     }
     HandshakeState.setOutdated(true);
     Minecraft.getInstance().execute(() -> net.minecraft.client.gui.components.toasts.SystemToast.add(
@@ -71,7 +71,7 @@ public final class OENetwork {
             new RegistryFriendlyByteBuf(raw, ctx.player().registryAccess());
         OEPackets.dispatch(new OEBuffer(buf).readShort(), new OEBuffer(buf));
       } catch (Throwable t) {
-        LOGGER.warn("[OpenOrigins] failed to handle channel packet", t);
+        com.openorigins.client.util.DebugLog.warn("[OpenOrigins] failed to handle channel packet", t);
       }
     });
 
