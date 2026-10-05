@@ -42,32 +42,6 @@ public class HomesMenuScreen extends Screen implements HomePanelHost {
       if (!cached.isEmpty()) {
         this.homes = new ArrayList<>(cached);
       }
-      if (this.minecraft != null && this.minecraft.player != null) {
-        HomeListFetcher.fetchHomes(names -> {
-          if (this.minecraft == null || this.minecraft.gui.screen() != this) {
-            return;
-          }
-          if (names.isEmpty() && this.homes != null && !this.homes.isEmpty()
-              && !HomeListFetcher.trustEmpty() && this.retries < 5) {
-            this.retries++;
-            this.retryAt = System.currentTimeMillis() + 3000;
-            return;
-          }
-          this.retries = 0;
-          HomeInfoCache.noteComplete(names);
-          boolean changed = HomeInfoCache.setNames(names);
-          if (HomeInfoCache.maybePruneAll()) {
-            this.homes = new ArrayList<>();
-            this.layoutWidgets();
-          } else if (changed || this.homes == null) {
-            this.homes = new ArrayList<>(HomeInfoCache.names());
-            this.layoutWidgets();
-          }
-          HomeFetch.consumeRefetch();
-        });
-      } else {
-        this.failed = true;
-      }
     }
     this.layoutWidgets();
     com.openorigins.client.util.HomeFetch.ensureFresh();

@@ -96,30 +96,6 @@ public class TeleportMenuScreen extends Screen implements HomePanelHost {
       if (!cached.isEmpty()) {
         this.homes = new ArrayList<>(cached);
       }
-      HomeListFetcher.fetchHomes(names -> {
-        if (this.minecraft == null || this.minecraft.gui.screen() != this) {
-          return;
-        }
-        if (names.isEmpty() && this.homes != null && !this.homes.isEmpty()
-            && !HomeListFetcher.trustEmpty() && this.retries < 5) {
-          this.retries++;
-          this.retryAt = System.currentTimeMillis() + 3000;
-          return;
-        }
-        this.retries = 0;
-        HomeInfoCache.noteComplete(names);
-        boolean changed = HomeInfoCache.setNames(names);
-        if (HomeInfoCache.maybePruneAll()) {
-          this.homes = new ArrayList<>();
-          this.clearWidgets();
-          this.buildAll();
-        } else if (changed || this.homes == null) {
-          this.homes = new ArrayList<>(HomeInfoCache.names());
-          this.clearWidgets();
-          this.buildAll();
-        }
-        HomeFetch.consumeRefetch();
-      });
     }
     this.buildAll();
     HomeFetch.ensureFresh();

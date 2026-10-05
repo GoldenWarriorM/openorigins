@@ -347,6 +347,35 @@ public final class HomeInfoCache {
         }
         if (!known) {
           NAMES.add(e.getValue());
+          save();
+        }
+      }
+      if (topCount >= 10) {
+        boolean changed = NAMES.removeIf(x ->
+            !guiNames.containsKey(key(x))
+                && !HomeCreationConfirm.isFresh(x));
+        if (changed) {
+          org.slf4j.LoggerFactory.getLogger("openorigins")
+              .info("[homes] reconciled names with menu");
+        }
+        changed = false;
+        java.util.Iterator<Map.Entry<String, String>> cit = CONTAINER_NAMES.entrySet().iterator();
+        while (cit.hasNext()) {
+          if (!guiNames.containsKey(cit.next().getKey())) {
+            cit.remove();
+            changed = true;
+          }
+        }
+        java.util.Iterator<String> lit = LAYOUT.iterator();
+        while (lit.hasNext()) {
+          String s = lit.next();
+          if (s.startsWith("home:") && !guiNames.containsKey(s.substring(5))) {
+            lit.remove();
+            changed = true;
+          }
+        }
+        if (changed) {
+          save();
         }
       }
       if (n == 0 && topCount >= 10) {
