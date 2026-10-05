@@ -99,7 +99,7 @@ public class SetHomeScreen extends Screen {
     }
     if (ok) {
       this.waiting = false;
-      com.openorigins.client.util.HomeFetch.start();
+      com.openorigins.client.util.HomeFetch.requestIdleRefresh();
       this.minecraft.gui.setScreen(returnTo.get());
     } else {
       this.waiting = false;

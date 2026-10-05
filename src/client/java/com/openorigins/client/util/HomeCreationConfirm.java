@@ -157,7 +157,6 @@ public final class HomeCreationConfirm {
   }
 
   private static void refreshAfterDelete(String name) {
-    com.openorigins.client.util.HomeFetch.start();
     Minecraft mc = Minecraft.getInstance();
     if (mc != null) {
       mc.execute(() -> {
