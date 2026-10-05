@@ -225,9 +225,8 @@ public final class BackgroundMenu {
       }
       net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
       if (mc != null && mc.player != null) {
-        mc.player.connection.sendCommand(pendingCommand);
-        lastOwnSendMs = now;
         attempts++;
+        sendCommand(pendingCommand);
         com.openorigins.client.util.DebugLog.info("[bgmenu] sending '{}' (attempt {})", pendingCommand, attempts);
       }
     }
