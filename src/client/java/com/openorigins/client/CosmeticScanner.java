@@ -138,6 +138,11 @@ public final class CosmeticScanner {
             if (!hover.isEmpty()) {
               sb.append(" disp=").append(hover.length() > 30 ? hover.substring(0, 30) : hover);
             }
+            net.minecraft.resources.Identifier model =
+                ds.get(net.minecraft.core.component.DataComponents.ITEM_MODEL);
+            if (model != null) {
+              sb.append(" model=").append(model.toString());
+            }
           }
         } catch (Throwable ignored) {
         }
