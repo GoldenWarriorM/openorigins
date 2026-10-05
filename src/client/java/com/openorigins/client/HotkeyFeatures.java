@@ -19,6 +19,7 @@ public final class HotkeyFeatures {
   private static KeyMapping greenBalloonKey;
   private static KeyMapping yellowBalloonKey;
   private static KeyMapping redBalloonKey;
+  private static KeyMapping badgerHudKey;
   private static boolean joinFetchDone;
   private static int joinTicks;
 
@@ -60,8 +61,11 @@ public final class HotkeyFeatures {
         new KeyMapping("key.openorigins.balloon_yellow", InputConstants.UNKNOWN.getValue(), category));
     redBalloonKey = KeyMappingHelper.registerKeyMapping(
         new KeyMapping("key.openorigins.balloon_red", InputConstants.UNKNOWN.getValue(), category));
+    badgerHudKey = KeyMappingHelper.registerKeyMapping(
+        new KeyMapping("key.openorigins.badger_hud", InputConstants.UNKNOWN.getValue(), category));
 
     ClientTickEvents.END_CLIENT_TICK.register(client -> {
+      while (badgerHudKey.consumeClick()) OpenOriginsConfig.getInstance().toggleBadgerHudVisible();
       if (!com.openorigins.client.ConnectionUtil.isConnected()) {
         joinFetchDone = false;
         joinTicks = 0;

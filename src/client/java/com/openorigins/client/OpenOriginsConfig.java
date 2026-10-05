@@ -20,6 +20,7 @@ public final class OpenOriginsConfig {
   private String discordClientId = "";
   private HudCorner badgerHudCorner = HudCorner.TOP_LEFT;
   private int homeCapacity = 5;
+  private boolean badgerHudVisible = true;
 
   private OpenOriginsConfig() {
     for (OriginFeature f : OriginFeature.values()) enabled.put(f, f.getDefaultValue());
@@ -57,6 +58,10 @@ public final class OpenOriginsConfig {
         } catch (IllegalArgumentException ignored) {
         }
       }
+      String vis = props.getProperty("badger.hud.visible");
+      if (vis != null) {
+        badgerHudVisible = Boolean.parseBoolean(vis.trim());
+      }
       String cap = props.getProperty("homes.capacity");
       if (cap != null) {
         try {
@@ -78,6 +83,7 @@ public final class OpenOriginsConfig {
     }
     props.setProperty("discord.client.id", discordClientId);
     props.setProperty("badger.hud.corner", badgerHudCorner.name());
+    props.setProperty("badger.hud.visible", Boolean.toString(badgerHudVisible));
     props.setProperty("homes.capacity", Integer.toString(homeCapacity));
     try {
       Files.createDirectories(configPath().getParent());
@@ -91,6 +97,11 @@ public final class OpenOriginsConfig {
   public boolean isEnabled(OriginFeature f) { return enabled.getOrDefault(f, true); }
   public String getDiscordClientId() { return discordClientId; }
   public HudCorner getBadgerHudCorner() { return badgerHudCorner; }
+  public boolean isBadgerHudVisible() { return badgerHudVisible; }
+  public void toggleBadgerHudVisible() {
+    badgerHudVisible = !badgerHudVisible;
+    save();
+  }
   public int getHomeCapacity() { return homeCapacity; }
   public void setHomeCapacity(int v) {
     homeCapacity = Math.max(0, Math.min(15, v));

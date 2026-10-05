@@ -20,7 +20,8 @@ public final class BadgerHud implements net.fabricmc.fabric.api.client.rendering
   @Override
   public void extractRenderState(GuiGraphicsExtractor graphics, DeltaTracker delta) {
     Minecraft mc = Minecraft.getInstance();
-    if (mc == null || !OpenOriginsConfig.getInstance().isEnabled(OriginFeature.BADGER_TASK_HUD)) {
+    if (mc == null || !OpenOriginsConfig.getInstance().isEnabled(OriginFeature.BADGER_TASK_HUD)
+        || !OpenOriginsConfig.getInstance().isBadgerHudVisible()) {
       return;
     }
     if (mc.gui.hud.isHidden() || mc.player == null) {
