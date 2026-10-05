@@ -21,7 +21,25 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
           this.addEntry(new FeatureEntry(this, feature));
         }
       }
+      if (category == com.openorigins.client.FeatureCategory.MISC) {
+        this.addEntry(new CycleRow(this, "config.openorigins.hud_position",
+            "config.openorigins.hud_position_hint", FeatureList::cornerName, FeatureList::cycleCorner));
+        this.addEntry(new StepperRow(this, "config.openorigins.max_slots",
+            "config.openorigins.capacity_hint", 0, 15,
+            () -> OpenOriginsConfig.getInstance().getHomeCapacity(),
+            v -> OpenOriginsConfig.getInstance().setHomeCapacity(v)));
+      }
     }
+  }
+
+  private static String cornerName() {
+    OpenOriginsConfig.HudCorner corner = OpenOriginsConfig.getInstance().getBadgerHudCorner();
+    return net.minecraft.network.chat.Component.translatable(
+        "config.openorigins.corner." + corner.name().toLowerCase()).getString();
+  }
+
+  private static void cycleCorner() {
+    OpenOriginsConfig.getInstance().cycleBadgerHudCorner();
   }
 
   public void refreshEntries() {
@@ -37,8 +55,7 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
     public abstract void refreshEntry();
   }
 
-  public static class CategoryEntry extends Entry {
-    private final FeatureList list;
+  public static class CategoryEntry extends Entry {    private final FeatureList list;
     private final com.openorigins.client.FeatureCategory category;
 
     public CategoryEntry(FeatureList list, com.openorigins.client.FeatureCategory category) {
@@ -130,6 +147,124 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
     @Override
     public List<? extends NarratableEntry> narratables() {
       return List.of(this.toggleButton);
+    }
+  }
+
+  /** Label left, single value button right (cycles on click). */
+  public static class CycleRow extends Entry {
+    private final FeatureList list;
+    private final String labelKey;
+    private final String tooltipKey;
+    private final java.util.function.Supplier<String> value;
+    private final Runnable cycle;
+    private final Button button;
+
+    public CycleRow(FeatureList list, String labelKey, String tooltipKey,
+        java.util.function.Supplier<String> value, Runnable cycle) {
+      this.list = list;
+      this.labelKey = labelKey;
+      this.tooltipKey = tooltipKey;
+      this.value = value;
+      this.cycle = cycle;
+      this.button = Button.builder(Component.empty(), b -> {
+        this.cycle.run();
+        this.list.refreshEntries();
+      }).bounds(0, 0, 150, 20)
+          .tooltip(net.minecraft.client.gui.components.Tooltip.create(
+              Component.translatable(this.tooltipKey)))
+          .build();
+      this.refreshEntry();
+    }
+
+    public void refreshEntry() {
+      this.button.setMessage(Component.literal(this.value.get()));
+    }
+
+    @Override
+    public void extractContent(GuiGraphicsExtractor graphics, int mouseX, int mouseY, boolean hovered,
+        float partialTick) {
+      this.button.setX(this.list.getRowRight() - this.button.getWidth());
+      this.button.setY(this.getContentY() + 2);
+      this.button.extractRenderState(graphics, mouseX, mouseY, partialTick);
+      net.minecraft.client.gui.Font font = net.minecraft.client.Minecraft.getInstance().font;
+      graphics.text(font, Component.translatable(this.labelKey), this.getContentX(),
+          this.getContentYMiddle() - 4, 0xFFFFFFFF);
+    }
+
+    @Override
+    public List<? extends GuiEventListener> children() {
+      return List.of(this.button);
+    }
+
+    @Override
+    public List<? extends NarratableEntry> narratables() {
+      return List.of(this.button);
+    }
+  }
+
+  /** Label left, [-] value [+] stepper right. */
+  public static class StepperRow extends Entry {
+    private final FeatureList list;
+    private final String labelKey;
+    private final String tooltipKey;
+    private final int min;
+    private final int max;
+    private final java.util.function.IntSupplier get;
+    private final java.util.function.IntConsumer set;
+    private final Button minusButton;
+    private final Button plusButton;
+
+    public StepperRow(FeatureList list, String labelKey, String tooltipKey, int min, int max,
+        java.util.function.IntSupplier get, java.util.function.IntConsumer set) {
+      this.list = list;
+      this.labelKey = labelKey;
+      this.tooltipKey = tooltipKey;
+      this.min = min;
+      this.max = max;
+      this.get = get;
+      this.set = set;
+      net.minecraft.client.gui.components.Tooltip tip =
+          net.minecraft.client.gui.components.Tooltip.create(Component.translatable(this.tooltipKey));
+      this.minusButton = Button.builder(Component.literal("-"), b -> {
+        this.set.accept(Math.max(this.min, this.get.getAsInt() - 1));
+        this.list.refreshEntries();
+      }).bounds(0, 0, 20, 20).tooltip(tip).build();
+      this.plusButton = Button.builder(Component.literal("+"), b -> {
+        this.set.accept(Math.min(this.max, this.get.getAsInt() + 1));
+        this.list.refreshEntries();
+      }).bounds(0, 0, 20, 20).tooltip(tip).build();
+    }
+
+    public void refreshEntry() {
+    }
+
+    @Override
+    public void extractContent(GuiGraphicsExtractor graphics, int mouseX, int mouseY, boolean hovered,
+        float partialTick) {
+      int right = this.list.getRowRight();
+      this.plusButton.setX(right - 20);
+      this.plusButton.setY(this.getContentY() + 2);
+      this.minusButton.setX(right - 20 - 44 - 20);
+      this.minusButton.setY(this.getContentY() + 2);
+      this.plusButton.extractRenderState(graphics, mouseX, mouseY, partialTick);
+      this.minusButton.extractRenderState(graphics, mouseX, mouseY, partialTick);
+      net.minecraft.client.gui.Font font = net.minecraft.client.Minecraft.getInstance().font;
+      graphics.text(font, Component.translatable(this.labelKey), this.getContentX(),
+          this.getContentYMiddle() - 4, 0xFFFFFFFF);
+      String v = Integer.toString(this.get.getAsInt());
+      int vw = font.width(v);
+      graphics.text(font, v, right - 20 - 44 + (44 - vw) / 2,
+          this.getContentYMiddle() - 4, 0xFFFFFFFF);
+    }
+
+    @Override
+    public List<? extends GuiEventListener> children() {
+      return List.of(this.minusButton, this.plusButton);
+    }
+
+    @Override
+    public List<? extends NarratableEntry> narratables() {
+      return List.of(this.minusButton, this.plusButton);
     }
   }
 }
