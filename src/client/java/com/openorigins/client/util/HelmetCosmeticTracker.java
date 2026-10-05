@@ -520,22 +520,37 @@ public final class HelmetCosmeticTracker {
     if (cur.isEmpty()) {
       return false;
     }
+    String id = net.minecraft.core.registries.BuiltInRegistries.ITEM
+        .getKey(cur.getItem()).toString();
+    String name = cur.getHoverName().getString();
     net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
     if (mc == null || mc.player == null) {
       return false;
     }
     try {
-      if (isStashedReal(mc.player.containerMenu.getCarried())) {
+      if (looseMatch(cur, id, name, mc.player.containerMenu.getCarried())) {
         return true;
       }
       for (ItemStack stack : mc.player.getInventory().getNonEquipmentItems()) {
-        if (isStashedReal(stack)) {
+        if (looseMatch(cur, id, name, stack)) {
           return true;
         }
       }
     } catch (Throwable ignored) {
     }
     return false;
+  }
+
+  private static boolean looseMatch(ItemStack ref, String id, String name, ItemStack stack) {
+    if (stack == null || stack.isEmpty()) {
+      return false;
+    }
+    if (ItemStack.isSameItemSameComponents(ref, stack)) {
+      return true;
+    }
+    String sid = net.minecraft.core.registries.BuiltInRegistries.ITEM
+        .getKey(stack.getItem()).toString();
+    return sid.equals(id) && stack.getHoverName().getString().equals(name);
   }
 
   /** Live cosmetic tooltip (memoization from the change menu comes next). */
