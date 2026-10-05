@@ -26,6 +26,7 @@ public final class HotkeyFeatures {
   private static boolean badgerFetchDone;
   private static boolean worldsFetchDone;
   private static int joinTicks;
+  private static final java.util.Set<Float> OPENORIGINS$ARMS_SEEN = new java.util.HashSet<>();
 
   private HotkeyFeatures() {}
 
@@ -76,6 +77,7 @@ public final class HotkeyFeatures {
       while (badgerHudKey.consumeClick()) OpenOriginsConfig.getInstance().toggleBadgerHudVisible();
       while (armsPlusKey.consumeClick()) nudgeArms(client, 0.25f);
       while (armsMinusKey.consumeClick()) nudgeArms(client, -0.25f);
+      if (joinTicks % 100 == 0) sampleAllayParts(client);
       if (!com.openorigins.client.ConnectionUtil.isConnected()) {
         joinFetchDone = false;
         badgerFetchDone = false;
@@ -151,8 +153,53 @@ public final class HotkeyFeatures {
     });
   }
 
-  private static void nudgeArms(net.minecraft.client.Minecraft client, float delta) {
-    java.util.Set<String> out = new java.util.LinkedHashSet<>();
+  /** Background sampler: notices allay part displays whenever they stream in, no keypress needed. */
+  private static void sampleAllayParts(net.minecraft.client.Minecraft client) {
+    if (client == null || client.level == null || client.player == null) {
+      return;
+    }
+    try {
+      for (net.minecraft.world.entity.Entity e : client.level.entitiesForRendering()) {
+        if (!(e instanceof net.minecraft.world.entity.Display.ItemDisplay disp)) {
+          continue;
+        }
+        net.minecraft.world.entity.Display.ItemDisplay.ItemRenderState rs;
+        try {
+          rs = disp.itemRenderState();
+        } catch (Throwable t) {
+          continue;
+        }
+        if (rs == null || rs.itemStack() == null || rs.itemStack().isEmpty()) {
+          continue;
+        }
+        net.minecraft.world.item.component.CustomModelData cmd = rs.itemStack()
+            .get(net.minecraft.core.component.DataComponents.CUSTOM_MODEL_DATA);
+        if (cmd == null || cmd.floats().isEmpty()) {
+          continue;
+        }
+        for (Float f : cmd.floats()) {
+          if (f == null) {
+            continue;
+          }
+          float v = f.floatValue();
+          boolean interesting = (v >= 2378f && v <= 2382f) || (v >= 2404f && v <= 2405f)
+              || v == 2906f || v == 2909f || v == 2913f || v == 2915f || v == 13035f || v == 13973f
+              || v == 14294f;
+          if (interesting && OPENORIGINS$ARMS_SEEN.add(v)) {
+            double d = Math.sqrt(client.player.distanceToSqr(e.getX(), e.getY(), e.getZ()));
+            org.slf4j.LoggerFactory.getLogger("openorigins").info(
+                "[allay-scan] part cmd={} dist={}m entity={}#{}", v,
+                String.format(java.util.Locale.ROOT, "%.0f", d),
+                net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE.getKey(e.getType()),
+                e.getId());
+          }
+        }
+      }
+    } catch (Throwable ignored) {
+    }
+  }
+
+  private static void nudgeArms(net.minecraft.client.Minecraft client, float delta) {    java.util.Set<String> out = new java.util.LinkedHashSet<>();
     com.openorigins.client.util.AllayArmsFix.nudge(delta, out);
     if (com.openorigins.client.util.AllayArmsFix.statusLine().contains("seen: 0")) {
       out.add("[OpenOrigins] nearby carriers:");
