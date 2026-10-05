@@ -33,7 +33,7 @@ public final class BackgroundMenu {
       return false;
     }
     armed = true;
-    deadline = System.currentTimeMillis() + 15000;
+    deadline = System.currentTimeMillis() + 30000;
     menu = null;
     contentPackets = 0;
     pendingCommand = command;
@@ -128,7 +128,7 @@ public final class BackgroundMenu {
       finish();
       return;
     }
-    if (menu == null && pendingCommand != null && now - lastSentMs > 3000 && attempts < 3) {
+    if (menu == null && pendingCommand != null && now - lastSentMs > 3000 && attempts < 5) {
       net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
       if (mc != null && mc.player != null) {
         mc.player.connection.sendCommand(pendingCommand);
