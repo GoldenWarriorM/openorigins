@@ -79,6 +79,11 @@ public final class HotkeyFeatures {
           badgerFetchDone = true;
           com.openorigins.client.util.BackgroundMenu.tryArm("streaks");
         }
+        if (com.openorigins.client.util.BadgerCache.needsDeliveredRefresh()
+            && !com.openorigins.client.util.BackgroundMenu.isArmed()
+            && com.openorigins.client.util.BackgroundMenu.tryArm("streaks")) {
+          com.openorigins.client.util.BadgerCache.markDeliveredRefreshSent();
+        }
         if (joinTicks % 100 == 0 && client.player != null
             && !com.openorigins.client.util.BackgroundMenu.isArmed()) {
           if (com.openorigins.client.util.HomeInfoCache.layout().isEmpty()

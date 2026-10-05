@@ -84,6 +84,23 @@ public final class BadgerCache {
     return !REQUIRED.isEmpty();
   }
 
+  private static volatile boolean hadTask;
+  private static volatile boolean deliveredRefreshSent;
+
+  /** True once when a previously seen task fully empties (all delivered). */
+  public static boolean needsDeliveredRefresh() {
+    if (!REQUIRED.isEmpty()) {
+      hadTask = true;
+      deliveredRefreshSent = false;
+      return false;
+    }
+    return hadTask && !deliveredRefreshSent;
+  }
+
+  public static void markDeliveredRefreshSent() {
+    deliveredRefreshSent = true;
+  }
+
   /** Scans any open container; parses only when it looks like the streaks menu. */
   public static void scan(AbstractContainerScreen<?> screen) {
     if (screen == null || screen.getMenu() == null) return;
@@ -248,6 +265,7 @@ public final class BadgerCache {
       }
       org.slf4j.LoggerFactory.getLogger("openorigins")
           .info("[badger] loaded {} required from disk", REQUIRED.size());
+      hadTask = !REQUIRED.isEmpty();
     } catch (Exception ex) {
       com.openorigins.client.util.DebugLog.warn("[badger] load failed: {}", ex.toString());
     }
