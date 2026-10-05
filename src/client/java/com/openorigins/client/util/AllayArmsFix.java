@@ -26,6 +26,14 @@ public final class AllayArmsFix {
     if (stack == null || stack.isEmpty()) {
       return null;
     }
+    if (isAllayModel(stack)) {
+      net.minecraft.world.item.component.CustomModelData cmd =
+          stack.get(net.minecraft.core.component.DataComponents.CUSTOM_MODEL_DATA);
+      if (cmd != null && !cmd.floats().isEmpty() && cmd.floats().get(0) != null) {
+        return cmd.floats().get(0);
+      }
+      return -1.0f;
+    }
     net.minecraft.world.item.component.CustomModelData cmd =
         stack.get(net.minecraft.core.component.DataComponents.CUSTOM_MODEL_DATA);
     if (cmd == null) {
@@ -39,12 +47,39 @@ public final class AllayArmsFix {
     return null;
   }
 
+  /** True when the stack renders an allay part model via item_model (no CMD needed). */
+  public static boolean isAllayModel(ItemStack stack) {
+    try {
+      net.minecraft.resources.Identifier model =
+          stack.get(net.minecraft.core.component.DataComponents.ITEM_MODEL);
+      if (model == null) {
+        return false;
+      }
+      String p = model.getPath();
+      return p.contains("allay") && !p.contains("icon") && !p.contains("capture")
+          && !p.contains("statue") && !p.contains("plushie");
+    } catch (Throwable t) {
+      return false;
+    }
+  }
+
   private AllayArmsFix() {
   }
 
   public static boolean isArmsItem(ItemStack stack) {
     if (stack == null || stack.isEmpty()) {
       return false;
+    }
+    try {
+      net.minecraft.resources.Identifier model =
+          stack.get(net.minecraft.core.component.DataComponents.ITEM_MODEL);
+      if (model != null) {
+        String p = model.getPath();
+        if (p.contains("allay") && p.contains("arm") && !p.contains("plushie")) {
+          return true;
+        }
+      }
+    } catch (Throwable ignored) {
     }
     net.minecraft.world.item.component.CustomModelData cmd =
         stack.get(net.minecraft.core.component.DataComponents.CUSTOM_MODEL_DATA);

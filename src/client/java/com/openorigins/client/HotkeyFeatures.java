@@ -89,6 +89,12 @@ public final class HotkeyFeatures {
   /** Full component patch of a stack (what the server actually sent). */
   private static void appendPatch(StringBuilder sb, net.minecraft.world.item.ItemStack st) {
     try {
+      net.minecraft.resources.Identifier model =
+          st.get(net.minecraft.core.component.DataComponents.ITEM_MODEL);
+      if (model != null) {
+        String ms = model.toString();
+        sb.append(" imodel=").append(ms.length() > 90 ? ms.substring(0, 90) : ms);
+      }
       java.util.Set<net.minecraft.core.component.DataComponentType<?>> types =
           st.getComponents().keySet();
       if (!types.isEmpty()) {
