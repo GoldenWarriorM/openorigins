@@ -64,12 +64,14 @@ public final class AllayArmsFix {
     if (mc == null || mc.level == null || mc.player == null) {
       return out;
     }
-    int shown = 0;
+    java.util.List<java.util.AbstractMap.SimpleEntry<Double, String>> found =
+        new java.util.ArrayList<>();
     for (net.minecraft.world.entity.Entity e : mc.level.entitiesForRendering()) {
       if (e == mc.player) {
         continue;
       }
-      if (mc.player.distanceToSqr(e.getX(), e.getY(), e.getZ()) > 48 * 48) {
+      double distSq = mc.player.distanceToSqr(e.getX(), e.getY(), e.getZ());
+      if (distSq > 48 * 48 || distSq < 3 * 3) {
         continue;
       }
       String type =
@@ -111,8 +113,13 @@ public final class AllayArmsFix {
         }
       } catch (Throwable ignored) {
       }
-      out.add(sb.toString());
-      if (++shown >= 10) {
+      found.add(new java.util.AbstractMap.SimpleEntry<>(dist, sb.toString()));
+    }
+    found.sort(java.util.Comparator.comparingDouble(java.util.AbstractMap.SimpleEntry::getKey));
+    int shown = 0;
+    for (java.util.AbstractMap.SimpleEntry<Double, String> en : found) {
+      out.add(en.getValue());
+      if (++shown >= 12) {
         out.add("...truncated");
         break;
       }
