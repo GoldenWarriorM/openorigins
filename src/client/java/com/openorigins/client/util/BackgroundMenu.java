@@ -93,10 +93,13 @@ public final class BackgroundMenu {
     if (!armed || menu != null) {
       return false;
     }
-    if (attempts == 0 || System.currentTimeMillis() - lastOwnSendMs > 1000) {
+    if (attempts == 0) {
       return false;
     }
     if (userActive()) {
+      return false;
+    }
+    if (System.currentTimeMillis() - lastOwnSendMs > 8000) {
       return false;
     }
     Minecraft mc = Minecraft.getInstance();
