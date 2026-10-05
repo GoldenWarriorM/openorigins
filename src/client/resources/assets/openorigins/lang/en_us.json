@@ -62,6 +62,7 @@
   "feature.openorigins.expand_model_bounding_box.desc": "Keeps large models rendered at screen edges and from afar.",
   "feature.openorigins.hide_names.desc": "Hides name tags when the HUD is hidden (F1).",
   "feature.openorigins.auction_ping.desc": "Plays a sound and shows a toast when your auction lot sells.",
+  "feature.openorigins.autocomplete_enhancements.desc": "Ping completion via @, emoji via colon, clean name lists.",
   "feature.openorigins.custom_item_ids.desc": "Shows real custom ids (originrealms:...) in advanced tooltips.",
   "feature.openorigins.scoreboard_desync_fix.desc": "Tolerates stale scoreboard team packets instead of disconnecting.",
   "feature.openorigins.registry_desync_fix.desc": "Tolerates duplicate registry entries from the server instead of disconnecting.",
