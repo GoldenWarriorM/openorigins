@@ -11,6 +11,7 @@
     "CommandSuggestionsMixin",
     "ContainerLoreMixin",
     "ContainerSyncMixin",
+    "CommandProbeMixin",
     "OpenScreenMixin",
     "ChatConfirmMixin",
     "ContainerHotkeyMixin",

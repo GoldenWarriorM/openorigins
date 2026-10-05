@@ -25,10 +25,22 @@ public final class BackgroundMenu {
   private static int windowId = -1;
   private static int contentPackets;
   private static String pendingCommand;
-  private static long lastSentMs;
+  private static long lastOwnSendMs;
   private static int attempts;
   private static String lastTopSig;
   private static volatile long lastEmptyFinishMs;
+
+  /** Our own command send, marked so manual input is never confused. */
+  public static void sendCommand(String command) {
+    lastOwnSendMs = System.currentTimeMillis();
+    try {
+      net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
+      if (mc != null && mc.player != null) {
+        mc.player.connection.sendCommand(command);
+      }
+    } catch (Throwable ignored) {
+    }
+  }
 
   /** @return false if a fetch is already in flight. */
   public static synchronized boolean tryArm(String command) {
@@ -42,7 +54,7 @@ public final class BackgroundMenu {
     contentPackets = 0;
     lastTopSig = null;
     pendingCommand = command;
-    lastSentMs = 0;
+    lastOwnSendMs = 0;
     attempts = 0;
     return true;
   }
@@ -68,7 +80,7 @@ public final class BackgroundMenu {
     if (!armed || menu != null) {
       return false;
     }
-    if (attempts == 0 || System.currentTimeMillis() - lastSentMs > 1000) {
+    if (attempts == 0 || System.currentTimeMillis() - lastOwnSendMs > 1000) {
       return false;
     }
     Minecraft mc = Minecraft.getInstance();
@@ -188,11 +200,11 @@ public final class BackgroundMenu {
       finish();
       return;
     }
-    if (menu == null && pendingCommand != null && now - lastSentMs > 3000 && attempts < 5) {
+    if (menu == null && pendingCommand != null && now - lastOwnSendMs > 3000 && attempts < 5) {
       net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
       if (mc != null && mc.player != null) {
         mc.player.connection.sendCommand(pendingCommand);
-        lastSentMs = now;
+        lastOwnSendMs = now;
         attempts++;
         com.openorigins.client.util.DebugLog.info("[bgmenu] sending '{}' (attempt {})", pendingCommand, attempts);
       }
