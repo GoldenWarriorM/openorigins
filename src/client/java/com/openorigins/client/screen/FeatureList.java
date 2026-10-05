@@ -19,11 +19,14 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
       for (OriginFeature feature : OriginFeature.values()) {
         if (feature.getCategory() == category) {
           this.addEntry(new FeatureEntry(this, feature));
+          if (feature == OriginFeature.BADGER_TASK_HUD) {
+            this.addEntry(new CycleRow(this, "config.openorigins.hud_position",
+                "config.openorigins.hud_position_hint", FeatureList::cornerName,
+                FeatureList::cycleCorner, true));
+          }
         }
       }
-      if (category == com.openorigins.client.FeatureCategory.MISC) {
-        this.addEntry(new CycleRow(this, "config.openorigins.hud_position",
-            "config.openorigins.hud_position_hint", FeatureList::cornerName, FeatureList::cycleCorner));
+      if (category == com.openorigins.client.FeatureCategory.GENERAL) {
         this.addEntry(new StepperRow(this, "config.openorigins.max_slots",
             "config.openorigins.capacity_hint", 0, 15,
             () -> OpenOriginsConfig.getInstance().getHomeCapacity(),
@@ -155,15 +158,17 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
     private final FeatureList list;
     private final String labelKey;
     private final String tooltipKey;
+    private final boolean indented;
     private final java.util.function.Supplier<String> value;
     private final Runnable cycle;
     private final Button button;
 
     public CycleRow(FeatureList list, String labelKey, String tooltipKey,
-        java.util.function.Supplier<String> value, Runnable cycle) {
+        java.util.function.Supplier<String> value, Runnable cycle, boolean indented) {
       this.list = list;
       this.labelKey = labelKey;
       this.tooltipKey = tooltipKey;
+      this.indented = indented;
       this.value = value;
       this.cycle = cycle;
       this.button = Button.builder(Component.empty(), b -> {
@@ -187,7 +192,11 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
       this.button.setY(this.getContentY() + 2);
       this.button.extractRenderState(graphics, mouseX, mouseY, partialTick);
       net.minecraft.client.gui.Font font = net.minecraft.client.Minecraft.getInstance().font;
-      graphics.text(font, Component.translatable(this.labelKey), this.getContentX(),
+      Component label = Component.translatable(this.labelKey);
+      if (this.indented) {
+        label = Component.literal("  ").append(label);
+      }
+      graphics.text(font, label, this.getContentX(),
           this.getContentYMiddle() - 4, 0xFFFFFFFF);
     }
 
@@ -201,6 +210,8 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
       return List.of(this.button);
     }
   }
+
+  /** Label left, [-] value [+] stepper right. */
 
   /** Label left, [-] value [+] stepper right. */
   public static class StepperRow extends Entry {
