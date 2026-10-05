@@ -20,6 +20,8 @@ public abstract class ItemDisplayArmsFixMixin {
       Collections.newSetFromMap(new WeakHashMap<>());
   private static final java.util.Map<ItemDisplayEntityRenderState, Float> OPENORIGINS$PARTS =
       Collections.synchronizedMap(new WeakHashMap<>());
+  private static final java.util.Map<ItemDisplayEntityRenderState, String> OPENORIGINS$INFO =
+      Collections.synchronizedMap(new WeakHashMap<>());
   private static final Set<Float> OPENORIGINS$LOGGED_PARTS =
       Collections.newSetFromMap(new java.util.concurrent.ConcurrentHashMap<>());
   private static final Set<String> OPENORIGINS$LOGGED_SUBMITS =
@@ -46,6 +48,10 @@ public abstract class ItemDisplayArmsFixMixin {
         OPENORIGINS$OWN.add(state);
       } else if (part != null) {
         OPENORIGINS$PARTS.put(state, part);
+        OPENORIGINS$INFO.put(state, AllayArmsFix.describeShort(shown));
+      } else if (shown != null && !shown.isEmpty()) {
+        // Non-part, non-cosmetic items near the player (e.g. torch): still identify.
+        OPENORIGINS$INFO.put(state, AllayArmsFix.describeShort(shown));
       }
       if (AllayArmsFix.isArmsItem(shown)) {
         OPENORIGINS$ARMS.add(state);
@@ -74,11 +80,13 @@ public abstract class ItemDisplayArmsFixMixin {
         double dx = state.x - mc.player.getX();
         double dz = state.z - mc.player.getZ();
         if (dx * dx + dz * dz < 12 * 12) {
+          String info = OPENORIGINS$INFO.remove(state);
           String key = String.format(java.util.Locale.ROOT, "%.1f,%.1f,%.1f:%s", state.x,
-              state.y, state.z, state.item.isEmpty() ? "empty" : "full");
+              state.y, state.z, state.item.isEmpty() ? "empty" : info);
           if (OPENORIGINS$LOGGED_SUBMITS.add(key)) {
             org.slf4j.LoggerFactory.getLogger("openorigins")
-                .info("[allay-submit] {} at [{},{},{}]", state.item.isEmpty() ? "empty" : "full",
+                .info("[allay-submit] {} {} at [{},{},{}]",
+                    state.item.isEmpty() ? "empty" : "full", info == null ? "?" : info,
                     String.format(java.util.Locale.ROOT, "%.2f", state.x),
                     String.format(java.util.Locale.ROOT, "%.2f", state.y),
                     String.format(java.util.Locale.ROOT, "%.2f", state.z));

@@ -288,6 +288,31 @@ public final class AllayArmsFix {
         + "' x" + stack.getCount();
   }
 
+  /** Compact item identity for render logs: key + CMD floats and/or item_model. */
+  public static String describeShort(ItemStack stack) {
+    if (stack == null || stack.isEmpty()) {
+      return "<empty>";
+    }
+    StringBuilder sb = new StringBuilder(
+        net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(stack.getItem()).toString());
+    try {
+      net.minecraft.world.item.component.CustomModelData cmd =
+          stack.get(net.minecraft.core.component.DataComponents.CUSTOM_MODEL_DATA);
+      if (cmd != null && !cmd.floats().isEmpty()) {
+        sb.append(cmd.floats());
+      }
+      net.minecraft.resources.Identifier model =
+          stack.get(net.minecraft.core.component.DataComponents.ITEM_MODEL);
+      if (model != null) {
+        String ms = model.toString();
+        sb.append("{").append(ms.length() > 60 ? ms.substring(0, 60) : ms).append("}");
+      }
+    } catch (Throwable ignored) {
+    }
+    String s = sb.toString();
+    return s.length() > 110 ? s.substring(0, 110) : s;
+  }
+
   public static void nudge(float deltaTexels, Set<String> feedback) {
     OpenOriginsConfig cfg = OpenOriginsConfig.getInstance();
     float v = Math.round((cfg.getAllayArmsShiftTexels() + deltaTexels) * 4.0f) / 4.0f;
