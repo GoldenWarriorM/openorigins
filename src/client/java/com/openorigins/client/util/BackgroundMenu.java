@@ -217,9 +217,39 @@ public final class BackgroundMenu {
     } catch (Throwable t) {
       com.openorigins.client.util.DebugLog.warn("[bgmenu] capture failed: {}", t.toString());
     }
-    if (progress || contentPackets >= 3) {
+    if (progress || contentPackets >= 3 || stableUnchanged()) {
       finish();
     }
+  }
+
+  private static String computeTopSig() {
+    StringBuilder sb = new StringBuilder();
+    try {
+      net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
+      Object inv = mc != null && mc.player != null ? mc.player.getInventory() : null;
+      for (net.minecraft.world.inventory.Slot s : menu.slots) {
+        if (inv != null && s.container == inv) {
+          continue;
+        }
+        if (s.hasItem()) {
+          sb.append(s.getItem().getHoverName().getString()).append('x')
+            .append(s.getItem().getCount()).append(';');
+        } else {
+          sb.append('.');
+        }
+      }
+    } catch (Throwable ignored) {
+    }
+    return sb.toString();
+  }
+
+  private static boolean stableUnchanged() {
+    String sig = computeTopSig();
+    if (sig.equals(lastTopSig)) {
+      return true;
+    }
+    lastTopSig = sig;
+    return contentPackets >= 2;
   }
 
   /** Force-closes on timeout. Call from client tick. */
@@ -246,8 +276,14 @@ public final class BackgroundMenu {
     }
   }
 
-  private static synchronized void finish() {
-    AbstractContainerMenu m = menu;
+  /** Closes early so a manual menu open is never blocked. */
+  public static synchronized void finishIfArmed() {
+    if (armed) {
+      finish();
+    }
+  }
+
+  private static synchronized void finish() {    AbstractContainerMenu m = menu;
     menu = null;
     armed = false;
     if (com.openorigins.client.util.HomeInfoCache.layout().isEmpty()) {
