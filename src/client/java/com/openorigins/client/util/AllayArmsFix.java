@@ -316,7 +316,7 @@ public final class AllayArmsFix {
   public static void nudge(float deltaTexels, Set<String> feedback) {
     OpenOriginsConfig cfg = OpenOriginsConfig.getInstance();
     float v = Math.round((cfg.getAllayArmsShiftTexels() + deltaTexels) * 4.0f) / 4.0f;
-    v = Math.max(-8.0f, Math.min(8.0f, v));
+    v = Math.max(-32.0f, Math.min(32.0f, v));
     cfg.setAllayArmsShiftTexels(v);
     feedback.add("[OpenOrigins] allay arms X = " + v + " texels; " + statusLine());
   }

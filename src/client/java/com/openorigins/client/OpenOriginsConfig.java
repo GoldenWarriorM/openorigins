@@ -77,7 +77,7 @@ public final class OpenOriginsConfig {
       if (arms != null) {
         try {
           float v = Float.parseFloat(arms.trim());
-          if (v >= -8.0f && v <= 8.0f) {
+          if (v >= -32.0f && v <= 32.0f) {
             allayArmsShiftTexels = v;
           }
         } catch (NumberFormatException ignored) {
@@ -117,7 +117,7 @@ public final class OpenOriginsConfig {
   public int getHomeCapacity() { return homeCapacity; }
   public float getAllayArmsShiftTexels() { return allayArmsShiftTexels; }
   public void setAllayArmsShiftTexels(float v) {
-    allayArmsShiftTexels = Math.max(-8.0f, Math.min(8.0f, v));
+    allayArmsShiftTexels = Math.max(-32.0f, Math.min(32.0f, v));
     save();
   }
   public void setHomeCapacity(int v) {

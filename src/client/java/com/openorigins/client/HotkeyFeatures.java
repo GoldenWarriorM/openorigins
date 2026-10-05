@@ -28,59 +28,6 @@ public final class HotkeyFeatures {
   private static int joinTicks;
   private static final java.util.Set<Float> OPENORIGINS$ARMS_SEEN = new java.util.HashSet<>();
   private static final java.util.Set<Integer> OPENORIGINS$NEAR_SEEN = new java.util.HashSet<>();
-  private static final java.util.Set<Integer> OPENORIGINS$ARMS_FILLED = new java.util.HashSet<>();
-
-  /** Reconstructs server-emptied allay arm slots (classic arms, last-known-good model).
-   *  Only fills fingerprint-matching empty displays near an interaction hitbox;
-   *  backs off the moment the server provides data. */
-  private static void maybeFillArms(net.minecraft.client.Minecraft client,
-      java.util.List<net.minecraft.world.entity.Entity> all,
-      net.minecraft.world.entity.Display.ItemDisplay disp) {
-    try {
-      net.minecraft.world.entity.SlotAccess slot = disp.getSlot(0);
-      net.minecraft.world.item.ItemStack cur = slot == null ? null : slot.get();
-      if (cur != null && !cur.isEmpty()) {
-        return;
-      }
-      com.mojang.math.Transformation t = disp.renderState().transformation().get(1.0f);
-      org.joml.Vector3fc tr = t.translation();
-      org.joml.Vector3fc sc = t.scale();
-      float ax = Math.abs(tr.x());
-      if (ax < 0.36f || ax > 0.40f || tr.y() < -1.05f || tr.y() > -1.00f
-          || tr.z() < -0.15f || tr.z() > -0.09f) {
-        return;
-      }
-      if (Math.abs(sc.x() - 1.0f) > 0.02f || Math.abs(sc.y() - 1.0f) > 0.02f
-          || Math.abs(sc.z() - 1.0f) > 0.02f) {
-        return;
-      }
-      boolean hitbox = false;
-      for (net.minecraft.world.entity.Entity o : all) {
-        if (o instanceof net.minecraft.world.entity.Interaction
-            && o.distanceToSqr(disp.getX(), disp.getY(), disp.getZ()) < 3 * 3) {
-          hitbox = true;
-          break;
-        }
-      }
-      if (!hitbox) {
-        return;
-      }
-      net.minecraft.world.item.Item firework = net.minecraft.core.registries.BuiltInRegistries.ITEM
-          .getValue(net.minecraft.resources.Identifier.parse("minecraft:firework_star"));
-      net.minecraft.world.item.ItemStack stack =
-          new net.minecraft.world.item.ItemStack(firework.builtInRegistryHolder(), 1);
-      stack.set(net.minecraft.core.component.DataComponents.CUSTOM_MODEL_DATA,
-          new net.minecraft.world.item.component.CustomModelData(
-              java.util.List.of(2380.0f), java.util.List.of(), java.util.List.of(),
-              java.util.List.of()));
-      slot.set(stack);
-      if (OPENORIGINS$ARMS_FILLED.add(disp.getId())) {
-        org.slf4j.LoggerFactory.getLogger("openorigins")
-            .info("[allay-fill] arms reconstructed on #{}", disp.getId());
-      }
-    } catch (Throwable ignored) {
-    }
-  }
 
   /** One-line summary of items an entity carries/shows (stands, displays, living hands). */
   private static void describeCarried(net.minecraft.world.entity.Entity e, StringBuilder sb) {
@@ -361,10 +308,6 @@ public final class HotkeyFeatures {
           }
           org.slf4j.LoggerFactory.getLogger("openorigins")
               .info("[allay-scan] near {}", nb);
-        }
-        if (e instanceof net.minecraft.world.entity.Display.ItemDisplay fillDisp
-            && distSq < 8 * 8) {
-          maybeFillArms(client, all, fillDisp);
         }
         if (!(e instanceof net.minecraft.world.entity.Display.ItemDisplay disp)) {
           continue;
