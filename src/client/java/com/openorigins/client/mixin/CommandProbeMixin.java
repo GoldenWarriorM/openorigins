@@ -14,9 +14,10 @@ public abstract class CommandProbeMixin {
   @Inject(method = "send(Lnet/minecraft/network/protocol/Packet;)V", at = @At("HEAD"))
   private void openorigins$logCommand(Packet<?> packet, CallbackInfo ci) {
     if (packet instanceof ServerboundChatCommandPacket cmd) {
-      com.openorigins.client.util.DebugLog.info("[cmd] /{}", cmd.command());
-      if (System.currentTimeMillis()
-          - com.openorigins.client.util.BackgroundMenu.lastOwnSendMsForProbe() > 1500) {
+      if (com.openorigins.client.util.BackgroundMenu.consumeOwnSend()) {
+        com.openorigins.client.util.DebugLog.info("[cmd] own /{}", cmd.command());
+      } else {
+        com.openorigins.client.util.DebugLog.info("[cmd] user /{}", cmd.command());
         com.openorigins.client.util.BackgroundMenu.noteForeignCommand();
       }
     }

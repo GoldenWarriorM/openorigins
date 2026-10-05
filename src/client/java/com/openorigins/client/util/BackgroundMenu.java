@@ -31,18 +31,32 @@ public final class BackgroundMenu {
   private static String lastTopSig;
   private static volatile long lastEmptyFinishMs;
 
+  private static volatile boolean expectOwnSend;
+
   /** Our own command send, marked so manual input is never confused. */
   public static long lastOwnSendMsForProbe() {
     return lastOwnSendMs;
   }
 
-  public static void sendCommand(String command) {    lastOwnSendMs = System.currentTimeMillis();
+  /** Consumed by the packet hook to attribute the next chat command. */
+  public static boolean consumeOwnSend() {
+    boolean own = expectOwnSend;
+    expectOwnSend = false;
+    if (own) {
+      lastOwnSendMs = System.currentTimeMillis();
+    }
+    return own;
+  }
+
+  public static void sendCommand(String command) {
     try {
       net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
       if (mc != null && mc.player != null) {
+        expectOwnSend = true;
         mc.player.connection.sendCommand(command);
       }
     } catch (Throwable ignored) {
+      expectOwnSend = false;
     }
   }
 
