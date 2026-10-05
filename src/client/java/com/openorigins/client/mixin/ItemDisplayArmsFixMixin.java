@@ -53,7 +53,9 @@ public abstract class ItemDisplayArmsFixMixin {
         // Non-part, non-cosmetic items near the player (e.g. torch): still identify.
         OPENORIGINS$INFO.put(state, AllayArmsFix.describeShort(shown));
       }
-      if (AllayArmsFix.isArmsItem(shown)) {
+      // Shift every allay part (arms, wings, ...): server transforms are off
+      // for everyone, parts show conditionally (flight/dance/held states).
+      if (part != null && !AllayArmsFix.isOwnCosmetic(shown)) {
         OPENORIGINS$ARMS.add(state);
         AllayArmsFix.markFlagged();
         if (!OPENORIGINS$LOGGED) {
