@@ -22,6 +22,8 @@ public abstract class ItemDisplayArmsFixMixin {
       Collections.synchronizedMap(new WeakHashMap<>());
   private static final Set<Float> OPENORIGINS$LOGGED_PARTS =
       Collections.newSetFromMap(new java.util.concurrent.ConcurrentHashMap<>());
+  private static final Set<String> OPENORIGINS$LOGGED_SUBMITS =
+      Collections.newSetFromMap(new java.util.concurrent.ConcurrentHashMap<>());
   private static boolean OPENORIGINS$LOGGED;
 
   @Inject(method = "extractRenderState", at = @At("TAIL"))
@@ -48,6 +50,32 @@ public abstract class ItemDisplayArmsFixMixin {
           OPENORIGINS$LOGGED = true;
           org.slf4j.LoggerFactory.getLogger("openorigins")
               .info("[allay-arms] fix engaged on {}", AllayArmsFix.describe(shown));
+        }
+      }
+    } catch (Throwable ignored) {
+    }
+  }
+
+  @Inject(method = "submitInner", at = @At("HEAD"))
+  private void openorigins$censusSubmit(ItemDisplayEntityRenderState state, PoseStack poseStack,
+      SubmitNodeCollector submitNodeCollector, int lightCoords, float interpolationProgress,
+      CallbackInfo ci) {
+    // One-time log of every nearby display submit: catches stale/empty states.
+    try {
+      net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
+      if (mc != null && mc.player != null && OPENORIGINS$LOGGED_SUBMITS.size() < 40) {
+        double dx = state.x - mc.player.getX();
+        double dz = state.z - mc.player.getZ();
+        if (dx * dx + dz * dz < 12 * 12) {
+          String key = String.format(java.util.Locale.ROOT, "%.1f,%.1f,%.1f:%s", state.x,
+              state.y, state.z, state.item.isEmpty() ? "empty" : "full");
+          if (OPENORIGINS$LOGGED_SUBMITS.add(key)) {
+            org.slf4j.LoggerFactory.getLogger("openorigins")
+                .info("[allay-submit] {} at [{},{},{}]", state.item.isEmpty() ? "empty" : "full",
+                    String.format(java.util.Locale.ROOT, "%.2f", state.x),
+                    String.format(java.util.Locale.ROOT, "%.2f", state.y),
+                    String.format(java.util.Locale.ROOT, "%.2f", state.z));
+          }
         }
       }
     } catch (Throwable ignored) {
