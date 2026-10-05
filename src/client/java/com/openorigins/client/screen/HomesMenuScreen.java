@@ -39,9 +39,7 @@ public class HomesMenuScreen extends Screen implements HomePanelHost {
     HomeInfoCache.backfillResets();
     if (this.homes == null && !this.failed) {
       List<String> cached = HomeInfoCache.names();
-      if (!cached.isEmpty()) {
-        this.homes = new ArrayList<>(cached);
-      }
+      this.homes = new ArrayList<>(cached);
     }
     this.layoutWidgets();
     com.openorigins.client.util.HomeFetch.ensureFresh();

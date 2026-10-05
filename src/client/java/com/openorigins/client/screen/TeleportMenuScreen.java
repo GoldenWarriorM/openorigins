@@ -92,10 +92,7 @@ public class TeleportMenuScreen extends Screen implements HomePanelHost {
               .info("[openworld] navigator subs: {}", subs));
     }
     if (this.homes == null && this.minecraft != null && this.minecraft.player != null) {
-      List<String> cached = HomeInfoCache.names();
-      if (!cached.isEmpty()) {
-        this.homes = new ArrayList<>(cached);
-      }
+      this.homes = new ArrayList<>(HomeInfoCache.names());
     }
     this.buildAll();
     HomeFetch.ensureFresh();
