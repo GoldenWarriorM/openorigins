@@ -21,7 +21,7 @@ public final class OpenOriginsConfig {
   private HudCorner badgerHudCorner = HudCorner.TOP_LEFT;
   private int homeCapacity = 5;
   private boolean badgerHudVisible = true;
-  private float allayArmsShiftTexels = -12.0f;
+  private float allayArmsShiftTexels = 12.0f;
 
   private OpenOriginsConfig() {
     for (OriginFeature f : OriginFeature.values()) enabled.put(f, f.getDefaultValue());
