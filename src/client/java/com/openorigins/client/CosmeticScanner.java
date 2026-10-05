@@ -128,6 +128,20 @@ public final class CosmeticScanner {
       if (e instanceof net.minecraft.world.entity.decoration.ArmorStand stand) {
         sb.append(stand.isMarker() ? " marker" : "").append(stand.isSmall() ? " small" : "");
       }
+      if (e instanceof net.minecraft.world.entity.Display display) {
+        try {
+          net.minecraft.world.item.ItemStack ds = display.getSlot(0).get();
+          if (ds != null && !ds.isEmpty()) {
+            sb.append(" shown=")
+                .append(net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(ds.getItem()));
+            String hover = ds.getHoverName().getString();
+            if (!hover.isEmpty()) {
+              sb.append(" disp=").append(hover.length() > 30 ? hover.substring(0, 30) : hover);
+            }
+          }
+        } catch (Throwable ignored) {
+        }
+      }
       if (e instanceof net.minecraft.world.entity.LivingEntity living) {
         for (net.minecraft.world.entity.EquipmentSlot slot :
             new net.minecraft.world.entity.EquipmentSlot[]{
