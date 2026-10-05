@@ -21,6 +21,7 @@ public final class OpenOriginsConfig {
   private HudCorner badgerHudCorner = HudCorner.TOP_LEFT;
   private int homeCapacity = 5;
   private boolean badgerHudVisible = true;
+  private float allayArmsShiftTexels = 0.0f;
 
   private OpenOriginsConfig() {
     for (OriginFeature f : OriginFeature.values()) enabled.put(f, f.getDefaultValue());
@@ -72,6 +73,16 @@ public final class OpenOriginsConfig {
         } catch (NumberFormatException ignored) {
         }
       }
+      String arms = props.getProperty("allay.arms.x");
+      if (arms != null) {
+        try {
+          float v = Float.parseFloat(arms.trim());
+          if (v >= -8.0f && v <= 8.0f) {
+            allayArmsShiftTexels = v;
+          }
+        } catch (NumberFormatException ignored) {
+        }
+      }
     } catch (IOException ignored) {
     }
   }
@@ -85,6 +96,7 @@ public final class OpenOriginsConfig {
     props.setProperty("badger.hud.corner", badgerHudCorner.name());
     props.setProperty("badger.hud.visible", Boolean.toString(badgerHudVisible));
     props.setProperty("homes.capacity", Integer.toString(homeCapacity));
+    props.setProperty("allay.arms.x", Float.toString(allayArmsShiftTexels));
     try {
       Files.createDirectories(configPath().getParent());
       try (OutputStream out = Files.newOutputStream(configPath())) {
@@ -103,6 +115,11 @@ public final class OpenOriginsConfig {
     save();
   }
   public int getHomeCapacity() { return homeCapacity; }
+  public float getAllayArmsShiftTexels() { return allayArmsShiftTexels; }
+  public void setAllayArmsShiftTexels(float v) {
+    allayArmsShiftTexels = Math.max(-8.0f, Math.min(8.0f, v));
+    save();
+  }
   public void setHomeCapacity(int v) {
     homeCapacity = Math.max(0, Math.min(15, v));
     save();
