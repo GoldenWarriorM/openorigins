@@ -52,7 +52,7 @@ public final class BackgroundMenu {
   }
 
   private static boolean userActive() {
-    return System.currentTimeMillis() - lastForeignCmdMs < 3000;
+    return System.currentTimeMillis() - lastForeignCmdMs < 10000;
   }
 
   /** @return false if a fetch is already in flight. */
