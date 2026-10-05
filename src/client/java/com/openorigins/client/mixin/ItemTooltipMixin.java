@@ -39,15 +39,24 @@ public abstract class ItemTooltipMixin {
     ItemStack self = (ItemStack) (Object) this;
     Optional<String> key = CustomItemIds.resolve(self);
     String comps = "?";
+    String customNbt = "";
     try {
       comps = self.getComponents().keySet().stream()
           .map(k -> k.toString()).collect(java.util.stream.Collectors.joining(","));
+      net.minecraft.world.item.component.CustomData cd =
+          self.get(net.minecraft.core.component.DataComponents.CUSTOM_DATA);
+      if (cd != null) {
+        customNbt = cd.copyTag().toString();
+        if (customNbt.length() > 600) {
+          customNbt = customNbt.substring(0, 600);
+        }
+      }
     } catch (Throwable ignored) {
     }
-    com.openorigins.client.util.DebugLog.info("[itemid] vanilla={} resolved={} connected={} enabled={} comps=[{}]",
+    com.openorigins.client.util.DebugLog.info("[itemid] vanilla={} resolved={} connected={} enabled={} comps=[{}] nbt={}",
         BuiltInRegistries.ITEM.getKey(self.getItem()),
         key.map(Object::toString).orElse("<empty>"), ConnectionUtil.isConnected(),
-        OpenOriginsConfig.getInstance().isEnabled(OriginFeature.CUSTOM_ITEM_IDS), comps);
+        OpenOriginsConfig.getInstance().isEnabled(OriginFeature.CUSTOM_ITEM_IDS), comps, customNbt);
     if (key.isEmpty()) {
       return;
     }
