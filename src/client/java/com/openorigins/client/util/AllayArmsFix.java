@@ -62,14 +62,14 @@ public final class AllayArmsFix {
   private static boolean isOwnRig(net.minecraft.world.entity.Entity e) {
     try {
       java.util.List<Float> floats = new java.util.ArrayList<>();
-      if (e instanceof net.minecraft.world.entity.Display.ItemDisplay disp
-          && disp.itemRenderState() != null
-          && disp.itemRenderState().itemStack() != null
-          && !disp.itemRenderState().itemStack().isEmpty()) {
-        net.minecraft.world.item.component.CustomModelData cmd = disp.itemRenderState().itemStack()
-            .get(net.minecraft.core.component.DataComponents.CUSTOM_MODEL_DATA);
-        if (cmd != null) {
-          floats.addAll(cmd.floats());
+      if (e instanceof net.minecraft.world.entity.Display.ItemDisplay disp) {
+        net.minecraft.world.item.ItemStack ds = slotStack(disp);
+        if (ds != null && !ds.isEmpty()) {
+          net.minecraft.world.item.component.CustomModelData cmd = ds
+              .get(net.minecraft.core.component.DataComponents.CUSTOM_MODEL_DATA);
+          if (cmd != null) {
+            floats.addAll(cmd.floats());
+          }
         }
       } else if (e instanceof net.minecraft.world.entity.decoration.ArmorStand stand) {
         for (net.minecraft.world.entity.EquipmentSlot slot : new net.minecraft.world.entity.EquipmentSlot[] {
@@ -105,6 +105,17 @@ public final class AllayArmsFix {
     }
   }
 
+  /** Synced display item via entity data (fresher than itemRenderState()). */
+  private static net.minecraft.world.item.ItemStack slotStack(
+      net.minecraft.world.entity.Display.ItemDisplay disp) {
+    try {
+      net.minecraft.world.entity.SlotAccess slot = disp.getSlot(0);
+      return slot == null ? null : slot.get();
+    } catch (Throwable t) {
+      return null;
+    }
+  }
+
   /** One-shot census of nearby display/stand entities for chat feedback. */
   public static java.util.List<String> census(net.minecraft.client.Minecraft mc) {
     java.util.List<String> out = new java.util.ArrayList<>();
@@ -130,9 +141,8 @@ public final class AllayArmsFix {
       double dist = Math.sqrt(mc.player.distanceToSqr(e.getX(), e.getY(), e.getZ()));
       sb.append(String.format(java.util.Locale.ROOT, " %.0fm", dist));
       try {
-        if (e instanceof net.minecraft.world.entity.Display.ItemDisplay disp
-            && disp.itemRenderState() != null) {
-          net.minecraft.world.item.ItemStack ds = disp.itemRenderState().itemStack();
+        if (e instanceof net.minecraft.world.entity.Display.ItemDisplay disp) {
+          net.minecraft.world.item.ItemStack ds = slotStack(disp);
           if (ds != null && !ds.isEmpty()) {
             sb.append(" ").append(net.minecraft.core.registries.BuiltInRegistries.ITEM
                 .getKey(ds.getItem()));

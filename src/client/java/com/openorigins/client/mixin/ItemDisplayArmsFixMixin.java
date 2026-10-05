@@ -27,14 +27,19 @@ public abstract class ItemDisplayArmsFixMixin {
       return;
     }
     try {
-      Display.ItemDisplay.ItemRenderState rs = entity.itemRenderState();
-      if (rs != null && AllayArmsFix.isArmsItem(rs.itemStack())) {
+      net.minecraft.world.item.ItemStack shown = null;
+      try {
+        net.minecraft.world.entity.SlotAccess slot = entity.getSlot(0);
+        shown = slot == null ? null : slot.get();
+      } catch (Throwable ignored) {
+      }
+      if (AllayArmsFix.isArmsItem(shown)) {
         OPENORIGINS$ARMS.add(state);
         AllayArmsFix.markFlagged();
         if (!OPENORIGINS$LOGGED) {
           OPENORIGINS$LOGGED = true;
           org.slf4j.LoggerFactory.getLogger("openorigins")
-              .info("[allay-arms] fix engaged on {}", AllayArmsFix.describe(rs.itemStack()));
+              .info("[allay-arms] fix engaged on {}", AllayArmsFix.describe(shown));
         }
       }
     } catch (Throwable ignored) {

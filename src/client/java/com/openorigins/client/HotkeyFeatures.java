@@ -33,36 +33,27 @@ public final class HotkeyFeatures {
   private static void describeCarried(net.minecraft.world.entity.Entity e, StringBuilder sb) {
     try {
       if (e instanceof net.minecraft.world.entity.Display.ItemDisplay disp) {
-        net.minecraft.world.entity.Display.ItemDisplay.ItemRenderState rrs = null;
-        String rrsErr = null;
+        net.minecraft.world.item.ItemStack ds = null;
+        String slotErr = null;
         try {
-          rrs = disp.itemRenderState();
+          net.minecraft.world.entity.SlotAccess slot = disp.getSlot(0);
+          ds = slot == null ? null : slot.get();
         } catch (Throwable t) {
-          rrsErr = t.toString();
+          slotErr = t.toString();
         }
-        if (rrsErr != null) {
-          sb.append(" shown=<err ").append(rrsErr.length() > 80 ? rrsErr.substring(0, 80) : rrsErr)
+        if (slotErr != null) {
+          sb.append(" shown=<err ").append(slotErr.length() > 80 ? slotErr.substring(0, 80) : slotErr)
               .append(">");
-        } else if (rrs == null) {
-          sb.append(" shown=<rs-null>");
+        } else if (ds != null && !ds.isEmpty()) {
+          sb.append(" shown=").append(
+              net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(ds.getItem()));
+          appendCmd(sb, ds);
+          appendPatch(sb, ds);
+        } else if (ds != null) {
+          sb.append(" shown=<empty-slot>");
         } else {
-          net.minecraft.world.item.ItemStack ds = null;
-          try {
-            ds = rrs.itemStack();
-          } catch (Throwable t) {
-            sb.append(" shown=<stack-err>");
-          }
-          if (ds != null && !ds.isEmpty()) {
-            sb.append(" shown=").append(
-                net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(ds.getItem()));
-            appendCmd(sb, ds);
-            appendPatch(sb, ds);
-          } else if (ds != null) {
-            sb.append(" shown=<empty-stack>");
-          }
+          sb.append(" shown=<slot-null>");
         }
-      } else if (e instanceof net.minecraft.world.entity.Display.ItemDisplay) {
-        sb.append(" shown=<unsynced>");
       } else if (e instanceof net.minecraft.world.entity.decoration.ArmorStand stand) {
         for (net.minecraft.world.entity.EquipmentSlot slot : new net.minecraft.world.entity.EquipmentSlot[] {
             net.minecraft.world.entity.EquipmentSlot.MAINHAND,
@@ -258,8 +249,9 @@ public final class HotkeyFeatures {
         boolean defers = false;
         if (e instanceof net.minecraft.world.entity.Display.ItemDisplay disp2) {
           try {
-            net.minecraft.world.entity.Display.ItemDisplay.ItemRenderState rs2 = disp2.itemRenderState();
-            defers = rs2 == null || rs2.itemStack() == null || rs2.itemStack().isEmpty();
+            net.minecraft.world.entity.SlotAccess s2 = disp2.getSlot(0);
+            net.minecraft.world.item.ItemStack st2 = s2 == null ? null : s2.get();
+            defers = st2 == null || st2.isEmpty();
           } catch (Throwable ignored) {
             defers = true;
           }
@@ -287,16 +279,17 @@ public final class HotkeyFeatures {
         if (!(e instanceof net.minecraft.world.entity.Display.ItemDisplay disp)) {
           continue;
         }
-        net.minecraft.world.entity.Display.ItemDisplay.ItemRenderState rs;
+        net.minecraft.world.item.ItemStack slotStack = null;
         try {
-          rs = disp.itemRenderState();
+          net.minecraft.world.entity.SlotAccess s = disp.getSlot(0);
+          slotStack = s == null ? null : s.get();
         } catch (Throwable t) {
           continue;
         }
-        if (rs == null || rs.itemStack() == null || rs.itemStack().isEmpty()) {
+        if (slotStack == null || slotStack.isEmpty()) {
           continue;
         }
-        net.minecraft.world.item.component.CustomModelData cmd = rs.itemStack()
+        net.minecraft.world.item.component.CustomModelData cmd = slotStack
             .get(net.minecraft.core.component.DataComponents.CUSTOM_MODEL_DATA);
         if (cmd == null || cmd.floats().isEmpty()) {
           continue;
