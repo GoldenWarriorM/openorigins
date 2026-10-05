@@ -61,7 +61,7 @@ public final class BackgroundMenu {
     if (!armed || menu != null) {
       return false;
     }
-    if (attempts == 0 || System.currentTimeMillis() - lastSentMs > 5000) {
+    if (attempts == 0 || System.currentTimeMillis() - lastSentMs > 1000) {
       return false;
     }
     Minecraft mc = Minecraft.getInstance();
