@@ -11,6 +11,8 @@
   "config.openorigins.position": "Position",
   "config.openorigins.hud_position_hint": "Which corner shows the task HUD",
   "config.openorigins.max_slots": "Max home slots",
+  "config.openorigins.allay_arms": "Allay arms X shift",
+  "config.openorigins.allay_arms_hint": "Render offset for custom allay arms, in texels",
   "category.openorigins.fixes": "Fixes",
   "category.openorigins.notifications": "Notifications",
   "category.openorigins.misc": "Misc",
