@@ -236,7 +236,11 @@ public final class HotkeyFeatures {
       return;
     }
     try {
-      for (net.minecraft.world.entity.Entity e : client.level.entitiesForRendering()) {
+      // ALL tracked entities (not just rendered ones): culled parts show up here too.
+      java.util.List<net.minecraft.world.entity.Entity> all =
+          client.level.getEntities((net.minecraft.world.entity.Entity) null,
+              client.player.getBoundingBox().inflate(48));
+      for (net.minecraft.world.entity.Entity e : all) {
         if (e == client.player) {
           continue;
         }
