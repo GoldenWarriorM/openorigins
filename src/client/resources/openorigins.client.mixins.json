@@ -32,6 +32,7 @@
     "EntityDistanceMixin",
     "PauseScreenMixin",
     "ItemDisplayArmsFixMixin",
+    "ItemInHandArmsFixMixin",
     "SpawnWatchMixin"
   ],
   "injectors": {
