@@ -21,6 +21,7 @@ public final class HotkeyFeatures {
   private static KeyMapping redBalloonKey;
   private static KeyMapping badgerHudKey;
   private static boolean joinFetchDone;
+  private static boolean badgerFetchDone;
   private static int joinTicks;
 
   private HotkeyFeatures() {}
@@ -68,10 +69,16 @@ public final class HotkeyFeatures {
       while (badgerHudKey.consumeClick()) OpenOriginsConfig.getInstance().toggleBadgerHudVisible();
       if (!com.openorigins.client.ConnectionUtil.isConnected()) {
         joinFetchDone = false;
+        badgerFetchDone = false;
         joinTicks = 0;
       } else {
         joinTicks++;
         com.openorigins.client.util.BackgroundMenu.tick();
+        if (!badgerFetchDone && joinTicks > 100
+            && !com.openorigins.client.util.BackgroundMenu.isArmed()) {
+          badgerFetchDone = true;
+          com.openorigins.client.util.BackgroundMenu.tryArm("streaks");
+        }
         if (joinTicks % 100 == 0 && client.player != null
             && !com.openorigins.client.util.BackgroundMenu.isArmed()) {
           if (com.openorigins.client.util.HomeInfoCache.layout().isEmpty()
