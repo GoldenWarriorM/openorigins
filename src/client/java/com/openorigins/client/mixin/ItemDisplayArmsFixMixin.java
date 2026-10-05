@@ -18,6 +18,10 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public abstract class ItemDisplayArmsFixMixin {
   private static final Set<ItemDisplayEntityRenderState> OPENORIGINS$ARMS =
       Collections.newSetFromMap(new WeakHashMap<>());
+  private static final java.util.Map<ItemDisplayEntityRenderState, Float> OPENORIGINS$PARTS =
+      Collections.synchronizedMap(new WeakHashMap<>());
+  private static final Set<Float> OPENORIGINS$LOGGED_PARTS =
+      Collections.newSetFromMap(new java.util.concurrent.ConcurrentHashMap<>());
   private static boolean OPENORIGINS$LOGGED;
 
   @Inject(method = "extractRenderState", at = @At("TAIL"))
@@ -32,6 +36,10 @@ public abstract class ItemDisplayArmsFixMixin {
         net.minecraft.world.entity.SlotAccess slot = entity.getSlot(0);
         shown = slot == null ? null : slot.get();
       } catch (Throwable ignored) {
+      }
+      Float part = AllayArmsFix.partCmd(shown);
+      if (part != null) {
+        OPENORIGINS$PARTS.put(state, part);
       }
       if (AllayArmsFix.isArmsItem(shown)) {
         OPENORIGINS$ARMS.add(state);
@@ -52,6 +60,14 @@ public abstract class ItemDisplayArmsFixMixin {
   private void openorigins$shiftArms(ItemDisplayEntityRenderState state, PoseStack poseStack,
       SubmitNodeCollector submitNodeCollector, int lightCoords, float interpolationProgress,
       CallbackInfo ci) {
+    Float part = OPENORIGINS$PARTS.remove(state);
+    if (part != null && OPENORIGINS$LOGGED_PARTS.add(part)) {
+      org.slf4j.LoggerFactory.getLogger("openorigins").info(
+          "[allay-render] part cmd={} at [{},{},{}]", part,
+          String.format(java.util.Locale.ROOT, "%.2f", state.x),
+          String.format(java.util.Locale.ROOT, "%.2f", state.y),
+          String.format(java.util.Locale.ROOT, "%.2f", state.z));
+    }
     if (!OPENORIGINS$ARMS.remove(state)) {
       return;
     }

@@ -15,6 +15,30 @@ public final class AllayArmsFix {
       2380f, 2906f, 2909f, 2913f, 2915f, 13035f, 13973f, 14294f,
   };
 
+  /** Every known allay part float (head/body/arms/wings/whole, all variants). */
+  private static boolean isPartCmd(float v) {
+    return (v >= 2378f && v <= 2382f) || (v >= 2404f && v <= 2405f)
+        || (v >= 2903f && v <= 2915f) || (v >= 13025f && v <= 13041f)
+        || (v >= 13973f && v <= 13977f) || (v >= 14292f && v <= 14298f);
+  }
+
+  public static Float partCmd(ItemStack stack) {
+    if (stack == null || stack.isEmpty()) {
+      return null;
+    }
+    net.minecraft.world.item.component.CustomModelData cmd =
+        stack.get(net.minecraft.core.component.DataComponents.CUSTOM_MODEL_DATA);
+    if (cmd == null) {
+      return null;
+    }
+    for (Float f : cmd.floats()) {
+      if (f != null && isPartCmd(f.floatValue())) {
+        return f;
+      }
+    }
+    return null;
+  }
+
   private AllayArmsFix() {
   }
 
