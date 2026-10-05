@@ -154,6 +154,15 @@ public final class HotkeyFeatures {
   private static void nudgeArms(net.minecraft.client.Minecraft client, float delta) {
     java.util.Set<String> out = new java.util.LinkedHashSet<>();
     com.openorigins.client.util.AllayArmsFix.nudge(delta, out);
+    if (com.openorigins.client.util.AllayArmsFix.statusLine().contains("seen: 0")) {
+      out.add("[OpenOrigins] nearby carriers:");
+      java.util.List<String> census = com.openorigins.client.util.AllayArmsFix.census(client);
+      if (census.isEmpty()) {
+        out.add("  (none within 48m)");
+      } else {
+        out.addAll(census);
+      }
+    }
     for (String line : out) {
       if (client.gui != null && client.gui.hud != null && client.gui.hud.getChat() != null) {
         client.gui.hud.getChat().addClientSystemMessage(net.minecraft.network.chat.Component.literal(line));

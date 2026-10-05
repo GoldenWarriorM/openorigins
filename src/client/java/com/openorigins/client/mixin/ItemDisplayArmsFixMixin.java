@@ -30,6 +30,7 @@ public abstract class ItemDisplayArmsFixMixin {
       Display.ItemDisplay.ItemRenderState rs = entity.itemRenderState();
       if (rs != null && AllayArmsFix.isArmsItem(rs.itemStack())) {
         OPENORIGINS$ARMS.add(state);
+        AllayArmsFix.markFlagged();
         if (!OPENORIGINS$LOGGED) {
           OPENORIGINS$LOGGED = true;
           org.slf4j.LoggerFactory.getLogger("openorigins")
