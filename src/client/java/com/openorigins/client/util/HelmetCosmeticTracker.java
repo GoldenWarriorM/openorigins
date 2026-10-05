@@ -21,6 +21,7 @@ public final class HelmetCosmeticTracker {
   private static volatile long pendingAt;
   private static final long PENDING_TTL_MS = 30000;
   private static volatile String lastArmorKey = "";
+  private static volatile ItemStack lastArmorStack = ItemStack.EMPTY;
   private static volatile boolean everNonEmptyArmor;
   private static volatile net.minecraft.world.entity.player.Player lastPlayer;
   private static volatile long lastArmorChangeMs;
@@ -37,8 +38,7 @@ public final class HelmetCosmeticTracker {
   }
 
   /** Called on every armor-slot-5 server sync. */
-  public static void noteArmor(ItemStack stack) {
-    try {
+  public static void noteArmor(ItemStack stack) {    try {
       net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
       if (mc != null && mc.player != lastPlayer) {
         lastPlayer = mc.player;
@@ -52,6 +52,8 @@ public final class HelmetCosmeticTracker {
     }
     String k = keyOf(stack);
     if (!k.equals(lastArmorKey)) {
+      ItemStack prevArmor = lastArmorStack;
+      lastArmorStack = stack == null ? ItemStack.EMPTY : stack.copy();
       lastArmorKey = k;
       lastArmorChangeMs = System.currentTimeMillis();
       pendingClearAt = -1;
@@ -69,6 +71,15 @@ public final class HelmetCosmeticTracker {
         pendingHelmet = ItemStack.EMPTY;
       }
       if (isFirework(stack)) {
+        if (isHeadArmor(prevArmor)) {
+          ItemStack cur = realHelmet;
+          realHelmet = prevArmor.copy();
+          setTip(prevArmor);
+          saveHelmet();
+          lastCommitMs = System.currentTimeMillis();
+          com.openorigins.client.util.DebugLog.info("[helmet] link-stash {} (was {})",
+              describe(prevArmor), cur.isEmpty() ? "<empty>" : describe(cur));
+        }
         Map<Integer, ItemStack> base = new java.util.HashMap<>();
         for (Map.Entry<Integer, ItemStack> e : INV_HEADS.entrySet()) {
           if (e.getValue() != null && !e.getValue().isEmpty()) {
@@ -187,15 +198,12 @@ public final class HelmetCosmeticTracker {
     }
   }
 
-  /** Called on every cursor sync. */
+  /** Called on every cursor sync: picking up the linked helmet breaks the link. */
   public static void noteCursor(ItemStack stack) {
-    boolean holding = isStashedReal(stack);
-    boolean was = cursorHoldingReal;
-    cursorHoldingReal = holding;
-    if (was && !holding && (stack == null || stack.isEmpty())) {
-      if (System.currentTimeMillis() - lastArmorChangeMs > 1000) {
-        pendingClearAt = System.currentTimeMillis();
-      }
+    if (isStashedReal(stack)) {
+      com.openorigins.client.util.DebugLog.info("[helmet] linked picked up, clearing {}",
+          describe(realHelmet));
+      clear();
     }
   }
 
@@ -218,18 +226,6 @@ public final class HelmetCosmeticTracker {
       com.openorigins.client.util.DebugLog.info("[helmet] pending back in storage {}",
           describe(pendingHelmet));
       pendingHelmet = ItemStack.EMPTY;
-    }
-    if (!realHelmet.isEmpty() && now - lastCommitMs > 3000 && isAvailableElsewhere()) {
-      com.openorigins.client.util.DebugLog.info("[helmet] snapshot found in inventory, clearing {}",
-          describe(realHelmet));
-      clear();
-      return;
-    }
-    if (pendingClearAt > 0 && now - pendingClearAt > 500) {
-      pendingClearAt = -1;
-      com.openorigins.client.util.DebugLog.info("[helmet] pending clear fired, dropping {}",
-          describe(realHelmet));
-      clear();
     }
   }
 
