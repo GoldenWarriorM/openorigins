@@ -108,6 +108,8 @@ public final class HotkeyFeatures {
           sb.append(" shown=<slot-null>");
         }
       } else if (e instanceof net.minecraft.world.entity.decoration.ArmorStand stand) {
+        sb.append(stand.isMarker() ? " marker" : "").append(stand.isSmall() ? " small" : "")
+            .append(stand.isInvisible() ? " invisible" : "");
         for (net.minecraft.world.entity.EquipmentSlot slot : new net.minecraft.world.entity.EquipmentSlot[] {
             net.minecraft.world.entity.EquipmentSlot.MAINHAND,
             net.minecraft.world.entity.EquipmentSlot.OFFHAND,
@@ -117,6 +119,14 @@ public final class HotkeyFeatures {
             sb.append(" ").append(slot.getSerializedName()).append("=").append(
                 net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(st.getItem()));
             appendCmd(sb, st);
+            try {
+              String hover = st.getHoverName().getString();
+              if (!hover.isEmpty()) {
+                sb.append("('").append(hover.length() > 40 ? hover.substring(0, 40) : hover)
+                    .append("')");
+              }
+            } catch (Throwable ignored) {
+            }
           }
         }
       } else if (e instanceof net.minecraft.world.entity.LivingEntity living) {
