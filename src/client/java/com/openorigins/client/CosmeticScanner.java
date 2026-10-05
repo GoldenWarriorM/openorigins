@@ -109,7 +109,7 @@ public final class CosmeticScanner {
     for (net.minecraft.world.entity.Entity e : mc.level.entitiesForRendering()) {
       if (e == mc.player) continue;
       if (mc.player.distanceToSqr(e.getX(), e.getY(), e.getZ()) > 24 * 24) continue;
-      if (shown >= 12) {
+      if (shown >= 40) {
         report(mc, "...truncated, see latest.log");
         break;
       }
