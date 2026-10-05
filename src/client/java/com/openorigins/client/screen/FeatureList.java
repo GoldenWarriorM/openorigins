@@ -258,8 +258,9 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
       int right = this.list.getRowRight();
       net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
       if (this.field == null && mc != null) {
-        this.field = new net.minecraft.client.gui.components.EditBox(mc.font, 0, 0, 36, 20,
+        this.field = new net.minecraft.client.gui.components.EditBox(mc.font, 0, 0, 52, 20,
             Component.translatable(this.labelKey));
+        this.field.setTextColor(0x00000000);
         this.field.setMaxLength(2);
         this.field.setValue(Integer.toString(this.get.getAsInt()));
         this.field.setResponder(s -> {
@@ -282,11 +283,16 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
       this.plusButton.setX(right - 20);
       this.plusButton.setY(this.getContentY() + 2);
       if (this.field != null) {
-        this.field.setX(right - 20 - 4 - 36);
+        this.field.setX(right - 20 - 4 - 52);
         this.field.setY(this.getContentY() + 2);
         this.field.extractRenderState(graphics, mouseX, mouseY, partialTick);
+        net.minecraft.client.gui.Font ff = net.minecraft.client.Minecraft.getInstance().font;
+        String fv = this.field.getValue();
+        int fw = ff.width(fv);
+        graphics.text(ff, fv, right - 20 - 4 - 52 + (52 - fw) / 2,
+            this.getContentYMiddle() - 4, 0xFFFFFFFF);
       }
-      this.minusButton.setX(right - 20 - 4 - 36 - 4 - 20);
+      this.minusButton.setX(right - 20 - 4 - 52 - 4 - 20);
       this.minusButton.setY(this.getContentY() + 2);
       this.plusButton.extractRenderState(graphics, mouseX, mouseY, partialTick);
       this.minusButton.extractRenderState(graphics, mouseX, mouseY, partialTick);
