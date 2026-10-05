@@ -20,7 +20,7 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
         if (feature.getCategory() == category) {
           this.addEntry(new FeatureEntry(this, feature));
           if (feature == OriginFeature.BADGER_TASK_HUD) {
-            this.addEntry(new CycleRow(this, "config.openorigins.hud_position",
+            this.addEntry(new CycleRow(this, "config.openorigins.position",
                 "config.openorigins.hud_position_hint", FeatureList::cornerName,
                 FeatureList::cycleCorner, true));
           }
@@ -174,7 +174,7 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
       this.button = Button.builder(Component.empty(), b -> {
         this.cycle.run();
         this.list.refreshEntries();
-      }).bounds(0, 0, 150, 20)
+      }).bounds(0, 0, 100, 20)
           .tooltip(net.minecraft.client.gui.components.Tooltip.create(
               Component.translatable(this.tooltipKey)))
           .build();
