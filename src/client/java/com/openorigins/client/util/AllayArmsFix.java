@@ -58,6 +58,53 @@ public final class AllayArmsFix {
     return "arm displays seen: " + flaggedTotal + " (last " + agoS + "s ago)";
   }
 
+  /** Player's own cosmetic rig markers (backitem/cape/stand floats). */
+  private static boolean isOwnRig(net.minecraft.world.entity.Entity e) {
+    try {
+      java.util.List<Float> floats = new java.util.ArrayList<>();
+      if (e instanceof net.minecraft.world.entity.Display.ItemDisplay disp
+          && disp.itemRenderState() != null
+          && disp.itemRenderState().itemStack() != null
+          && !disp.itemRenderState().itemStack().isEmpty()) {
+        net.minecraft.world.item.component.CustomModelData cmd = disp.itemRenderState().itemStack()
+            .get(net.minecraft.core.component.DataComponents.CUSTOM_MODEL_DATA);
+        if (cmd != null) {
+          floats.addAll(cmd.floats());
+        }
+      } else if (e instanceof net.minecraft.world.entity.decoration.ArmorStand stand) {
+        for (net.minecraft.world.entity.EquipmentSlot slot : new net.minecraft.world.entity.EquipmentSlot[] {
+            net.minecraft.world.entity.EquipmentSlot.MAINHAND,
+            net.minecraft.world.entity.EquipmentSlot.OFFHAND }) {
+          net.minecraft.world.item.ItemStack st = stand.getItemBySlot(slot);
+          if (st != null && !st.isEmpty()) {
+            net.minecraft.world.item.component.CustomModelData cmd =
+                st.get(net.minecraft.core.component.DataComponents.CUSTOM_MODEL_DATA);
+            if (cmd != null) {
+              floats.addAll(cmd.floats());
+            }
+          }
+        }
+      } else {
+        return false;
+      }
+      if (floats.isEmpty()) {
+        return false;
+      }
+      for (Float f : floats) {
+        if (f == null) {
+          return false;
+        }
+        float v = f.floatValue();
+        if (v < 13033f || v > 13038f) {
+          return false;
+        }
+      }
+      return true;
+    } catch (Throwable t) {
+      return false;
+    }
+  }
+
   /** One-shot census of nearby display/stand entities for chat feedback. */
   public static java.util.List<String> census(net.minecraft.client.Minecraft mc) {
     java.util.List<String> out = new java.util.ArrayList<>();
@@ -71,7 +118,10 @@ public final class AllayArmsFix {
         continue;
       }
       double distSq = mc.player.distanceToSqr(e.getX(), e.getY(), e.getZ());
-      if (distSq > 48 * 48 || distSq < 3 * 3) {
+      if (distSq > 48 * 48) {
+        continue;
+      }
+      if (isOwnRig(e)) {
         continue;
       }
       String type =

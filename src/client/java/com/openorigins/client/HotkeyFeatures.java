@@ -27,6 +27,50 @@ public final class HotkeyFeatures {
   private static boolean worldsFetchDone;
   private static int joinTicks;
   private static final java.util.Set<Float> OPENORIGINS$ARMS_SEEN = new java.util.HashSet<>();
+  private static final java.util.Set<Integer> OPENORIGINS$NEAR_SEEN = new java.util.HashSet<>();
+
+  /** One-line summary of items an entity carries/shows (stands, displays, living hands). */
+  private static void describeCarried(net.minecraft.world.entity.Entity e, StringBuilder sb) {
+    try {
+      if (e instanceof net.minecraft.world.entity.Display.ItemDisplay disp
+          && disp.itemRenderState() != null
+          && disp.itemRenderState().itemStack() != null
+          && !disp.itemRenderState().itemStack().isEmpty()) {
+        net.minecraft.world.item.ItemStack ds = disp.itemRenderState().itemStack();
+        sb.append(" shown=").append(
+            net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(ds.getItem()));
+        appendCmd(sb, ds);
+      } else if (e instanceof net.minecraft.world.entity.decoration.ArmorStand stand) {
+        for (net.minecraft.world.entity.EquipmentSlot slot : new net.minecraft.world.entity.EquipmentSlot[] {
+            net.minecraft.world.entity.EquipmentSlot.MAINHAND,
+            net.minecraft.world.entity.EquipmentSlot.OFFHAND,
+            net.minecraft.world.entity.EquipmentSlot.HEAD }) {
+          net.minecraft.world.item.ItemStack st = stand.getItemBySlot(slot);
+          if (st != null && !st.isEmpty()) {
+            sb.append(" ").append(slot.getSerializedName()).append("=").append(
+                net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(st.getItem()));
+            appendCmd(sb, st);
+          }
+        }
+      } else if (e instanceof net.minecraft.world.entity.LivingEntity living) {
+        net.minecraft.world.item.ItemStack mh = living.getMainHandItem();
+        if (mh != null && !mh.isEmpty()) {
+          sb.append(" hand=").append(
+              net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(mh.getItem()));
+          appendCmd(sb, mh);
+        }
+      }
+    } catch (Throwable ignored) {
+    }
+  }
+
+  private static void appendCmd(StringBuilder sb, net.minecraft.world.item.ItemStack st) {
+    net.minecraft.world.item.component.CustomModelData cmd =
+        st.get(net.minecraft.core.component.DataComponents.CUSTOM_MODEL_DATA);
+    if (cmd != null && !cmd.floats().isEmpty()) {
+      sb.append(cmd.floats());
+    }
+  }
 
   private HotkeyFeatures() {}
 
@@ -160,6 +204,34 @@ public final class HotkeyFeatures {
     }
     try {
       for (net.minecraft.world.entity.Entity e : client.level.entitiesForRendering()) {
+        if (e == client.player) {
+          continue;
+        }
+        double distSq = client.player.distanceToSqr(e.getX(), e.getY(), e.getZ());
+        String type =
+            net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE.getKey(e.getType())
+                .toString();
+        // Full nearby-entity dump (once per entity): catches non-display carriers too.
+        if (distSq < 8 * 8 && OPENORIGINS$NEAR_SEEN.add(e.getId())) {
+          StringBuilder nb = new StringBuilder();
+          nb.append(type).append("#").append(e.getId()).append(" ")
+              .append(String.format(java.util.Locale.ROOT, "%.0fm", Math.sqrt(distSq)));
+          try {
+            if (e.hasCustomName() && e.getCustomName() != null) {
+              nb.append(" name=").append(e.getCustomName().getString());
+            }
+            if (e.getVehicle() != null) {
+              nb.append(" rides#").append(e.getVehicle().getId());
+            }
+            if (!e.getPassengers().isEmpty()) {
+              nb.append(" carries").append(e.getPassengers().size());
+            }
+          } catch (Throwable ignored) {
+          }
+          describeCarried(e, nb);
+          org.slf4j.LoggerFactory.getLogger("openorigins")
+              .info("[allay-scan] near {}", nb);
+        }
         if (!(e instanceof net.minecraft.world.entity.Display.ItemDisplay disp)) {
           continue;
         }
