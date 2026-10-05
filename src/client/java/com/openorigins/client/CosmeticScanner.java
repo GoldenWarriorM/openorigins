@@ -143,6 +143,12 @@ public final class CosmeticScanner {
             if (model != null) {
               sb.append(" model=").append(model.toString());
             }
+            net.minecraft.world.item.component.CustomModelData cmd =
+                ds.get(net.minecraft.core.component.DataComponents.CUSTOM_MODEL_DATA);
+            if (cmd != null) {
+              String cmdStr = cmd.toString();
+              sb.append(" cmd=").append(cmdStr.length() > 60 ? cmdStr.substring(0, 60) : cmdStr);
+            }
           }
         } catch (Throwable ignored) {
         }
