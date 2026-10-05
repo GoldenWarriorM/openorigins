@@ -47,6 +47,34 @@ public final class AllayArmsFix {
     return null;
   }
 
+  /** Player cosmetics share the 13033-13038 float range with vanilla_allay parts.
+   *  Tell them apart by item_model: cosmetics carry an explicit override,
+   *  allay parts use CMD dispatch or an allay model path. */
+  public static boolean isOwnCosmetic(ItemStack stack) {
+    if (stack == null || stack.isEmpty()) {
+      return false;
+    }
+    try {
+      net.minecraft.world.item.component.CustomModelData cmd =
+          stack.get(net.minecraft.core.component.DataComponents.CUSTOM_MODEL_DATA);
+      if (cmd == null || cmd.floats().isEmpty()) {
+        return false;
+      }
+      for (Float f : cmd.floats()) {
+        if (f == null || f.floatValue() < 13033f || f.floatValue() > 13038f) {
+          return false;
+        }
+      }
+      net.minecraft.resources.Identifier model =
+          stack.get(net.minecraft.core.component.DataComponents.ITEM_MODEL);
+      if (model != null && model.getPath().contains("allay")) {
+        return false;
+      }
+      return true;
+    } catch (Throwable t) {
+      return false;
+    }
+  }
   /** True when the stack renders an allay part model via item_model (no CMD needed). */
   public static boolean isAllayModel(ItemStack stack) {
     try {

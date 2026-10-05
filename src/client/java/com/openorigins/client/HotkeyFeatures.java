@@ -309,6 +309,9 @@ public final class HotkeyFeatures {
         if (slotStack == null || slotStack.isEmpty()) {
           continue;
         }
+        if (com.openorigins.client.util.AllayArmsFix.isOwnCosmetic(slotStack)) {
+          continue;
+        }
         net.minecraft.world.item.component.CustomModelData cmd = slotStack
             .get(net.minecraft.core.component.DataComponents.CUSTOM_MODEL_DATA);
         if (cmd == null || cmd.floats().isEmpty()) {

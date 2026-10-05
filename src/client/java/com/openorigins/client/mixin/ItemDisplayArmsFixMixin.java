@@ -24,6 +24,8 @@ public abstract class ItemDisplayArmsFixMixin {
       Collections.newSetFromMap(new java.util.concurrent.ConcurrentHashMap<>());
   private static final Set<String> OPENORIGINS$LOGGED_SUBMITS =
       Collections.newSetFromMap(new java.util.concurrent.ConcurrentHashMap<>());
+  private static final Set<ItemDisplayEntityRenderState> OPENORIGINS$OWN =
+      Collections.newSetFromMap(new WeakHashMap<>());
   private static boolean OPENORIGINS$LOGGED;
 
   @Inject(method = "extractRenderState", at = @At("TAIL"))
@@ -40,7 +42,9 @@ public abstract class ItemDisplayArmsFixMixin {
       } catch (Throwable ignored) {
       }
       Float part = AllayArmsFix.partCmd(shown);
-      if (part != null) {
+      if (AllayArmsFix.isOwnCosmetic(shown)) {
+        OPENORIGINS$OWN.add(state);
+      } else if (part != null) {
         OPENORIGINS$PARTS.put(state, part);
       }
       if (AllayArmsFix.isArmsItem(shown)) {
@@ -60,10 +64,13 @@ public abstract class ItemDisplayArmsFixMixin {
   private void openorigins$censusSubmit(ItemDisplayEntityRenderState state, PoseStack poseStack,
       SubmitNodeCollector submitNodeCollector, int lightCoords, float interpolationProgress,
       CallbackInfo ci) {
-    // One-time log of every nearby display submit: catches stale/empty states.
+    // One-time log of every nearby NON-COSMETIC display submit.
     try {
+      if (OPENORIGINS$OWN.remove(state)) {
+        return;
+      }
       net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
-      if (mc != null && mc.player != null && OPENORIGINS$LOGGED_SUBMITS.size() < 40) {
+      if (mc != null && mc.player != null && OPENORIGINS$LOGGED_SUBMITS.size() < 200) {
         double dx = state.x - mc.player.getX();
         double dz = state.z - mc.player.getZ();
         if (dx * dx + dz * dz < 12 * 12) {
