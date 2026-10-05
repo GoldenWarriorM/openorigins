@@ -12,9 +12,10 @@ import net.minecraft.client.gui.narration.NarratableEntry;
 import net.minecraft.network.chat.Component;
 
 public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry> {
-  public FeatureList(Minecraft minecraft, int width, int contentHeight, int headerHeight) {
+  public FeatureList(Minecraft minecraft, int width, int contentHeight, int headerHeight,
+      ConfigTab tab) {
     super(minecraft, width, contentHeight, headerHeight, 24);
-    for (com.openorigins.client.FeatureCategory category : com.openorigins.client.FeatureCategory.values()) {
+    for (com.openorigins.client.FeatureCategory category : tab.getCategories()) {
       this.addEntry(new CategoryEntry(this, category));
       for (OriginFeature feature : OriginFeature.values()) {
         if (feature.getCategory() == category) {
