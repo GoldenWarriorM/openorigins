@@ -61,8 +61,8 @@ public final class HelmetCosmeticTracker {
       if (!pendingHelmet.isEmpty()) {
         ItemStack cur = realHelmet;
         if (cur.isEmpty() || !ItemStack.isSameItemSameComponents(cur, pendingHelmet)) {
-          com.openorigins.client.util.DebugLog.info("[helmet] commit {} (was {})",
-              describe(pendingHelmet), cur.isEmpty() ? "<empty>" : describe(cur));
+          com.openorigins.client.util.DebugLog.info("[helmet] commit {} (was {}) gone={}",
+              describe(pendingHelmet), cur.isEmpty() ? "<empty>" : describe(cur), goneEverywhere(pendingHelmet));
         }
         realHelmet = pendingHelmet.copy();
         setTip(pendingHelmet);
@@ -95,8 +95,8 @@ public final class HelmetCosmeticTracker {
           realHelmet = departedHelmet.copy();
           setTip(departedHelmet);
           lastCommitMs = System.currentTimeMillis();
-          com.openorigins.client.util.DebugLog.info("[helmet] departed-stash {} (was {})",
-              describe(departedHelmet), cur.isEmpty() ? "<empty>" : describe(cur));
+          com.openorigins.client.util.DebugLog.info("[helmet] departed-stash {} (was {}) gone={}",
+              describe(departedHelmet), cur.isEmpty() ? "<empty>" : describe(cur), goneEverywhere(departedHelmet));
           departedHelmet = ItemStack.EMPTY;
         } else {
           diffStashVanished();
@@ -397,8 +397,8 @@ public final class HelmetCosmeticTracker {
           setTip(pendingHelmet);
           lastCommitMs = System.currentTimeMillis();
           pendingHelmet = ItemStack.EMPTY;
-          com.openorigins.client.util.DebugLog.info("[helmet] attr-commit {} (was {})",
-              describe(realHelmet), cur.isEmpty() ? "<empty>" : describe(cur));
+          com.openorigins.client.util.DebugLog.info("[helmet] attr-commit {} (was {}) gone={}",
+              describe(realHelmet), cur.isEmpty() ? "<empty>" : describe(cur), goneEverywhere(realHelmet));
         }
         lastArmorValue = v;
       }
@@ -485,8 +485,8 @@ public final class HelmetCosmeticTracker {
     setTip(moved);
     optimisticMs = System.currentTimeMillis();
     lastCommitMs = optimisticMs;
-    com.openorigins.client.util.DebugLog.info("[helmet] optimistic equip {} (was {})",
-        describe(moved), cur.isEmpty() ? "<empty>" : describe(cur));
+    com.openorigins.client.util.DebugLog.info("[helmet] optimistic equip {} (was {}) gone={}",
+        describe(moved), cur.isEmpty() ? "<empty>" : describe(cur), goneEverywhere(moved));
   }
 
   /** Called periodically: rolls back unconfirmed optimistic writes. */
@@ -499,6 +499,38 @@ public final class HelmetCosmeticTracker {
       clear();
     }
   }
+  /** True if the stack is absent from storage, cursor and armor (likely merged/consumed). */
+  public static boolean goneEverywhere(ItemStack stack) {
+    if (stack == null || stack.isEmpty()) {
+      return true;
+    }
+    try {
+      net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
+      if (mc == null || mc.player == null) {
+        return false;
+      }
+      for (ItemStack st : mc.player.getInventory().getNonEquipmentItems()) {
+        if (ItemStack.isSameItemSameComponents(stack, st)) {
+          return false;
+        }
+      }
+      if (ItemStack.isSameItemSameComponents(stack, mc.player.containerMenu.getCarried())) {
+        return false;
+      }
+      for (int i = 0; i < 5; i++) {
+        try {
+          if (ItemStack.isSameItemSameComponents(stack, mc.player.containerMenu.getSlot(i).getItem())) {
+            return false;
+          }
+        } catch (Throwable ignored) {
+        }
+      }
+    } catch (Throwable ignored) {
+      return false;
+    }
+    return true;
+  }
+
   public static boolean isStashedReal(ItemStack stack) {
     ItemStack cur = realHelmet;
     return stack != null && !stack.isEmpty() && !cur.isEmpty()
