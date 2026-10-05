@@ -31,7 +31,8 @@
     "EntityCullingMixin",
     "EntityDistanceMixin",
     "PauseScreenMixin",
-    "ItemDisplayArmsFixMixin"
+    "ItemDisplayArmsFixMixin",
+    "SpawnWatchMixin"
   ],
   "injectors": {
     "defaultRequire": 1
