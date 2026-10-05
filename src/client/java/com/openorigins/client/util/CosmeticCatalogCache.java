@@ -121,13 +121,12 @@ public final class CosmeticCatalogCache {
     if (PROFILE_TARGETS.isEmpty()) {
       return;
     }
-    if (!BackgroundMenu.tryArm()) {
+    if (!BackgroundMenu.tryArm("profile")) {
       return;
     }
     profileArmed = true;
     profileDeadline = System.currentTimeMillis() + 10000;
     lastProfileAttempt = System.currentTimeMillis();
-    m.player.connection.sendCommand("profile");
   }
 
   public static boolean shouldFetchWorn() {

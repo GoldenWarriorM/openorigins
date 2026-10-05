@@ -38,6 +38,8 @@ public final class HomeInfoCache {
   private static final Map<String, Info> CACHE = new ConcurrentHashMap<>();
   private static final Map<String, String> CONTAINER_NAMES = new ConcurrentHashMap<>();
   private static volatile long lastHomesGuiMs;
+  private static volatile long lastEmptyCompleteMs;
+  private static volatile long lastZeroGuiMs;
 
   /** Authoritative display names from /homes (empty when none). */
   public static Map<String, String> containerNames() {
@@ -327,6 +329,9 @@ public final class HomeInfoCache {
       CONTAINER_NAMES.clear();
       CONTAINER_NAMES.putAll(guiNames);
       lastHomesGuiMs = System.currentTimeMillis();
+      if (n == 0) {
+        lastZeroGuiMs = System.currentTimeMillis();
+      }
     }
     return n;
   }
@@ -413,6 +418,39 @@ public final class HomeInfoCache {
     }
     org.slf4j.LoggerFactory.getLogger("openorigins").info("[homes] rollback, fresh tombstones dropped={}", dropped);
     HomeFetch.start();
+  }
+
+  /** Records a tab-complete answer for consensus pruning. */
+  public static synchronized void noteComplete(List<String> names) {
+    if (names == null || names.isEmpty()) {
+      lastEmptyCompleteMs = System.currentTimeMillis();
+    }
+  }
+
+  /**
+   * Wipes everything when the server unanimously reports zero homes
+   * (empty complete + fresh locks-only menu). Legacy garbage cleanup.
+   */
+  public static synchronized boolean maybePruneAll() {
+    long now = System.currentTimeMillis();
+    if (lastEmptyCompleteMs <= 0 || lastZeroGuiMs <= 0) {
+      return false;
+    }
+    if (now - lastEmptyCompleteMs > 120000 || now - lastZeroGuiMs > 120000) {
+      return false;
+    }
+    if (NAMES.isEmpty() && CONTAINER_NAMES.isEmpty()
+        && LAYOUT.stream().noneMatch(e -> e.startsWith("home:"))) {
+      return false;
+    }
+    NAMES.clear();
+    CONTAINER_NAMES.clear();
+    LAYOUT.removeIf(e -> e.startsWith("home:"));
+    lastEmptyCompleteMs = 0;
+    lastZeroGuiMs = 0;
+    save();
+    org.slf4j.LoggerFactory.getLogger("openorigins").info("[homes] pruned stale cache by consensus");
+    return true;
   }
 
   /** Merges a fresh server response: only adds, removals come from verdicts. */

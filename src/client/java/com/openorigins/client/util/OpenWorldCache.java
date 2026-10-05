@@ -33,15 +33,10 @@ public final class OpenWorldCache {
 
   /** Silent background fetch via the server open-world menu. */
   public static void fetch(java.util.function.Supplier<net.minecraft.client.gui.screens.Screen> ret) {
-    if (!BackgroundMenu.tryArm()) {
-      return;
-    }
-    net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
-    if (mc == null || mc.player == null) {
+    if (!BackgroundMenu.tryArm("navigator worlds")) {
       return;
     }
     lastAttempt = System.currentTimeMillis();
-    mc.player.connection.sendCommand("navigator worlds");
   }
 
   /** True if a fetch attempt is worthwhile (throttled, missing/expired anchors). */

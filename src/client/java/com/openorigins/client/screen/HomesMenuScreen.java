@@ -54,9 +54,13 @@ public class HomesMenuScreen extends Screen implements HomePanelHost {
             return;
           }
           this.retries = 0;
+          HomeInfoCache.noteComplete(names);
           boolean changed = HomeInfoCache.setNames(names);
-          if (changed || this.homes == null) {
-            this.homes = new ArrayList<>(names);
+          if (HomeInfoCache.maybePruneAll()) {
+            this.homes = new ArrayList<>();
+            this.layoutWidgets();
+          } else if (changed || this.homes == null) {
+            this.homes = new ArrayList<>(HomeInfoCache.names());
             this.layoutWidgets();
           }
           HomeFetch.consumeRefetch();

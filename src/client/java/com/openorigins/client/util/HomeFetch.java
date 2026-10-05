@@ -23,14 +23,10 @@ public final class HomeFetch {
   private static Supplier<Screen> returnTo = HomesMenuScreen::new;
 
   public static void start() {
-    if (!BackgroundMenu.tryArm()) {
+    if (!BackgroundMenu.tryArm("homes")) {
       return;
     }
     lastFetchMs = System.currentTimeMillis();
-    Minecraft mc = Minecraft.getInstance();
-    if (mc != null && mc.player != null) {
-      mc.player.connection.sendCommand("homes");
-    }
   }
 
   private static volatile long lastFetchMs;

@@ -23,16 +23,22 @@ public final class BackgroundMenu {
   private static long deadline;
   private static AbstractContainerMenu menu;
   private static int contentPackets;
+  private static String pendingCommand;
+  private static long lastSentMs;
+  private static int attempts;
 
   /** @return false if a fetch is already in flight. */
-  public static synchronized boolean tryArm() {
+  public static synchronized boolean tryArm(String command) {
     if (armed) {
       return false;
     }
     armed = true;
-    deadline = System.currentTimeMillis() + 10000;
+    deadline = System.currentTimeMillis() + 15000;
     menu = null;
     contentPackets = 0;
+    pendingCommand = command;
+    lastSentMs = 0;
+    attempts = 0;
     return true;
   }
 
@@ -116,9 +122,20 @@ public final class BackgroundMenu {
     if (!armed) {
       return;
     }
-    if (System.currentTimeMillis() > deadline) {
+    long now = System.currentTimeMillis();
+    if (now > deadline) {
       LOG.info("[bgmenu] deadline, closing");
       finish();
+      return;
+    }
+    if (menu == null && pendingCommand != null && now - lastSentMs > 3000 && attempts < 3) {
+      net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
+      if (mc != null && mc.player != null) {
+        mc.player.connection.sendCommand(pendingCommand);
+        lastSentMs = now;
+        attempts++;
+        LOG.info("[bgmenu] sending '{}' (attempt {})", pendingCommand, attempts);
+      }
     }
   }
 
