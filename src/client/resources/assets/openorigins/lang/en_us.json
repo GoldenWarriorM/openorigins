@@ -35,6 +35,7 @@
   "key.openorigins.balloon_yellow": "Teleport to Yellow Balloon",
   "key.openorigins.balloon_red": "Teleport to Red Balloon",
   "key.openorigins.badger_hud": "Toggle Badger Task HUD",  "menu.openorigins.homes.title": "Homes",
+  "menu.openorigins.worlds.title": "Worlds",
   "menu.openorigins.homes.sethome": "Set Home",
   "menu.openorigins.homes.details": "Load Details",
   "menu.openorigins.homes.new": "New",

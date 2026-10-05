@@ -21,18 +21,29 @@ public class HomeIconButton extends AbstractButton {
   private final int texH;
   private final boolean face;
   private final String homeName;
+  private final String subLabel;
+  private final int subColor;
   private final Runnable leftAction;
   private final Runnable rightAction;
 
   public HomeIconButton(int x, int y, int size, Component message, Identifier textureId,
       int texW, int texH, boolean face, String homeName, Component tooltip,
       Runnable leftAction, Runnable rightAction) {
+    this(x, y, size, message, textureId, texW, texH, face, homeName, null, 0xFFAAAAAA,
+        tooltip, leftAction, rightAction);
+  }
+
+  public HomeIconButton(int x, int y, int size, Component message, Identifier textureId,
+      int texW, int texH, boolean face, String homeName, String subLabel, int subColor,
+      Component tooltip, Runnable leftAction, Runnable rightAction) {
     super(x, y, size, size, message);
     this.textureId = textureId;
     this.texW = texW;
     this.texH = texH;
     this.face = face;
     this.homeName = homeName;
+    this.subLabel = subLabel;
+    this.subColor = subColor;
     this.leftAction = leftAction;
     this.rightAction = rightAction;
     this.setTooltip(Tooltip.create(tooltip));
@@ -105,6 +116,11 @@ public class HomeIconButton extends AbstractButton {
       int sw = mc.font.width(s);
       graphics.text(mc.font, s, this.getX() + this.getWidth() / 2 - sw / 2,
           this.getY() + this.getHeight() + 2, 0xFFFFFFFF);
+      if (this.subLabel != null && !this.subLabel.isEmpty()) {
+        int subW = mc.font.width(this.subLabel);
+        graphics.text(mc.font, this.subLabel, this.getX() + this.getWidth() / 2 - subW / 2,
+            this.getY() + this.getHeight() + 11, this.subColor);
+      }
     }
   }
 }

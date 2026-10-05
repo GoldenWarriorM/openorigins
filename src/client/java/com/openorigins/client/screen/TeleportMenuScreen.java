@@ -51,11 +51,14 @@ public class TeleportMenuScreen extends Screen implements HomePanelHost {
   private int panelX;
   private int panelY;
   private int panelCount;
+  private int worldPanelX;
+  private int worldPanelY;
+  private int worldPanelCount;
   private long retryAt;
   private int retries;
   private static boolean navigatorProbed;
 
-  /** Radial center: screen center unless the homes panel would overlap it. */
+  /** Radial center: screen center unless a side panel would overlap it. */
   private double radialCx() {
     double cx = this.width / 2.0;
     int panelW = homePanelWidth();
@@ -64,6 +67,14 @@ public class TeleportMenuScreen extends Screen implements HomePanelHost {
       double needRight = RADIUS + 34;
       if (cx + needRight > panelLeft) {
         cx = Math.max(RADIUS + 40, panelLeft - needRight - 6);
+      }
+    }
+    int worldW = worldPanelWidth();
+    if (worldW > 0) {
+      double panelRight = 10 + worldW;
+      double needLeft = RADIUS + 34;
+      if (cx - needLeft < panelRight) {
+        cx = Math.min(this.width - RADIUS - 40, panelRight + needLeft + 6);
       }
     }
     return cx;
@@ -75,6 +86,15 @@ public class TeleportMenuScreen extends Screen implements HomePanelHost {
       return 0;
     }
     int cols = Math.min(HOME_COLS, (cells.size() + 4) / 5);
+    return cols * (HOME_ICON + HOME_GAP) - HOME_GAP;
+  }
+
+  private int worldPanelWidth() {
+    int n = com.openorigins.client.util.OpenWorldCache.worlds().size();
+    if (n == 0) {
+      return 0;
+    }
+    int cols = Math.min(2, (n + 2) / 3);
     return cols * (HOME_ICON + HOME_GAP) - HOME_GAP;
   }
 
@@ -169,6 +189,7 @@ public class TeleportMenuScreen extends Screen implements HomePanelHost {
       }
     }
     this.buildHomePanel();
+    this.buildWorldPanel();
   }
 
   private void buildHomePanel() {
@@ -234,6 +255,64 @@ public class TeleportMenuScreen extends Screen implements HomePanelHost {
     }
   }
 
+  private void buildWorldPanel() {
+    this.worldPanelCount = 0;
+    java.util.List<com.openorigins.client.util.OpenWorldCache.WorldEntry> worlds =
+        com.openorigins.client.util.OpenWorldCache.worlds();
+    if (worlds.isEmpty()) {
+      return;
+    }
+    com.openorigins.client.util.OpenWorldCache.ensureWorlds();
+    int cellW = HOME_ICON + HOME_GAP;
+    int cols = Math.min(2, (worlds.size() + 2) / 3);
+    int rows = Math.min(3, worlds.size());
+    int panelW = cols * cellW - HOME_GAP;
+    int panelH = rows * (HOME_ICON + HOME_LABEL_H + HOME_GAP) - HOME_GAP;
+    this.worldPanelX = 10;
+    this.worldPanelY = Math.max(48, (this.height - panelH) / 2);
+    this.worldPanelCount = worlds.size();
+    for (int i = 0; i < worlds.size(); i++) {
+      com.openorigins.client.util.OpenWorldCache.WorldEntry w = worlds.get(i);
+      int col = i / 3;
+      int row = i % 3;
+      int x = this.worldPanelX + col * cellW;
+      int y = this.worldPanelY + row * (HOME_ICON + HOME_LABEL_H + HOME_GAP);
+      String shortName = w.name().replace(" Open World", "");
+      String cd = com.openorigins.client.util.OpenWorldCache.countdown(w.color());
+      long left = com.openorigins.client.util.OpenWorldCache.remaining(w.color());
+      int subColor = 0xFFAAAAAA;
+      if (left > 0 && left < 30 * 60000L) {
+        subColor = 0xFFFF5555;
+      } else if (left > 0 && left < 60 * 60000L) {
+        subColor = 0xFFFFAA00;
+      }
+      String sub = cd != null ? cd : "...";
+      net.minecraft.network.chat.Component tip = net.minecraft.network.chat.Component.literal(w.name());
+      if (cd != null) {
+        tip = tip.copy().append(net.minecraft.network.chat.Component.literal("\n"))
+            .append(net.minecraft.network.chat.Component.translatable(
+                "menu.openorigins.homes.reset", cd).withStyle(net.minecraft.ChatFormatting.GRAY));
+      }
+      final String color = w.color();
+      Optional<ServerPackIcons.LoadedIcon> icon = ServerPackIcons.get(
+          "textures/custom/ui/homes/open_world_" + color + ".png");
+      if (icon.isPresent()) {
+        ServerPackIcons.LoadedIcon li = icon.get();
+        this.addRenderableWidget(new HomeIconButton(x, y, HOME_ICON,
+            Component.literal(shortName), li.textureId(), li.width(), li.height(),
+            false, shortName, sub, subColor, tip,
+            () -> {
+              com.openorigins.client.util.OpenWorldCache.teleportTo(color);
+              this.onClose();
+            },
+            () -> {
+              com.openorigins.client.util.OpenWorldCache.teleportTo(color);
+              this.onClose();
+            }));
+      }
+    }
+  }
+
   private void teleportHome(String name) {
     if (this.minecraft != null && this.minecraft.player != null) {
       this.minecraft.player.connection.sendCommand("home " + name);
@@ -266,6 +345,14 @@ public class TeleportMenuScreen extends Screen implements HomePanelHost {
       int cols = Math.min(HOME_COLS, (this.panelCount + 4) / 5);
       int gridW = cols * (HOME_ICON + HOME_GAP) - HOME_GAP;
       extractor.text(this.font, header, this.panelX + gridW / 2 - hw / 2, this.panelY - 16, 0xFFFFFFFF);
+    }
+    if (this.worldPanelCount > 0) {
+      Component wheader = Component.translatable("menu.openorigins.worlds.title");
+      int hww = this.font.width(wheader);
+      int wcols = Math.min(2, (this.worldPanelCount + 2) / 3);
+      int wgridW = wcols * (HOME_ICON + HOME_GAP) - HOME_GAP;
+      extractor.text(this.font, wheader, this.worldPanelX + wgridW / 2 - hww / 2,
+          this.worldPanelY - 16, 0xFFFFFFFF);
     }
   }
 

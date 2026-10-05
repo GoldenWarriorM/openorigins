@@ -1,5 +1,6 @@
 package com.openorigins.client.util;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -21,25 +22,81 @@ public final class OpenWorldCache {
 
   public record ResetInfo(String rawLine, long capturedAt) {}
 
+  public record WorldEntry(String color, String name) {}
+
   private static final Map<String, ResetInfo> RESETS = new ConcurrentHashMap<>();
   private static final Map<String, Long> RESET_AT = new ConcurrentHashMap<>();
+  private static final Map<String, String> NAMES = new ConcurrentHashMap<>();
+  private static final Map<String, Integer> SLOTS = new ConcurrentHashMap<>();
   private static final String[] COLORS = {"blue", "green", "yellow", "red", "orange", "purple"};
 
   public static ResetInfo resetFor(String worldColor) {
     return worldColor == null ? null : RESETS.get(worldColor);
   }
 
+  /** Known worlds in stable color order. */
+  public static List<WorldEntry> worlds() {
+    List<WorldEntry> out = new ArrayList<>();
+    for (String c : COLORS) {
+      String n = NAMES.get(c);
+      if (n != null) {
+        out.add(new WorldEntry(c, n));
+      }
+    }
+    return out;
+  }
+
+  /** Menu slot of the world button, or -1. Refreshed on every worlds fetch. */
+  public static int slotFor(String worldColor) {
+    if (worldColor == null) {
+      return -1;
+    }
+    return SLOTS.getOrDefault(worldColor, -1);
+  }
+
   private static long lastAttempt;
 
+  /** Teleports via a background menu click (fetches first if the slot is unknown). */
+  public static void teleportTo(String worldColor) {
+    if (worldColor == null) {
+      return;
+    }
+    if (slotFor(worldColor) < 0) {
+      com.openorigins.client.util.BackgroundMenu.setPendingTeleport(worldColor);
+      fetch(() -> null);
+      return;
+    }
+    com.openorigins.client.util.BackgroundMenu.setPendingTeleport(worldColor);
+    fetch(() -> null);
+  }
+
   /** Silent background fetch via the server open-world menu. */
-  public static void fetch(java.util.function.Supplier<net.minecraft.client.gui.screens.Screen> ret) {
-    if (!BackgroundMenu.tryArm("navigator worlds")) {
+  public static void fetch(java.util.function.Supplier<net.minecraft.client.gui.screens.Screen> ret) {    if (!BackgroundMenu.tryArm("navigator worlds")) {
       return;
     }
     lastAttempt = System.currentTimeMillis();
   }
 
-  /** True if a fetch attempt is worthwhile (throttled, missing/expired anchors). */
+  /** Fetch worlds list once at join / when expired (throttled). */
+  public static void ensureWorlds() {
+    if (System.currentTimeMillis() - lastAttempt < 60000L) {
+      return;
+    }
+    if (!worlds().isEmpty()) {
+      boolean alive = false;
+      long now = System.currentTimeMillis();
+      for (WorldEntry w : worlds()) {
+        if (resetAt(w.color()) > now) {
+          alive = true;
+          break;
+        }
+      }
+      if (alive) {
+        return;
+      }
+    }
+    fetch(() -> null);
+  }
   public static boolean shouldFetch(java.util.List<String> homeNames) {
     if (System.currentTimeMillis() - lastAttempt < 30 * 60000L) {
       return false;
@@ -95,6 +152,16 @@ public final class OpenWorldCache {
       return hours + "h " + mm + "m";
     }
     return mm + "m";
+  }
+
+  /** Name snapshot for a world (display only, refreshed on fetch). */
+  public static void putWorldName(String color, String name) {
+    if (color == null || name == null || name.isBlank()) {
+      return;
+    }
+    if (!name.equals(NAMES.get(color))) {
+      NAMES.put(color, name);
+    }
   }
 
   public static Map<String, Long> snapshot() {
@@ -169,7 +236,9 @@ public final class OpenWorldCache {
     Minecraft mc = Minecraft.getInstance();
     Object playerInv = (mc != null && mc.player != null) ? mc.player.getInventory() : null;
     int found = 0;
-    for (Slot slot : menu.slots) {
+    List<Slot> slots = menu.slots;
+    for (int si = 0; si < slots.size(); si++) {
+      Slot slot = slots.get(si);
       if (!slot.hasItem()) {
         continue;
       }
@@ -197,6 +266,10 @@ public final class OpenWorldCache {
       if (color == null) {
         continue;
       }
+      if (!name.isBlank() && !NAMES.getOrDefault(color, "").equals(name)) {
+        NAMES.put(color, name);
+      }
+      SLOTS.put(color, si);
       long now = System.currentTimeMillis();
       Long known = RESET_AT.get(color);
       if (known != null && known > now) {

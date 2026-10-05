@@ -22,6 +22,7 @@ public final class HotkeyFeatures {
   private static KeyMapping badgerHudKey;
   private static boolean joinFetchDone;
   private static boolean badgerFetchDone;
+  private static boolean worldsFetchDone;
   private static int joinTicks;
 
   private HotkeyFeatures() {}
@@ -70,6 +71,7 @@ public final class HotkeyFeatures {
       if (!com.openorigins.client.ConnectionUtil.isConnected()) {
         joinFetchDone = false;
         badgerFetchDone = false;
+        worldsFetchDone = false;
         joinTicks = 0;
       } else {
         joinTicks++;
@@ -78,6 +80,12 @@ public final class HotkeyFeatures {
             && !com.openorigins.client.util.BackgroundMenu.isArmed()) {
           badgerFetchDone = true;
           com.openorigins.client.util.BackgroundMenu.tryArm("streaks");
+        }
+        if (!worldsFetchDone && joinTicks > 120
+            && !com.openorigins.client.util.BackgroundMenu.isArmed()
+            && com.openorigins.client.util.OpenWorldCache.worlds().isEmpty()) {
+          worldsFetchDone = true;
+          com.openorigins.client.util.BackgroundMenu.tryArm("navigator worlds");
         }
         if (com.openorigins.client.util.BadgerCache.needsDeliveredRefresh()
             && !com.openorigins.client.util.BackgroundMenu.isArmed()

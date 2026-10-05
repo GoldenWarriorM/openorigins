@@ -30,6 +30,7 @@ public final class BackgroundMenu {
   private static int attempts;
   private static String lastTopSig;
   private static volatile long lastEmptyFinishMs;
+  private static volatile String pendingTeleport;
 
   private static volatile boolean expectOwnSend;
 
@@ -97,6 +98,7 @@ public final class BackgroundMenu {
   private static synchronized void disarm() {
     armed = false;
     menu = null;
+    pendingTeleport = null;
   }
 
   /**
@@ -169,6 +171,43 @@ public final class BackgroundMenu {
     }
   }
 
+  public static void setPendingTeleport(String worldColor) {
+    pendingTeleport = worldColor;
+  }
+
+  /** Clicks a world button inside the background menu, then closes. */
+  private static synchronized boolean tryTeleportClick() {
+    String color = pendingTeleport;
+    if (color == null || menu == null) {
+      return false;
+    }
+    int slot = com.openorigins.client.util.OpenWorldCache.slotFor(color);
+    if (slot < 0 || slot >= menu.slots.size()) {
+      return false;
+    }
+    net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
+    if (mc == null || mc.player == null || mc.gameMode == null) {
+      return false;
+    }
+    net.minecraft.world.entity.player.Player player = mc.player;
+    net.minecraft.world.inventory.AbstractContainerMenu prev = player.containerMenu;
+    try {
+      player.containerMenu = menu;
+      mc.gameMode.handleContainerInput(menu.containerId, slot, 0,
+          net.minecraft.world.inventory.ContainerInput.PICKUP, player);
+      com.openorigins.client.util.DebugLog.info("[bgmenu] teleported to {} (slot {})", color, slot);
+    } catch (Throwable t) {
+      com.openorigins.client.util.DebugLog.warn("[bgmenu] teleport click failed: {}", t.toString());
+      return false;
+    } finally {
+      if (player.containerMenu == menu) {
+        player.containerMenu = prev;
+      }
+    }
+    pendingTeleport = null;
+    return true;
+  }
+
   /** Runs after container content/slot packets; captures and maybe finishes. */
   public static synchronized void poll() {
     if (!armed || menu == null) {
@@ -216,6 +255,10 @@ public final class BackgroundMenu {
       }
     } catch (Throwable t) {
       com.openorigins.client.util.DebugLog.warn("[bgmenu] capture failed: {}", t.toString());
+    }
+    if (pendingTeleport != null && tryTeleportClick()) {
+      finish();
+      return;
     }
     if (progress || contentPackets >= 3 || stableUnchanged()) {
       finish();
@@ -286,6 +329,7 @@ public final class BackgroundMenu {
   private static synchronized void finish() {    AbstractContainerMenu m = menu;
     menu = null;
     armed = false;
+    pendingTeleport = null;
     if (com.openorigins.client.util.HomeInfoCache.layout().isEmpty()) {
       lastEmptyFinishMs = System.currentTimeMillis();
     }

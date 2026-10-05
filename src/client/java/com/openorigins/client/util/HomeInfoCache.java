@@ -656,6 +656,11 @@ public final class HomeInfoCache {
         res.addProperty(e.getKey(), e.getValue());
       }
       root.add("resets", res);
+      JsonObject wn = new JsonObject();
+      for (OpenWorldCache.WorldEntry w : OpenWorldCache.worlds()) {
+        wn.addProperty(w.color(), w.name());
+      }
+      root.add("worldNames", wn);
       JsonArray nm = new JsonArray();
       for (String n : NAMES) {
         nm.add(n);
@@ -753,6 +758,15 @@ public final class HomeInfoCache {
           }
         }
         OpenWorldCache.restore(map);
+      }
+      JsonObject wn = root.getAsJsonObject("worldNames");
+      if (wn != null) {
+        for (Map.Entry<String, JsonElement> e : wn.entrySet()) {
+          try {
+            OpenWorldCache.putWorldName(e.getKey(), e.getValue().getAsString());
+          } catch (Exception ignored) {
+          }
+        }
       }
       if (root.has("capacity")) {
         try {
