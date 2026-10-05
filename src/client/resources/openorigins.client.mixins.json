@@ -11,6 +11,8 @@
     "CommandSuggestionsMixin",
     "ContainerLoreMixin",
     "ContainerSyncMixin",
+    "CutsceneFovMixin",
+    "CutsceneMouseMixin",
     "ItemTooltipMixin",
     "CommandProbeMixin",
     "OpenScreenMixin",
