@@ -24,6 +24,13 @@ public final class CustomItemIds {
       return Optional.empty();
     }
     CompoundTag tag = custom.copyTag();
+    Optional<CompoundTag> polymerOpt = tag.getCompound("$polymer:stack");
+    if (polymerOpt.isPresent()) {
+      Optional<String> id = polymerOpt.get().getString("id");
+      if (id.isPresent() && !id.get().isBlank()) {
+        return Optional.of(id.get().contains(":") ? id.get() : "originrealms:" + id.get());
+      }
+    }
     Optional<String> blockKey = tag.getString("CustomBlock");
     if (blockKey.isPresent()) {
       return blockKey;

@@ -38,25 +38,9 @@ public abstract class ItemTooltipMixin {
     }
     ItemStack self = (ItemStack) (Object) this;
     Optional<String> key = CustomItemIds.resolve(self);
-    String comps = "?";
-    String customNbt = "";
-    try {
-      comps = self.getComponents().keySet().stream()
-          .map(k -> k.toString()).collect(java.util.stream.Collectors.joining(","));
-      net.minecraft.world.item.component.CustomData cd =
-          self.get(net.minecraft.core.component.DataComponents.CUSTOM_DATA);
-      if (cd != null) {
-        customNbt = cd.copyTag().toString();
-        if (customNbt.length() > 600) {
-          customNbt = customNbt.substring(0, 600);
-        }
-      }
-    } catch (Throwable ignored) {
-    }
-    com.openorigins.client.util.DebugLog.info("[itemid] vanilla={} resolved={} connected={} enabled={} comps=[{}] nbt={}",
+    com.openorigins.client.util.DebugLog.info("[itemid] vanilla={} resolved={}",
         BuiltInRegistries.ITEM.getKey(self.getItem()),
-        key.map(Object::toString).orElse("<empty>"), ConnectionUtil.isConnected(),
-        OpenOriginsConfig.getInstance().isEnabled(OriginFeature.CUSTOM_ITEM_IDS), comps, customNbt);
+        key.map(Object::toString).orElse("<empty>"));
     if (key.isEmpty()) {
       return;
     }
@@ -68,10 +52,10 @@ public abstract class ItemTooltipMixin {
     if (lines == null) {
       return;
     }
+    String shown = key.get().contains(":") ? key.get() : "originrealms:" + key.get();
     for (int i = lines.size() - 1; i >= 0; i--) {
       if (lines.get(i).getString().equals(vanillaId)) {
-        lines.set(i, Component.literal("originrealms:" + key.get())
-            .withStyle(ChatFormatting.DARK_GRAY));
+        lines.set(i, Component.literal(shown).withStyle(ChatFormatting.DARK_GRAY));
         return;
       }
     }
