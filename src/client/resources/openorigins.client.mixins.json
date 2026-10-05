@@ -30,7 +30,8 @@
     "DigSlowdownMixin",
     "EntityCullingMixin",
     "EntityDistanceMixin",
-    "PauseScreenMixin"
+    "PauseScreenMixin",
+    "ItemDisplayArmsFixMixin"
   ],
   "injectors": {
     "defaultRequire": 1

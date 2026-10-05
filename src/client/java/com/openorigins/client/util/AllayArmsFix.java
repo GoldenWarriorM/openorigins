@@ -42,6 +42,20 @@ public final class AllayArmsFix {
     return OpenOriginsConfig.getInstance().getAllayArmsShiftTexels() / 16.0f;
   }
 
+  public static String describe(ItemStack stack) {
+    if (stack == null || stack.isEmpty()) {
+      return "<empty>";
+    }
+    String hover;
+    try {
+      hover = stack.getHoverName().getString();
+    } catch (Throwable t) {
+      hover = "?";
+    }
+    return net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(stack.getItem()) + " '" + hover
+        + "' x" + stack.getCount();
+  }
+
   public static void nudge(float deltaTexels, Set<String> feedback) {
     OpenOriginsConfig cfg = OpenOriginsConfig.getInstance();
     float v = Math.round((cfg.getAllayArmsShiftTexels() + deltaTexels) * 4.0f) / 4.0f;

@@ -18,6 +18,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public abstract class ItemDisplayArmsFixMixin {
   private static final Set<ItemDisplayEntityRenderState> OPENORIGINS$ARMS =
       Collections.newSetFromMap(new WeakHashMap<>());
+  private static boolean OPENORIGINS$LOGGED;
 
   @Inject(method = "extractRenderState", at = @At("TAIL"))
   private void openorigins$flagArms(Display.ItemDisplay entity, ItemDisplayEntityRenderState state,
@@ -29,6 +30,11 @@ public abstract class ItemDisplayArmsFixMixin {
       Display.ItemDisplay.ItemRenderState rs = entity.itemRenderState();
       if (rs != null && AllayArmsFix.isArmsItem(rs.itemStack())) {
         OPENORIGINS$ARMS.add(state);
+        if (!OPENORIGINS$LOGGED) {
+          OPENORIGINS$LOGGED = true;
+          org.slf4j.LoggerFactory.getLogger("openorigins")
+              .info("[allay-arms] fix engaged on {}", AllayArmsFix.describe(rs.itemStack()));
+        }
       }
     } catch (Throwable ignored) {
     }
