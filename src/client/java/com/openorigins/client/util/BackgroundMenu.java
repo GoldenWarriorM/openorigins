@@ -98,6 +98,7 @@ public final class BackgroundMenu {
     contentPackets++;
     int top = 0;
     int filled = 0;
+    StringBuilder topNames = new StringBuilder();
     try {
       net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
       Object inv = mc != null && mc.player != null ? mc.player.getInventory() : null;
@@ -108,11 +109,19 @@ public final class BackgroundMenu {
         top++;
         if (s.hasItem()) {
           filled++;
+          if (topNames.length() < 300) {
+            if (topNames.length() > 0) {
+              topNames.append(" | ");
+            }
+            net.minecraft.world.item.ItemStack st = s.getItem();
+            topNames.append(st.getHoverName().getString()).append(" x").append(st.getCount());
+          }
         }
       }
     } catch (Throwable ignored) {
     }
-    LOG.info("[bgmenu] poll #{} top={} filled={}", contentPackets, top, filled);
+    LOG.info("[bgmenu] poll #{} top={} filled={} sample=[{}]", contentPackets, top, filled,
+        topNames.toString());
     boolean progress = false;
     try {
       if (HomeInfoCache.captureMenu(menu) > 0) {
