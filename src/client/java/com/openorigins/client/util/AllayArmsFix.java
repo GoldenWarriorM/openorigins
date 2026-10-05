@@ -74,10 +74,6 @@ public final class AllayArmsFix {
       }
       String type =
           net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE.getKey(e.getType()).toString();
-      if (!type.endsWith("item_display") && !type.endsWith("armor_stand")
-          && !type.endsWith("block_display") && !type.endsWith("interaction")) {
-        continue;
-      }
       StringBuilder sb = new StringBuilder(type + "#" + e.getId());
       double dist = Math.sqrt(mc.player.distanceToSqr(e.getX(), e.getY(), e.getZ()));
       sb.append(String.format(java.util.Locale.ROOT, " %.0fm", dist));
