@@ -213,68 +213,101 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
 
   /** Label left, [-] value [+] stepper right. */
 
-  /** Label left, [-] value [+] stepper right. */
+  /** Label left, [-] [field] [+] value control right. */
   public static class StepperRow extends Entry {
     private final FeatureList list;
     private final String labelKey;
-    private final String tooltipKey;
     private final int min;
     private final int max;
     private final java.util.function.IntSupplier get;
     private final java.util.function.IntConsumer set;
     private final Button minusButton;
     private final Button plusButton;
+    private net.minecraft.client.gui.components.EditBox field;
 
     public StepperRow(FeatureList list, String labelKey, String tooltipKey, int min, int max,
         java.util.function.IntSupplier get, java.util.function.IntConsumer set) {
       this.list = list;
       this.labelKey = labelKey;
-      this.tooltipKey = tooltipKey;
       this.min = min;
       this.max = max;
       this.get = get;
       this.set = set;
-      net.minecraft.client.gui.components.Tooltip tip =
-          net.minecraft.client.gui.components.Tooltip.create(Component.translatable(this.tooltipKey));
       this.minusButton = Button.builder(Component.literal("-"), b -> {
         this.set.accept(Math.max(this.min, this.get.getAsInt() - 1));
         this.list.refreshEntries();
-      }).bounds(0, 0, 20, 20).tooltip(tip).build();
+      }).bounds(0, 0, 20, 20).build();
       this.plusButton = Button.builder(Component.literal("+"), b -> {
         this.set.accept(Math.min(this.max, this.get.getAsInt() + 1));
         this.list.refreshEntries();
-      }).bounds(0, 0, 20, 20).tooltip(tip).build();
+      }).bounds(0, 0, 20, 20).build();
     }
 
     public void refreshEntry() {
+      if (this.field != null) {
+        String v = Integer.toString(this.get.getAsInt());
+        if (!this.field.getValue().equals(v)) {
+          this.field.setValue(v);
+        }
+      }
     }
 
     @Override
     public void extractContent(GuiGraphicsExtractor graphics, int mouseX, int mouseY, boolean hovered,
         float partialTick) {
       int right = this.list.getRowRight();
+      net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
+      if (this.field == null && mc != null) {
+        this.field = new net.minecraft.client.gui.components.EditBox(mc.font, 0, 0, 36, 20,
+            Component.translatable(this.labelKey));
+        this.field.setMaxLength(2);
+        this.field.setValue(Integer.toString(this.get.getAsInt()));
+        this.field.setResponder(s -> {
+          String digits = s.replaceAll("[^0-9]", "");
+          if (!digits.equals(s)) {
+            this.field.setValue(digits);
+            return;
+          }
+          if (!digits.isEmpty()) {
+            try {
+              int v = Integer.parseInt(digits);
+              if (v >= this.min && v <= this.max) {
+                this.set.accept(v);
+              }
+            } catch (NumberFormatException ignored) {
+            }
+          }
+        });
+      }
       this.plusButton.setX(right - 20);
       this.plusButton.setY(this.getContentY() + 2);
-      this.minusButton.setX(right - 20 - 44 - 20);
+      if (this.field != null) {
+        this.field.setX(right - 20 - 4 - 36);
+        this.field.setY(this.getContentY() + 2);
+        this.field.extractRenderState(graphics, mouseX, mouseY, partialTick);
+      }
+      this.minusButton.setX(right - 20 - 4 - 36 - 4 - 20);
       this.minusButton.setY(this.getContentY() + 2);
       this.plusButton.extractRenderState(graphics, mouseX, mouseY, partialTick);
       this.minusButton.extractRenderState(graphics, mouseX, mouseY, partialTick);
       net.minecraft.client.gui.Font font = net.minecraft.client.Minecraft.getInstance().font;
       graphics.text(font, Component.translatable(this.labelKey), this.getContentX(),
           this.getContentYMiddle() - 4, 0xFFFFFFFF);
-      String v = Integer.toString(this.get.getAsInt());
-      int vw = font.width(v);
-      graphics.text(font, v, right - 20 - 44 + (44 - vw) / 2,
-          this.getContentYMiddle() - 4, 0xFFFFFFFF);
     }
 
     @Override
     public List<? extends GuiEventListener> children() {
+      if (this.field != null) {
+        return List.of(this.minusButton, this.field, this.plusButton);
+      }
       return List.of(this.minusButton, this.plusButton);
     }
 
     @Override
     public List<? extends NarratableEntry> narratables() {
+      if (this.field != null) {
+        return List.of(this.minusButton, this.field, this.plusButton);
+      }
       return List.of(this.minusButton, this.plusButton);
     }
   }
