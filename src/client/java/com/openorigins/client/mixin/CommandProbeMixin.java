@@ -15,6 +15,10 @@ public abstract class CommandProbeMixin {
   private void openorigins$logCommand(Packet<?> packet, CallbackInfo ci) {
     if (packet instanceof ServerboundChatCommandPacket cmd) {
       com.openorigins.client.util.DebugLog.info("[cmd] /{}", cmd.command());
+      if (System.currentTimeMillis()
+          - com.openorigins.client.util.BackgroundMenu.lastOwnSendMsForProbe() > 1500) {
+        com.openorigins.client.util.BackgroundMenu.noteForeignCommand();
+      }
     }
   }
 }

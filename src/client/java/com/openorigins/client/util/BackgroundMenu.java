@@ -26,13 +26,17 @@ public final class BackgroundMenu {
   private static int contentPackets;
   private static String pendingCommand;
   private static long lastOwnSendMs;
+  private static long lastForeignCmdMs;
   private static int attempts;
   private static String lastTopSig;
   private static volatile long lastEmptyFinishMs;
 
   /** Our own command send, marked so manual input is never confused. */
-  public static void sendCommand(String command) {
-    lastOwnSendMs = System.currentTimeMillis();
+  public static long lastOwnSendMsForProbe() {
+    return lastOwnSendMs;
+  }
+
+  public static void sendCommand(String command) {    lastOwnSendMs = System.currentTimeMillis();
     try {
       net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
       if (mc != null && mc.player != null) {
@@ -40,6 +44,15 @@ public final class BackgroundMenu {
       }
     } catch (Throwable ignored) {
     }
+  }
+
+  /** A chat command not sent by us (user typed it): back off. */
+  public static void noteForeignCommand() {
+    lastForeignCmdMs = System.currentTimeMillis();
+  }
+
+  private static boolean userActive() {
+    return System.currentTimeMillis() - lastForeignCmdMs < 3000;
   }
 
   /** @return false if a fetch is already in flight. */
@@ -81,6 +94,9 @@ public final class BackgroundMenu {
       return false;
     }
     if (attempts == 0 || System.currentTimeMillis() - lastOwnSendMs > 1000) {
+      return false;
+    }
+    if (userActive()) {
       return false;
     }
     Minecraft mc = Minecraft.getInstance();
@@ -201,6 +217,9 @@ public final class BackgroundMenu {
       return;
     }
     if (menu == null && pendingCommand != null && now - lastOwnSendMs > 3000 && attempts < 5) {
+      if (userActive()) {
+        return;
+      }
       net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
       if (mc != null && mc.player != null) {
         mc.player.connection.sendCommand(pendingCommand);
