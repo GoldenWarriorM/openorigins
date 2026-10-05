@@ -22,6 +22,7 @@ public final class BackgroundMenu {
   private static boolean armed;
   private static long deadline;
   private static AbstractContainerMenu menu;
+  private static int windowId = -1;
   private static int contentPackets;
   private static String pendingCommand;
   private static long lastSentMs;
@@ -37,6 +38,7 @@ public final class BackgroundMenu {
     armed = true;
     deadline = System.currentTimeMillis() + 30000;
     menu = null;
+    windowId = -1;
     contentPackets = 0;
     lastTopSig = null;
     pendingCommand = command;
@@ -75,11 +77,6 @@ public final class BackgroundMenu {
       return false;
     }
     Player player = mc.player;
-    if (player.containerMenu.containerId != 0) {
-      com.openorigins.client.util.DebugLog.info("[bgmenu] busy (window {}), skipping silent fetch", player.containerMenu.containerId);
-      disarm();
-      return false;
-    }
     try {
       AbstractContainerMenu created =
           packet.getType().create(packet.getContainerId(), player.getInventory());
@@ -87,17 +84,44 @@ public final class BackgroundMenu {
         disarm();
         return false;
       }
-      player.containerMenu = created;
       menu = created;
+      windowId = packet.getContainerId();
       Component title = packet.getTitle();
       com.openorigins.client.util.DebugLog.info("[bgmenu] opened '{}' silently (window {})",
-          title == null ? "?" : title.getString(), packet.getContainerId());
+          title == null ? "?" : title.getString(), windowId);
     } catch (Throwable t) {
       com.openorigins.client.util.DebugLog.warn("[bgmenu] open failed: {}", t.toString());
       disarm();
       return false;
     }
     return true;
+  }
+
+  /** Routes a full content packet to the background menu. */
+  public static synchronized void routeContent(int containerId, int stateId,
+      java.util.List<net.minecraft.world.item.ItemStack> items,
+      net.minecraft.world.item.ItemStack carried) {
+    if (!armed || menu == null || containerId != windowId) {
+      return;
+    }
+    try {
+      menu.initializeContents(stateId, items, carried);
+    } catch (Throwable t) {
+      com.openorigins.client.util.DebugLog.warn("[bgmenu] content failed: {}", t.toString());
+    }
+  }
+
+  /** Routes a single slot packet to the background menu. */
+  public static synchronized void routeSlot(int containerId, int slot, int stateId,
+      net.minecraft.world.item.ItemStack item) {
+    if (!armed || menu == null || containerId != windowId) {
+      return;
+    }
+    try {
+      menu.setItem(slot, stateId, item);
+    } catch (Throwable t) {
+      com.openorigins.client.util.DebugLog.warn("[bgmenu] slot failed: {}", t.toString());
+    }
   }
 
   /** Runs after container content/slot packets; captures and maybe finishes. */
@@ -188,13 +212,10 @@ public final class BackgroundMenu {
     }
     try {
       int id = m.containerId;
-      if (mc.player.containerMenu == m) {
-        mc.player.connection.send(new ServerboundContainerClosePacket(id));
-        mc.player.containerMenu = mc.player.inventoryMenu;
-        try {
-          m.removed(mc.player);
-        } catch (Throwable ignored) {
-        }
+      mc.player.connection.send(new ServerboundContainerClosePacket(id));
+      try {
+        m.removed(mc.player);
+      } catch (Throwable ignored) {
       }
       com.openorigins.client.util.DebugLog.info("[bgmenu] closed window {}", id);
     } catch (Throwable t) {
