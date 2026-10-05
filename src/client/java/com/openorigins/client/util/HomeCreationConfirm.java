@@ -18,6 +18,8 @@ public final class HomeCreationConfirm {
       Pattern.compile("You cannot create a home here!");
   private static final Pattern NO_HOME =
       Pattern.compile("You don't have a home with the name (.+?)!\\s*$");
+  private static final Pattern SLOW_DOWN =
+      Pattern.compile("Slow down there adventurer");
   private static final Pattern DELETED =
       Pattern.compile("You've deleted your home,\\s*(.+?)!\\s*$");
 
@@ -101,6 +103,12 @@ public final class HomeCreationConfirm {
       com.openorigins.client.util.HomeInfoCache.removeName(del.group(1).trim());
       com.openorigins.client.util.HomeInfoCache.addCmdSlot();
       refreshAfterDelete(del.group(1).trim());
+      return;
+    }
+    if (SLOW_DOWN.matcher(text).find()) {
+      pending = null;
+      com.openorigins.client.util.HomeInfoCache.rollback();
+      refresh();
     }
   }
 

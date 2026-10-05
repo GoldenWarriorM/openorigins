@@ -49,8 +49,8 @@ public final class HomeInfoCache {
   }
   private static final List<String> LAYOUT = new java.util.concurrent.CopyOnWriteArrayList<>();
   private static final List<String> NAMES = new java.util.concurrent.CopyOnWriteArrayList<>();
-  private static final java.util.Set<String> TOMBSTONES =
-      java.util.Collections.newSetFromMap(new java.util.concurrent.ConcurrentHashMap<>());
+  private static final java.util.Map<String, Long> TOMBSTONES =
+      new java.util.concurrent.ConcurrentHashMap<>();
   private static volatile int CAPACITY;
   public static final String DEFAULT_ICON = "textures/custom_ui/transport_menu/button_homes.png";
   public static final String PLUS_ICON = "textures/custom/ui/slot_add.png";
@@ -380,8 +380,9 @@ public final class HomeInfoCache {
   }
 
   /** Drops a name immediately (e.g. server confirmed deletion). @return true if changed. */
-  public static synchronized boolean removeName(String name) {    String k = key(name);
-    TOMBSTONES.add(k);
+  public static synchronized boolean removeName(String name) {
+    String k = key(name);
+    TOMBSTONES.put(k, System.currentTimeMillis());
     boolean changed = NAMES.removeIf(n -> n.equalsIgnoreCase(name));
     if (CONTAINER_NAMES.remove(k) != null) {
       changed = true;
@@ -399,11 +400,26 @@ public final class HomeInfoCache {
     TOMBSTONES.remove(key(name));
   }
 
+  /**
+   * Server rejected recent commands: drop fresh tombstones so the next
+   * fetch restores the true state, then resync in background.
+   */
+  public static synchronized void rollback() {
+    long now = System.currentTimeMillis();
+    boolean dropped = TOMBSTONES.entrySet()
+        .removeIf(e -> now - e.getValue() < 15000);
+    if (dropped) {
+      save();
+    }
+    org.slf4j.LoggerFactory.getLogger("openorigins").info("[homes] rollback, fresh tombstones dropped={}", dropped);
+    HomeFetch.start();
+  }
+
   /** Merges a fresh server response: only adds, removals come from verdicts. */
   public static synchronized boolean setNames(List<String> names) {
     boolean changed = false;
     for (String n : names) {
-      if (TOMBSTONES.contains(key(n))) {
+      if (TOMBSTONES.containsKey(key(n))) {
         continue;
       }
       boolean known = false;
@@ -464,9 +480,6 @@ public final class HomeInfoCache {
           covered.add(k);
         } else if (cmd != null) {
           homes.add(new Cell(cmd, cmd, false));
-          covered.add(k);
-        } else if (display != null) {
-          homes.add(new Cell(display, display, false));
           covered.add(k);
         }
       } else if (e.toLowerCase(java.util.Locale.ROOT).startsWith("locked:cmd:")) {
@@ -555,9 +568,9 @@ public final class HomeInfoCache {
         nm.add(n);
       }
       root.add("names", nm);
-      JsonArray tb = new JsonArray();
-      for (String t : TOMBSTONES) {
-        tb.add(t);
+      JsonObject tb = new JsonObject();
+      for (Map.Entry<String, Long> t : TOMBSTONES.entrySet()) {
+        tb.addProperty(t.getKey(), t.getValue());
       }
       root.add("tombstones", tb);
       if (CAPACITY > 0) {
@@ -624,11 +637,17 @@ public final class HomeInfoCache {
           NAMES.add(el.getAsString());
         }
       }
-      JsonArray tb = root.getAsJsonArray("tombstones");
-      if (tb != null) {
-        TOMBSTONES.clear();
-        for (JsonElement el : tb) {
-          TOMBSTONES.add(el.getAsString());
+      TOMBSTONES.clear();
+      if (root.has("tombstones") && root.get("tombstones").isJsonObject()) {
+        for (Map.Entry<String, JsonElement> e : root.getAsJsonObject("tombstones").entrySet()) {
+          try {
+            TOMBSTONES.put(e.getKey(), e.getValue().getAsLong());
+          } catch (Exception ignored) {
+          }
+        }
+      } else if (root.has("tombstones") && root.get("tombstones").isJsonArray()) {
+        for (JsonElement el : root.getAsJsonArray("tombstones")) {
+          TOMBSTONES.put(el.getAsString(), System.currentTimeMillis());
         }
       }
       JsonObject res = root.getAsJsonObject("resets");
