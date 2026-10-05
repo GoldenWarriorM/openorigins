@@ -11,8 +11,6 @@
     "CommandSuggestionsMixin",
     "ContainerLoreMixin",
     "ContainerSyncMixin",
-    "ChatScreenAccessor",
-    "SuggestionProviderMixin",
     "ItemTooltipMixin",
     "CommandProbeMixin",
     "OpenScreenMixin",
