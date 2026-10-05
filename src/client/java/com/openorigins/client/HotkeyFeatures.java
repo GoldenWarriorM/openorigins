@@ -70,7 +70,10 @@ public final class HotkeyFeatures {
         com.openorigins.client.util.BackgroundMenu.tick();
         if (joinTicks % 100 == 0 && client.player != null
             && !com.openorigins.client.util.BackgroundMenu.isArmed()) {
-          if (com.openorigins.client.util.HomeInfoCache.layout().isEmpty()) {
+          if (com.openorigins.client.util.HomeInfoCache.layout().isEmpty()
+              && System.currentTimeMillis()
+                  - com.openorigins.client.util.BackgroundMenu.lastEmptyFinishMs()
+                  > 10 * 60000L) {
             com.openorigins.client.util.HomeFetch.start();
           } else if (com.openorigins.client.util.HomeFetch.consumeIdleRefresh()) {
             com.openorigins.client.util.HomeFetch.start();

@@ -27,6 +27,7 @@ public final class BackgroundMenu {
   private static long lastSentMs;
   private static int attempts;
   private static String lastTopSig;
+  private static volatile long lastEmptyFinishMs;
 
   /** @return false if a fetch is already in flight. */
   public static synchronized boolean tryArm(String command) {
@@ -46,6 +47,10 @@ public final class BackgroundMenu {
 
   public static synchronized boolean isArmed() {
     return armed;
+  }
+
+  public static long lastEmptyFinishMs() {
+    return lastEmptyFinishMs;
   }
 
   private static synchronized void disarm() {
@@ -174,6 +179,9 @@ public final class BackgroundMenu {
     AbstractContainerMenu m = menu;
     menu = null;
     armed = false;
+    if (com.openorigins.client.util.HomeInfoCache.layout().isEmpty()) {
+      lastEmptyFinishMs = System.currentTimeMillis();
+    }
     Minecraft mc = Minecraft.getInstance();
     if (mc == null || mc.player == null || m == null) {
       return;
