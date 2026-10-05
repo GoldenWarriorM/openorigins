@@ -340,6 +340,18 @@ public final class HotkeyFeatures {
             if (e.hasCustomName() && e.getCustomName() != null) {
               nb.append(" name=").append(e.getCustomName().getString());
             }
+            try {
+              java.util.Set<String> tags = e.getTags();
+              if (tags != null && !tags.isEmpty()) {
+                java.util.List<String> sorted = new java.util.ArrayList<>(tags);
+                java.util.Collections.sort(sorted);
+                String joined = String.join(",", sorted);
+                nb.append(" tags=[")
+                    .append(joined.length() > 120 ? joined.substring(0, 120) + "..." : joined)
+                    .append("]");
+              }
+            } catch (Throwable ignored) {
+            }
             if (e.getVehicle() != null) {
               nb.append(" rides#").append(e.getVehicle().getId());
             }
