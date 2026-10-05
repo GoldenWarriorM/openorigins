@@ -58,7 +58,10 @@ public final class BackgroundMenu {
    * Runs on the main thread (packet handler ensures it).
    */
   public static synchronized boolean handleOpen(ClientboundOpenScreenPacket packet) {
-    if (!armed) {
+    if (!armed || menu != null) {
+      return false;
+    }
+    if (attempts == 0 || System.currentTimeMillis() - lastSentMs > 5000) {
       return false;
     }
     Minecraft mc = Minecraft.getInstance();
