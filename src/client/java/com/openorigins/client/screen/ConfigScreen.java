@@ -1,7 +1,12 @@
 package com.openorigins.client.screen;
 
 import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.tabs.MenuTabBar;
+import net.minecraft.client.gui.components.tabs.Tab;
+import net.minecraft.client.gui.components.tabs.TabManager;
 import net.minecraft.client.gui.layouts.HeaderAndFooterLayout;
+import net.minecraft.client.gui.layouts.LinearLayout;
+import net.minecraft.client.gui.navigation.ScreenRectangle;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
@@ -9,52 +14,51 @@ import net.minecraft.network.chat.Component;
 public class ConfigScreen extends Screen {
   public HeaderAndFooterLayout layout;
   private final Screen parent;
-  private FeatureList list;
-  private ConfigTab tab = ConfigTab.GENERAL;
-  private final Button[] tabButtons = new Button[ConfigTab.values().length];
+  private TabManager tabManager;
+  private MenuTabBar tabBar;
 
   public ConfigScreen(Screen parent) {
     super(Component.translatable("screen.openorigins.config.title"));
     this.parent = parent;
   }
 
+  private ConfigTabPage pageFor(ConfigTab tab) {
+    FeatureList list = new FeatureList(this.minecraft, this.width,
+        this.layout.getContentHeight(), this.layout.getHeaderHeight(), tab);
+    return new ConfigTabPage(Component.translatable(tab.getTitleKey()), list, this.layout);
+  }
+
   @Override
   protected void init() {
-    this.layout = new HeaderAndFooterLayout(this, 62, 33);
-    this.layout.addTitleHeader(this.title, this.font);
-    this.list = this.layout.addToContents(new FeatureList(this.minecraft, this.width,
-        this.layout.getContentHeight(), this.layout.getHeaderHeight(), this.tab));
-    this.layout.addToFooter(Button.builder(CommonComponents.GUI_DONE, button -> this.onClose())
-        .width(200).build());
-    this.layout.visitWidgets(this::addRenderableWidget);
+    this.layout = new HeaderAndFooterLayout(this);
+    this.tabManager = new TabManager(this::addRenderableWidget, this::removeWidget);
     ConfigTab[] tabs = ConfigTab.values();
+    Tab[] pages = new Tab[tabs.length];
     for (int i = 0; i < tabs.length; i++) {
-      ConfigTab t = tabs[i];
-      Button b = Button.builder(Component.translatable(t.getTitleKey()), button -> {
-        this.tab = t;
-        this.clearWidgets();
-        this.init();
-      }).bounds(0, 0, 100, 20).build();
-      b.active = this.tab != t;
-      this.tabButtons[i] = b;
-      this.addRenderableWidget(b);
+      pages[i] = this.pageFor(tabs[i]);
     }
+    this.tabBar = MenuTabBar.builder(this.tabManager, this.width).addTabs(pages).build();
+    this.addRenderableWidget(this.tabBar);
+    LinearLayout footer = this.layout.addToFooter(LinearLayout.horizontal().spacing(8));
+    footer.addChild(Button.builder(CommonComponents.GUI_DONE, button -> this.onClose())
+        .width(200).build());
+    this.layout.visitWidgets(button -> {
+      button.setTabOrderGroup(1);
+      this.addRenderableWidget(button);
+    });
+    this.tabBar.selectTab(0, false);
     this.repositionElements();
   }
 
   protected void repositionElements() {
-    this.layout.arrangeElements();
-    if (this.list != null) {
-      this.list.updateSize(this.width, this.layout);
-    }
-    int rowW = ConfigTab.values().length * 100 + (ConfigTab.values().length - 1) * 8;
-    int x = (this.width - rowW) / 2;
-    for (Button b : this.tabButtons) {
-      if (b != null) {
-        b.setX(x);
-        b.setY(36);
-        x += 108;
-      }
+    if (this.tabBar != null) {
+      this.tabBar.arrangeElements(this.width);
+      this.tabBar.setY(7);
+      int tabAreaTop = this.tabBar.getRectangle().bottom() + 4;
+      this.tabManager.setTabArea(new ScreenRectangle(0, tabAreaTop, this.width,
+          this.height - this.layout.getFooterHeight() - tabAreaTop));
+      this.layout.setHeaderHeight(tabAreaTop);
+      this.layout.arrangeElements();
     }
   }
 
