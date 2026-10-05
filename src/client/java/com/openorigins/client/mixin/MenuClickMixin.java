@@ -41,6 +41,19 @@ public abstract class MenuClickMixin {
       if (slot != null && slot.hasItem() && hasToggleMarker(slot.getItem())) {
         com.openorigins.client.util.CosmeticCatalogCache.putClean(slot.getItem());
       }
+      if (slot != null && slot.hasItem()) {
+        net.minecraft.world.item.ItemStack stack = slot.getItem();
+        String id = net.minecraft.core.registries.BuiltInRegistries.ITEM
+            .getKey(stack.getItem()).toString();
+        String name = stack.getHoverName().getString();
+        for (com.openorigins.client.util.BadgerCache.Required r
+            : com.openorigins.client.util.BadgerCache.required()) {
+          if (r.itemId().equals(id) && r.displayName().equals(name)) {
+            com.openorigins.client.util.BadgerCache.noteTaskClick(menu.containerId, id, name);
+            break;
+          }
+        }
+      }
     } catch (Throwable ignored) {
     }
   }

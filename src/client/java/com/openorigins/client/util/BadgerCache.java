@@ -84,6 +84,38 @@ public final class BadgerCache {
     return !REQUIRED.isEmpty();
   }
 
+  private static volatile String lastTaskClickKey;
+  private static volatile int lastTaskClickWindow = -1;
+  private static volatile long lastTaskClickMs;
+
+  /** Called when a task item is clicked in a server menu. */
+  public static void noteTaskClick(int windowId, String itemId, String displayName) {
+    lastTaskClickKey = itemId + "\n" + displayName;
+    lastTaskClickWindow = windowId;
+    lastTaskClickMs = System.currentTimeMillis();
+  }
+
+  /**
+   * Server closed a menu right after a task-item click: the delivery went
+   * through but the menu closed before the Delivered! state synced.
+   */
+  public static void noteServerClose(int windowId) {
+    if (lastTaskClickKey == null
+        || windowId != lastTaskClickWindow
+        || System.currentTimeMillis() - lastTaskClickMs > 15000) {
+      return;
+    }
+    String key = lastTaskClickKey;
+    lastTaskClickKey = null;
+    boolean removed = REQUIRED.removeIf(
+        r -> (r.itemId() + "\n" + r.displayName()).equals(key));
+    if (removed) {
+      save();
+      org.slf4j.LoggerFactory.getLogger("openorigins").info(
+          "[badger] delivered on close: {}", key.replace('\n', ' '));
+    }
+  }
+
   private static volatile boolean hadTask;
   private static volatile boolean deliveredRefreshSent;
 
