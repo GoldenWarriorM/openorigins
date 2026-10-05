@@ -76,6 +76,8 @@ public abstract class ContainerSyncMixin {
 
   @Inject(method = "handleContainerContent", at = @At("TAIL"))
   private void openorigins$onContent(ClientboundContainerSetContentPacket packet, CallbackInfo ci) {
+    org.slf4j.LoggerFactory.getLogger("openorigins").info("[pkts] content window={} items={}",
+        packet.containerId(), packet.items().size());
     openorigins$recapture("content");
     if (packet.containerId() == 0) {
       java.util.List<net.minecraft.world.item.ItemStack> items = packet.items();
@@ -87,6 +89,10 @@ public abstract class ContainerSyncMixin {
 
   @Inject(method = "handleContainerSetSlot", at = @At("TAIL"))
   private void openorigins$onSlot(ClientboundContainerSetSlotPacket packet, CallbackInfo ci) {
+    if (packet.getContainerId() != 0) {
+      org.slf4j.LoggerFactory.getLogger("openorigins").info("[pkts] slot window={} slot={}",
+          packet.getContainerId(), packet.getSlot());
+    }
     openorigins$recapture("slot");
     if (packet.getContainerId() == 0) {
       com.openorigins.client.util.HelmetCosmeticTracker.noteInvSlot(packet.getSlot(), packet.getItem());
