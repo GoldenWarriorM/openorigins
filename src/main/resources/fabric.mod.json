@@ -2,17 +2,29 @@
   "schemaVersion": 1,
   "id": "openorigins",
   "version": "${version}",
-  "name": "Open Origins (from scratch port)",
-  "description": "Clean-room re-implementation of Origins Enhanced behaviour for MC 26.2. No original code/assets.",
-  "authors": ["open-origins"],
+  "name": "OpenOrigins",
+  "description": "Re-implementation of Origins Enhanced for modern minecraft versions.",
+  "authors": [
+    "open-origins"
+  ],
   "license": "MIT",
   "environment": "client",
-  "entrypoints": { "client": ["com.openorigins.client.OpenOriginsClient"] },
-  "mixins": [{ "config": "openorigins.client.mixins.json", "environment": "client" }],
+  "entrypoints": {
+    "client": [
+      "com.openorigins.client.OpenOriginsClient"
+    ]
+  },
+  "mixins": [
+    {
+      "config": "openorigins.client.mixins.json",
+      "environment": "client"
+    }
+  ],
   "depends": {
     "fabricloader": ">=0.19.5",
     "minecraft": "~26.2",
     "java": ">=25",
     "fabric-api": "*"
-  }
+  },
+  "icon": "assets/openorigins/textures/gui/sprites/config_button.png"
 }
