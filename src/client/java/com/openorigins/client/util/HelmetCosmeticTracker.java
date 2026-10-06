@@ -552,7 +552,7 @@ public final class HelmetCosmeticTracker {
     // Never commit an item that is still around (cursor, hands, storage, menu):
     // pickup/putback must not paint the helmet slot. Only truly vanished
     // (merged) items qualify; the safety net below rolls back the rest.
-    if (presentAnywhere(moved)) {
+    if (heldAnywhere(moved) || storedAnywhere(moved) || menuHas(moved)) {
       return;
     }
     ItemStack cur = realHelmet;
