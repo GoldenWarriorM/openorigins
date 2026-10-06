@@ -142,7 +142,8 @@ public abstract class HelmetCosmeticSlotMixin {
     if (showReal) {
       graphics.item(real, HELMET_X, HELMET_Y);
       graphics.itemDecorations(Minecraft.getInstance().font, real, HELMET_X, HELMET_Y);
-    } else if (!cosmetic.isEmpty() && !this.openorigins$heldOnCursor()) {
+    } else if (!cosmetic.isEmpty() && !this.openorigins$heldOnCursor()
+        && !HelmetCosmeticTracker.isBareHead()) {
       graphics.item(cosmetic, HELMET_X, HELMET_Y);
       graphics.itemDecorations(Minecraft.getInstance().font, cosmetic, HELMET_X, HELMET_Y);
     } else {

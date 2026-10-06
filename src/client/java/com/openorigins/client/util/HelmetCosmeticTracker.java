@@ -61,6 +61,10 @@ public final class HelmetCosmeticTracker {
       lastArmorChangeMs = System.currentTimeMillis();
       pendingClearAt = -1;
       confirmOptimistic();
+      if (isFirework(stack) && prevArmor.isEmpty()) {
+        // Fresh cover over a bare head: hidden state unknown again.
+        bareHead = false;
+      }
       if (isHeadArmor(stack)) {
         lastRealArmor = stack.copy();
         lastRealArmorMs = System.currentTimeMillis();
@@ -323,6 +327,9 @@ public final class HelmetCosmeticTracker {
   }
 
   private static void setTip(ItemStack stack) {
+    if (stack != null && !stack.isEmpty()) {
+      bareHead = false;
+    }
     try {
       net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
       if (mc == null) {
@@ -454,6 +461,12 @@ public final class HelmetCosmeticTracker {
   }
 
   private static volatile double lastArmorValue = -1;
+  private static volatile boolean bareHead;
+
+  /** True once armor was removed with no hidden helmet left (suppresses fallback). */
+  public static boolean isBareHead() {
+    return bareHead;
+  }
 
   /** Optimistic stash from client prediction; rolled back if server disagrees. */
   public static void optimisticStash(ItemStack stack) {
@@ -487,6 +500,7 @@ public final class HelmetCosmeticTracker {
       com.openorigins.client.util.DebugLog.info("[helmet] optimistic clear (was {})",
           describe(realHelmet));
     }
+    bareHead = true;
     realHelmet = ItemStack.EMPTY;
     realTip = java.util.Collections.emptyList();
     realTipKey = "";
@@ -498,7 +512,16 @@ public final class HelmetCosmeticTracker {
   /** Server confirmed (any armor change after the optimistic write): keep it. */
   private static void confirmOptimistic() {
     if (optimisticMs > 0 && lastArmorChangeMs >= optimisticMs) {
-      optimisticMs = -1;
+      // Confirm only if the optimistic stack actually left (merged or equipped).
+      // An unrelated re-sync (same cosmetic, wobbled key) must roll back instead.
+      if (goneEverywhere(realHelmet)) {
+        optimisticMs = -1;
+      } else {
+        optimisticMs = -1;
+        com.openorigins.client.util.DebugLog.info("[helmet] optimistic rollback, keeping nothing {}",
+            describe(realHelmet));
+        clear();
+      }
     }
   }
 
