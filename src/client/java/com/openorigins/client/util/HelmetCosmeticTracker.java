@@ -8,6 +8,8 @@ import net.minecraft.world.item.ItemStack;
  * Cosmetic names start with a pack glyph (PUA char), real items don't.
  */
 public final class HelmetCosmeticTracker {
+  /** Temporary kill-switch for all optimistic prediction paths. */
+  private static final boolean OPTIMISTIC_ENABLED = false;
   private HelmetCosmeticTracker() {}
 
   private static volatile ItemStack realHelmet = ItemStack.EMPTY;
@@ -485,6 +487,9 @@ public final class HelmetCosmeticTracker {
 
   /** Optimistic stash from client prediction; rolled back if server disagrees. */
   public static void optimisticStash(ItemStack stack) {
+    if (!OPTIMISTIC_ENABLED) {
+      return;
+    }
     if (stack == null || stack.isEmpty() || isCosmetic(stack)) {
       return;
     }
@@ -511,6 +516,9 @@ public final class HelmetCosmeticTracker {
 
   /** Optimistic clear from client prediction. */
   public static void optimisticClear() {
+    if (!OPTIMISTIC_ENABLED) {
+      return;
+    }
     if (!realHelmet.isEmpty()) {
       com.openorigins.client.util.DebugLog.info("[helmet] optimistic clear (was {})",
           describe(realHelmet));
@@ -526,6 +534,9 @@ public final class HelmetCosmeticTracker {
 
   /** Server confirmed (any armor change after the optimistic write): keep it. */
   private static void confirmOptimistic() {
+    if (!OPTIMISTIC_ENABLED) {
+      return;
+    }
     if (optimisticMs > 0 && lastArmorChangeMs >= optimisticMs) {
       // Confirm only if the optimistic stack actually left (merged or equipped).
       // An unrelated re-sync (same cosmetic, wobbled key) must roll back instead.
@@ -545,6 +556,9 @@ public final class HelmetCosmeticTracker {
    * assume it is being equipped, server confirms or rolls back.
    */
   public static void optimisticEquipFrom(ItemStack moved, ItemStack armorNow) {
+    if (!OPTIMISTIC_ENABLED) {
+      return;
+    }
     if (moved == null || moved.isEmpty() || isCosmetic(moved)) {
       return;
     }
@@ -580,6 +594,9 @@ public final class HelmetCosmeticTracker {
 
   /** Called periodically: rolls back unconfirmed optimistic writes. */
   public static void checkOptimistic() {
+    if (!OPTIMISTIC_ENABLED) {
+      return;
+    }
     if (optimisticMs > 0 && presentAnywhere(realHelmet)) {
       optimisticMs = -1;
       com.openorigins.client.util.DebugLog.info("[helmet] optimistic rollback, reappeared {}",
