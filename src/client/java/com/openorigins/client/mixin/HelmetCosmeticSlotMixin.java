@@ -46,6 +46,11 @@ public abstract class HelmetCosmeticSlotMixin {
   @Shadow
   protected net.minecraft.world.inventory.Slot hoveredSlot;
 
+  @Shadow
+  protected void slotClicked(net.minecraft.world.inventory.Slot slot, int slotId, int buttonNum,
+      net.minecraft.world.inventory.ContainerInput containerInput);
+
+
   private boolean openorigins$active() {
     return OpenOriginsConfig.getInstance().isEnabled(OriginFeature.HELMET_COSMETIC_SLOT)
         && ((Object) this) instanceof InventoryScreen
@@ -114,6 +119,39 @@ public abstract class HelmetCosmeticSlotMixin {
   private boolean openorigins$isHoveringCosmetic(int mouseX, int mouseY) {
     return mouseX >= this.leftPos + COSMETIC_X - 1 && mouseX < this.leftPos + COSMETIC_X + 17
         && mouseY >= this.topPos + COSMETIC_Y - 1 && mouseY < this.topPos + COSMETIC_Y + 17;
+  }
+
+  @Inject(method = "mouseClicked(Lnet/minecraft/client/input/MouseButtonEvent;Z)Z",
+      at = @At("HEAD"), cancellable = true)
+  private void openorigins$proxyCosmeticClick(
+      net.minecraft.client.input.MouseButtonEvent event, boolean doubleClick,
+      org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable<Boolean> ci) {
+    if (!this.openorigins$active()) {
+      return;
+    }
+    double mx = event.x();
+    double my = event.y();
+    if (mx < this.leftPos + COSMETIC_X - 1 || mx >= this.leftPos + COSMETIC_X + 17
+        || my < this.topPos + COSMETIC_Y - 1 || my >= this.topPos + COSMETIC_Y + 17) {
+      return;
+    }
+    // The cosmetic cell is display-only: proxy the click to the real head slot.
+    try {
+      net.minecraft.client.gui.screens.inventory.AbstractContainerScreen<?> self =
+          (net.minecraft.client.gui.screens.inventory.AbstractContainerScreen<?>) (Object) this;
+      if (!(self.getMenu() instanceof net.minecraft.world.inventory.InventoryMenu menu)) {
+        return;
+      }
+      net.minecraft.world.inventory.Slot slot5 = menu.getSlot(5);
+      boolean shift = (event.modifiers() & org.lwjgl.glfw.GLFW.GLFW_MOD_SHIFT) != 0;
+      net.minecraft.world.inventory.ContainerInput input =
+          (shift && event.button() == 0)
+              ? net.minecraft.world.inventory.ContainerInput.QUICK_MOVE
+              : net.minecraft.world.inventory.ContainerInput.PICKUP;
+      this.slotClicked(slot5, 5, event.button(), input);
+      ci.setReturnValue(true);
+    } catch (Throwable ignored) {
+    }
   }
 
   @Inject(method = "extractSlots", at = @At("TAIL"))

@@ -445,13 +445,16 @@ public final class HelmetCosmeticTracker {
         double v = mc.player.getAttributeValue(
             net.minecraft.world.entity.ai.attributes.Attributes.ARMOR);
         if (!pendingHelmet.isEmpty() && lastArmorValue >= 0 && v > lastArmorValue) {
-          ItemStack cur = realHelmet;
-          realHelmet = pendingHelmet.copy();
-          setTip(pendingHelmet);
-          lastCommitMs = System.currentTimeMillis();
-          pendingHelmet = ItemStack.EMPTY;
-          com.openorigins.client.util.DebugLog.info("[helmet] attr-commit {} (was {}) gone={}",
-              describe(realHelmet), cur.isEmpty() ? "<empty>" : describe(cur), goneEverywhere(realHelmet));
+          net.minecraft.world.item.ItemStack pend = pendingHelmet;
+          if (!heldAnywhere(pend) && !storedAnywhere(pend)) {
+            ItemStack cur = realHelmet;
+            realHelmet = pend.copy();
+            setTip(pend);
+            lastCommitMs = System.currentTimeMillis();
+            pendingHelmet = ItemStack.EMPTY;
+            com.openorigins.client.util.DebugLog.info("[helmet] attr-commit {} (was {}) gone={}",
+                describe(realHelmet), cur.isEmpty() ? "<empty>" : describe(cur), goneEverywhere(realHelmet));
+          }
         }
         lastArmorValue = v;
       }
