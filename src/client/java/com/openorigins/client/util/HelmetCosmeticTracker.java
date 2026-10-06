@@ -58,6 +58,16 @@ public final class HelmetCosmeticTracker {
       lastArmorChangeMs = System.currentTimeMillis();
       pendingClearAt = -1;
       confirmOptimistic();
+      if (predictedEmpty) {
+        // Our predicted removal vs the server answer:
+        // non-empty sync right after = rejection, restore; empty = accepted.
+        if (stack != null && !stack.isEmpty()
+            && System.currentTimeMillis() - predictedEmptyMs < 5000) {
+          bareHead = false;
+          com.openorigins.client.util.DebugLog.info("[helmet] removal rejected, restored");
+        }
+        predictedEmpty = false;
+      }
       if (!pendingHelmet.isEmpty()) {
         ItemStack cur = realHelmet;
         if (cur.isEmpty() || !ItemStack.isSameItemSameComponents(cur, pendingHelmet)) {
@@ -278,6 +288,9 @@ public final class HelmetCosmeticTracker {
   }
 
   private static void setTip(ItemStack stack) {
+    if (stack != null && !stack.isEmpty()) {
+      bareHead = false;
+    }
     try {
       net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
       if (mc == null) {
@@ -300,11 +313,25 @@ public final class HelmetCosmeticTracker {
 
   /** Clears the snapshot (helmet fully removed). */
   public static void clear() {
+    clearLocal();
+    saveHelmet();
+  }
+
+  /** Local reset without touching disk (predictions and rollbacks). */
+  private static void clearLocal() {
     realHelmet = ItemStack.EMPTY;
     realTip = java.util.Collections.emptyList();
     realTipKey = "";
     invalidateCosmeticTip();
-    saveHelmet();
+  }
+
+  private static volatile boolean predictedEmpty;
+  private static volatile long predictedEmptyMs;
+  private static volatile boolean bareHead;
+
+  /** True once armor was removed with no hidden helmet left (suppresses fallback). */
+  public static boolean isBareHead() {
+    return bareHead;
   }
 
   private static java.nio.file.Path helmetFile() {
@@ -442,10 +469,10 @@ public final class HelmetCosmeticTracker {
       com.openorigins.client.util.DebugLog.info("[helmet] optimistic clear (was {})",
           describe(realHelmet));
     }
-    realHelmet = ItemStack.EMPTY;
-    realTip = java.util.Collections.emptyList();
-    realTipKey = "";
-    invalidateCosmeticTip();
+    bareHead = true;
+    predictedEmpty = true;
+    predictedEmptyMs = System.currentTimeMillis();
+    clearLocal();
     optimisticMs = System.currentTimeMillis();
     lastCommitMs = optimisticMs;
   }
@@ -496,7 +523,7 @@ public final class HelmetCosmeticTracker {
       optimisticMs = -1;
       com.openorigins.client.util.DebugLog.info("[helmet] optimistic rollback, dropping {}",
           describe(realHelmet));
-      clear();
+      clearLocal();
     }
   }
   /** True if the stack is absent from storage, cursor and armor (likely merged/consumed). */

@@ -139,6 +139,10 @@ public abstract class HelmetCosmeticSlotMixin {
     if (showReal) {
       graphics.item(real, HELMET_X, HELMET_Y);
       graphics.itemDecorations(Minecraft.getInstance().font, real, HELMET_X, HELMET_Y);
+    } else if (!cosmetic.isEmpty() && !this.openorigins$heldOnCursor()
+        && !HelmetCosmeticTracker.isBareHead()) {
+      graphics.item(cosmetic, HELMET_X, HELMET_Y);
+      graphics.itemDecorations(Minecraft.getInstance().font, cosmetic, HELMET_X, HELMET_Y);
     } else {
       graphics.blitSprite(RenderPipelines.GUI_TEXTURED, EMPTY_HELMET, HELMET_X, HELMET_Y, 16, 16);
     }
@@ -235,6 +239,9 @@ public abstract class HelmetCosmeticSlotMixin {
     }
     if (openorigins$isHoveringHelmet(this, mouseX, mouseY) && !cosmetic.isEmpty()) {
       java.util.List<net.minecraft.network.chat.Component> tip = HelmetCosmeticTracker.realTip();
+      if (tip == null || tip.isEmpty()) {
+        tip = net.minecraft.client.gui.screens.Screen.getTooltipFromItem(mc, cosmetic);
+      }
       if (tip != null && !tip.isEmpty()) {
         this.openorigins$showTip(graphics, mc, mouseX, mouseY, tip);
       }
