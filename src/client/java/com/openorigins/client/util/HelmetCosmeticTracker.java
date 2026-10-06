@@ -303,8 +303,70 @@ public final class HelmetCosmeticTracker {
     realHelmet = ItemStack.EMPTY;
     realTip = java.util.Collections.emptyList();
     realTipKey = "";
+    dirtyHelmet = ItemStack.EMPTY;
+    dirtyAt = 0;
     invalidateCosmeticTip();
     saveHelmet();
+  }
+
+  private static volatile ItemStack dirtyHelmet = ItemStack.EMPTY;
+  private static volatile long dirtyAt;
+
+  /**
+   * Temporary fallback when no clean snapshot exists but a cosmetic covers the
+   * head slot: exactly one non-cosmetic head item in storage is treated as the
+   * hidden real helmet and shown with its live server tooltip. Zero or several
+   * candidates (removed or ambiguous) yield empty — same as truly removed.
+   */
+  public static ItemStack dirtyHelmet(boolean cosmeticWorn) {
+    ItemStack cur = realHelmet;
+    if (cur != null && !cur.isEmpty()) {
+      dirtyHelmet = ItemStack.EMPTY;
+      dirtyAt = 0;
+      return ItemStack.EMPTY;
+    }
+    if (!cosmeticWorn) {
+      dirtyHelmet = ItemStack.EMPTY;
+      dirtyAt = 0;
+      return ItemStack.EMPTY;
+    }
+    try {
+      net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
+      if (mc == null || mc.player == null) {
+        return ItemStack.EMPTY;
+      }
+      ItemStack found = ItemStack.EMPTY;
+      int count = 0;
+      for (ItemStack st : mc.player.getInventory().getNonEquipmentItems()) {
+        if (st == null || st.isEmpty() || isCosmetic(st)) {
+          continue;
+        }
+        boolean head;
+        try {
+          head = mc.player.getEquipmentSlotForItem(st)
+              == net.minecraft.world.entity.EquipmentSlot.HEAD;
+        } catch (Throwable t) {
+          head = false;
+        }
+        if (!head) {
+          continue;
+        }
+        count++;
+        if (count > 1) {
+          break;
+        }
+        found = st;
+      }
+      if (count == 1) {
+        dirtyHelmet = found.copy();
+        dirtyAt = System.currentTimeMillis();
+        return dirtyHelmet;
+      }
+    } catch (Throwable ignored) {
+    }
+    dirtyHelmet = ItemStack.EMPTY;
+    dirtyAt = 0;
+    return ItemStack.EMPTY;
   }
 
   private static java.nio.file.Path helmetFile() {
