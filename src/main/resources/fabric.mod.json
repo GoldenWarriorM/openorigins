@@ -12,6 +12,9 @@
   "entrypoints": {
     "client": [
       "com.openorigins.client.OpenOriginsClient"
+    ],
+    "modmenu": [
+      "com.openorigins.client.ModMenuIntegration"
     ]
   },
   "mixins": [
