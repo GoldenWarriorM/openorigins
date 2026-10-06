@@ -131,7 +131,16 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
     }
 
     private static Component featureTooltip(OriginFeature feature) {
-      return Component.translatable(feature.getDescriptionKey());
+      Component desc = Component.translatable(feature.getDescriptionKey());
+      if (feature == OriginFeature.HELMET_COSMETIC_SLOT) {
+        return desc.copy().append("\n")
+            .append(Component.translatable("label.openorigins.experimental")
+                .withStyle(net.minecraft.ChatFormatting.YELLOW))
+            .append("\n")
+            .append(Component.translatable("feature.openorigins.helmet_cosmetic_slot.hint")
+                .withStyle(net.minecraft.ChatFormatting.ITALIC));
+      }
+      return desc;
     }
 
     @Override
