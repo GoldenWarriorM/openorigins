@@ -75,6 +75,12 @@ public abstract class MenuClickMixin {
     } catch (Throwable t) {
       return;
     }
+    // Shift-click on the head slot always clears our overlay: the user took
+    // (or tried to take) whatever was there, server re-syncs decide the rest.
+    if (slotIndex == 5 && clickType == ContainerInput.QUICK_MOVE) {
+      com.openorigins.client.util.HelmetCosmeticTracker.optimisticClear();
+      return;
+    }
     if (armor5 == null || armor5.isEmpty()) {
       com.openorigins.client.util.HelmetCosmeticTracker.optimisticClear();
     } else {
