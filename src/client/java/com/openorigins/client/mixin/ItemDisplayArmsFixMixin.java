@@ -18,16 +18,6 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public abstract class ItemDisplayArmsFixMixin {
   private static final Set<ItemDisplayEntityRenderState> OPENORIGINS$ARMS =
       Collections.newSetFromMap(new WeakHashMap<>());
-  private static final java.util.Map<ItemDisplayEntityRenderState, Float> OPENORIGINS$PARTS =
-      Collections.synchronizedMap(new WeakHashMap<>());
-  private static final java.util.Map<ItemDisplayEntityRenderState, String> OPENORIGINS$INFO =
-      Collections.synchronizedMap(new WeakHashMap<>());
-  private static final Set<Float> OPENORIGINS$LOGGED_PARTS =
-      Collections.newSetFromMap(new java.util.concurrent.ConcurrentHashMap<>());
-  private static final Set<String> OPENORIGINS$LOGGED_SUBMITS =
-      Collections.newSetFromMap(new java.util.concurrent.ConcurrentHashMap<>());
-  private static final Set<ItemDisplayEntityRenderState> OPENORIGINS$OWN =
-      Collections.newSetFromMap(new WeakHashMap<>());
   private static boolean OPENORIGINS$LOGGED;
 
   @Inject(method = "extractRenderState", at = @At("TAIL"))
@@ -43,57 +33,14 @@ public abstract class ItemDisplayArmsFixMixin {
         shown = slot == null ? null : slot.get();
       } catch (Throwable ignored) {
       }
-      Float part = AllayArmsFix.partCmd(shown);
-      if (AllayArmsFix.isOwnCosmetic(shown)) {
-        OPENORIGINS$OWN.add(state);
-      } else if (part != null) {
-        OPENORIGINS$PARTS.put(state, part);
-        OPENORIGINS$INFO.put(state, AllayArmsFix.describeShort(shown));
-      } else if (shown != null && !shown.isEmpty()) {
-        // Non-part, non-cosmetic items near the player (e.g. torch): still identify.
-        OPENORIGINS$INFO.put(state, AllayArmsFix.describeShort(shown));
-      }
-      // Shift every allay part (arms, wings, ...): server transforms are off
-      // for everyone, parts show conditionally (flight/dance/held states).
-      if (part != null && !AllayArmsFix.isOwnCosmetic(shown)) {
-        OPENORIGINS$ARMS.add(state);
-        AllayArmsFix.markFlagged();
-        if (!OPENORIGINS$LOGGED) {
-          OPENORIGINS$LOGGED = true;
-          org.slf4j.LoggerFactory.getLogger("openorigins")
-              .info("[allay-arms] fix engaged on {}", AllayArmsFix.describe(shown));
-        }
-      }
-    } catch (Throwable ignored) {
-    }
-  }
-
-  @Inject(method = "submitInner", at = @At("HEAD"))
-  private void openorigins$censusSubmit(ItemDisplayEntityRenderState state, PoseStack poseStack,
-      SubmitNodeCollector submitNodeCollector, int lightCoords, float interpolationProgress,
-      CallbackInfo ci) {
-    // One-time log of every nearby NON-COSMETIC display submit.
-    try {
-      if (OPENORIGINS$OWN.remove(state)) {
+      if (AllayArmsFix.isOwnCosmetic(shown) || !AllayArmsFix.isArmsItem(shown)) {
         return;
       }
-      net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
-      if (mc != null && mc.player != null && OPENORIGINS$LOGGED_SUBMITS.size() < 200) {
-        double dx = state.x - mc.player.getX();
-        double dz = state.z - mc.player.getZ();
-        if (dx * dx + dz * dz < 12 * 12) {
-          String info = OPENORIGINS$INFO.remove(state);
-          String key = String.format(java.util.Locale.ROOT, "%.1f,%.1f,%.1f:%s", state.x,
-              state.y, state.z, state.item.isEmpty() ? "empty" : info);
-          if (OPENORIGINS$LOGGED_SUBMITS.add(key)) {
-            org.slf4j.LoggerFactory.getLogger("openorigins")
-                .info("[allay-submit] {} {} at [{},{},{}]",
-                    state.item.isEmpty() ? "empty" : "full", info == null ? "?" : info,
-                    String.format(java.util.Locale.ROOT, "%.2f", state.x),
-                    String.format(java.util.Locale.ROOT, "%.2f", state.y),
-                    String.format(java.util.Locale.ROOT, "%.2f", state.z));
-          }
-        }
+      OPENORIGINS$ARMS.add(state);
+      if (!OPENORIGINS$LOGGED) {
+        OPENORIGINS$LOGGED = true;
+        org.slf4j.LoggerFactory.getLogger("openorigins")
+            .info("[allay-arms] fix engaged on {}", AllayArmsFix.describe(shown));
       }
     } catch (Throwable ignored) {
     }
@@ -105,14 +52,6 @@ public abstract class ItemDisplayArmsFixMixin {
   private void openorigins$shiftArms(ItemDisplayEntityRenderState state, PoseStack poseStack,
       SubmitNodeCollector submitNodeCollector, int lightCoords, float interpolationProgress,
       CallbackInfo ci) {
-    Float part = OPENORIGINS$PARTS.remove(state);
-    if (part != null && OPENORIGINS$LOGGED_PARTS.add(part)) {
-      org.slf4j.LoggerFactory.getLogger("openorigins").info(
-          "[allay-render] part cmd={} at [{},{},{}]", part,
-          String.format(java.util.Locale.ROOT, "%.2f", state.x),
-          String.format(java.util.Locale.ROOT, "%.2f", state.y),
-          String.format(java.util.Locale.ROOT, "%.2f", state.z));
-    }
     if (!OPENORIGINS$ARMS.remove(state)) {
       return;
     }

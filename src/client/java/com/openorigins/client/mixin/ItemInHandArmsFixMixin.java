@@ -29,7 +29,6 @@ public abstract class ItemInHandArmsFixMixin {
     if (!AllayArmsFix.isArmsItem(itemStack)) {
       return;
     }
-    AllayArmsFix.markFlagged();
     if (!com.openorigins.client.OpenOriginsConfig.getInstance()
         .isEnabled(com.openorigins.client.OriginFeature.ALLAY_ARMS_FIX)) {
       return;

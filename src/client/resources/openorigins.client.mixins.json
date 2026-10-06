@@ -33,8 +33,7 @@
     "ItemDisplayArmsFixMixin",
     "ItemInHandArmsFixMixin",
     "KeyEntryAccessor",
-    "KeyBindsVisibilityMixin",
-    "SpawnWatchMixin"
+    "KeyBindsVisibilityMixin"
   ],
   "injectors": {
     "defaultRequire": 1
