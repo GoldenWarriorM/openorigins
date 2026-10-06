@@ -63,6 +63,19 @@ public class ConfigScreen extends Screen {
   }
 
   @Override
+  public boolean keyPressed(net.minecraft.client.input.KeyEvent event) {
+    if (com.openorigins.client.HotkeyFeatures.isScanCaptureArmed()) {
+      com.openorigins.client.HotkeyFeatures.confirmScanCapture(event.key(), event.scancode());
+      net.minecraft.client.gui.components.tabs.Tab t = this.tabManager.getCurrentTab();
+      if (t instanceof ConfigTabPage page) {
+        page.list().refreshEntries();
+      }
+      return true;
+    }
+    return super.keyPressed(event);
+  }
+
+  @Override
   public void onClose() {
     if (this.minecraft != null) {
       this.minecraft.gui.setScreen(this.parent);

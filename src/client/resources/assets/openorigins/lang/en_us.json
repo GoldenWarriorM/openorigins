@@ -11,6 +11,8 @@
   "config.openorigins.position": "Position",
   "config.openorigins.hud_position_hint": "Which corner shows the task HUD",
   "config.openorigins.max_slots": "Max home slots",
+  "config.openorigins.scan_key": "Scan key",
+  "config.openorigins.scan_key_hint": "Debug key for entity dumps (rebind by clicking)",
   "category.openorigins.fixes": "Fixes",
   "category.openorigins.ui": "UI",
   "category.openorigins.misc": "Misc",

@@ -27,6 +27,13 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
           }
         }
       }
+      if (category == com.openorigins.client.FeatureCategory.MISC) {
+        this.addEntry(new CycleRow(this, "config.openorigins.scan_key",
+            "config.openorigins.scan_key_hint",
+            () -> com.openorigins.client.HotkeyFeatures.isScanCaptureArmed() ? "..."
+                : com.openorigins.client.HotkeyFeatures.scanKeyName(),
+            () -> com.openorigins.client.HotkeyFeatures.beginScanCapture(), false));
+      }
       if (category == com.openorigins.client.FeatureCategory.UI) {
         this.addEntry(new StepperRow(this, "config.openorigins.max_slots",
             "config.openorigins.capacity_hint", 0, 15,

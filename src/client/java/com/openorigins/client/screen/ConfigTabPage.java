@@ -18,6 +18,10 @@ public class ConfigTabPage extends GridLayoutTab {
     this.layout = layout;
   }
 
+  public FeatureList list() {
+    return this.list;
+  }
+
   @Override
   public void visitChildren(Consumer<AbstractWidget> childrenConsumer) {
     super.visitChildren(childrenConsumer);

@@ -23,9 +23,39 @@ public final class HotkeyFeatures {
   private static boolean badgerFetchDone;
   private static boolean worldsFetchDone;
   private static int joinTicks;
+  private static KeyMapping.Category scanCategory;
+  private static boolean scanCaptureArmed;
   private HotkeyFeatures() {}
 
-  public static KeyMapping scanKey() { return scanKey; }
+  /** Current scan binding display name for UI. */
+  public static String scanKeyName() {
+    try {
+      return scanKey == null ? "?" : scanKey.getTranslatedKeyMessage().getString();
+    } catch (Throwable t) {
+      return "?";
+    }
+  }
+
+  public static boolean isScanCaptureArmed() { return scanCaptureArmed; }
+  public static void beginScanCapture() { scanCaptureArmed = true; }
+
+  /** Rebinds the hidden scan key. ESC cancels. */
+  public static void confirmScanCapture(int keyCode, int scanCode) {
+    scanCaptureArmed = false;
+    if (keyCode == org.lwjgl.glfw.GLFW.GLFW_KEY_ESCAPE) {
+      return;
+    }
+    try {
+      com.mojang.blaze3d.platform.InputConstants.Key key =
+          keyCode != com.mojang.blaze3d.platform.InputConstants.UNKNOWN.getValue()
+              ? com.mojang.blaze3d.platform.InputConstants.Type.KEYSYM.getOrCreate(keyCode)
+              : com.mojang.blaze3d.platform.InputConstants.Type.SCANCODE.getOrCreate(scanCode);
+      scanKey = new KeyMapping("key.openorigins.scan_cosmetics", key.getType(),
+          key.getValue(), scanCategory);
+      OpenOriginsConfig.getInstance().setScanKey(key);
+    } catch (Throwable ignored) {
+    }
+  }
 
   /** True when the pressed key is the bound scan key (works inside GUIs too). */
   public static boolean matchesScan(net.minecraft.client.input.KeyEvent event) {
@@ -49,8 +79,12 @@ public final class HotkeyFeatures {
         new KeyMapping("key.openorigins.realm", InputConstants.UNKNOWN.getValue(), category));
     configKey = KeyMappingHelper.registerKeyMapping(
         new KeyMapping("key.openorigins.config", InputConstants.UNKNOWN.getValue(), category));
-    scanKey = KeyMappingHelper.registerKeyMapping(
-        new KeyMapping("key.openorigins.scan_cosmetics", InputConstants.UNKNOWN.getValue(), category));
+    scanCategory = category;
+    // Unregistered on purpose: hidden from vanilla Controls, rebound in our Misc tab.
+    com.mojang.blaze3d.platform.InputConstants.Key savedKey =
+        OpenOriginsConfig.getInstance().getScanKey();
+    scanKey = new KeyMapping("key.openorigins.scan_cosmetics", savedKey.getType(),
+        savedKey.getValue(), category);
     teleportMenuKey = KeyMappingHelper.registerKeyMapping(
         new KeyMapping("key.openorigins.teleport_menu", InputConstants.UNKNOWN.getValue(), category));
     blueBalloonKey = KeyMappingHelper.registerKeyMapping(

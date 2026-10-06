@@ -22,6 +22,8 @@ public final class OpenOriginsConfig {
   private int homeCapacity = 5;
   private boolean badgerHudVisible = true;
   private float allayArmsShiftTexels = 12.0f;
+  private int scanKeyType = 0;
+  private int scanKeyValue = -1;
 
   private OpenOriginsConfig() {
     for (OriginFeature f : OriginFeature.values()) enabled.put(f, f.getDefaultValue());
@@ -73,6 +75,17 @@ public final class OpenOriginsConfig {
         } catch (NumberFormatException ignored) {
         }
       }
+      String scanKey = props.getProperty("scan.key");
+      if (scanKey != null) {
+        try {
+          String[] parts = scanKey.trim().split(":");
+          if (parts.length == 2) {
+            scanKeyType = Math.max(0, Math.min(2, Integer.parseInt(parts[0])));
+            scanKeyValue = Integer.parseInt(parts[1]);
+          }
+        } catch (NumberFormatException ignored) {
+        }
+      }
       String arms = props.getProperty("allay.arms.x");
       if (arms != null) {
         try {
@@ -97,6 +110,7 @@ public final class OpenOriginsConfig {
     props.setProperty("badger.hud.visible", Boolean.toString(badgerHudVisible));
     props.setProperty("homes.capacity", Integer.toString(homeCapacity));
     props.setProperty("allay.arms.x", Float.toString(allayArmsShiftTexels));
+    props.setProperty("scan.key", scanKeyType + ":" + scanKeyValue);
     try {
       Files.createDirectories(configPath().getParent());
       try (OutputStream out = Files.newOutputStream(configPath())) {
@@ -116,6 +130,35 @@ public final class OpenOriginsConfig {
   }
   public int getHomeCapacity() { return homeCapacity; }
   public float getAllayArmsShiftTexels() { return allayArmsShiftTexels; }
+  public com.mojang.blaze3d.platform.InputConstants.Key getScanKey() {
+    com.mojang.blaze3d.platform.InputConstants.Type type;
+    switch (scanKeyType) {
+      case 1 -> type = com.mojang.blaze3d.platform.InputConstants.Type.MOUSE;
+      case 2 -> type = com.mojang.blaze3d.platform.InputConstants.Type.SCANCODE;
+      default -> type = com.mojang.blaze3d.platform.InputConstants.Type.KEYSYM;
+    }
+    try {
+      return type.getOrCreate(scanKeyValue);
+    } catch (Throwable t) {
+      return com.mojang.blaze3d.platform.InputConstants.UNKNOWN;
+    }
+  }
+  public void setScanKey(com.mojang.blaze3d.platform.InputConstants.Key key) {
+    if (key == null) {
+      scanKeyType = 0;
+      scanKeyValue = -1;
+    } else if (key.getType() == com.mojang.blaze3d.platform.InputConstants.Type.MOUSE) {
+      scanKeyType = 1;
+      scanKeyValue = key.getValue();
+    } else if (key.getType() == com.mojang.blaze3d.platform.InputConstants.Type.SCANCODE) {
+      scanKeyType = 2;
+      scanKeyValue = key.getValue();
+    } else {
+      scanKeyType = 0;
+      scanKeyValue = key.getValue();
+    }
+    save();
+  }
   public void setAllayArmsShiftTexels(float v) {
     allayArmsShiftTexels = Math.max(-32.0f, Math.min(32.0f, v));
     save();
