@@ -28,6 +28,17 @@ public final class HotkeyFeatures {
   private HotkeyFeatures() {}
 
   /** Current scan binding display name for UI. */
+  /** Rebuilds the hidden scan mapping from config (after reset/rebind). */
+  public static void reloadScanKey() {
+    try {
+      com.mojang.blaze3d.platform.InputConstants.Key savedKey =
+          OpenOriginsConfig.getInstance().getScanKey();
+      scanKey = new KeyMapping("key.openorigins.scan_cosmetics", savedKey.getType(),
+          savedKey.getValue(), scanCategory);
+    } catch (Throwable ignored) {
+    }
+  }
+
   public static String scanKeyName() {
     try {
       return scanKey == null ? "?" : scanKey.getTranslatedKeyMessage().getString();
@@ -80,11 +91,7 @@ public final class HotkeyFeatures {
     configKey = KeyMappingHelper.registerKeyMapping(
         new KeyMapping("key.openorigins.config", InputConstants.UNKNOWN.getValue(), category));
     scanCategory = category;
-    // Unregistered on purpose: hidden from vanilla Controls, rebound in our Misc tab.
-    com.mojang.blaze3d.platform.InputConstants.Key savedKey =
-        OpenOriginsConfig.getInstance().getScanKey();
-    scanKey = new KeyMapping("key.openorigins.scan_cosmetics", savedKey.getType(),
-        savedKey.getValue(), category);
+    reloadScanKey();
     teleportMenuKey = KeyMappingHelper.registerKeyMapping(
         new KeyMapping("key.openorigins.teleport_menu", InputConstants.UNKNOWN.getValue(), category));
     blueBalloonKey = KeyMappingHelper.registerKeyMapping(

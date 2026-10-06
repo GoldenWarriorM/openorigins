@@ -176,4 +176,17 @@ public final class OpenOriginsConfig {
     enabled.put(f, v);
     save();
   }
+
+  /** Restores every setting to its default. */
+  public synchronized void resetAll() {
+    for (OriginFeature f : OriginFeature.values()) enabled.put(f, f.getDefaultValue());
+    discordClientId = "";
+    badgerHudCorner = HudCorner.TOP_LEFT;
+    homeCapacity = 5;
+    badgerHudVisible = true;
+    allayArmsShiftTexels = 12.0f;
+    scanKeyType = 0;
+    scanKeyValue = -1;
+    save();
+  }
 }

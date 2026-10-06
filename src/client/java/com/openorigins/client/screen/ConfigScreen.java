@@ -1,5 +1,7 @@
 package com.openorigins.client.screen;
 
+import com.openorigins.client.HotkeyFeatures;
+import com.openorigins.client.OpenOriginsConfig;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.tabs.MenuTabBar;
 import net.minecraft.client.gui.components.tabs.Tab;
@@ -40,6 +42,14 @@ public class ConfigScreen extends Screen {
     this.tabBar = MenuTabBar.builder(this.tabManager, this.width).addTabs(pages).build();
     this.addRenderableWidget(this.tabBar);
     LinearLayout footer = this.layout.addToFooter(LinearLayout.horizontal().spacing(8));
+    footer.addChild(Button.builder(Component.translatable("config.openorigins.reset"),
+        button -> {
+          OpenOriginsConfig.getInstance().resetAll();
+          HotkeyFeatures.reloadScanKey();
+          if (this.minecraft != null) {
+            this.minecraft.gui.setScreen(new ConfigScreen(this.parent));
+          }
+        }).width(120).build());
     footer.addChild(Button.builder(CommonComponents.GUI_DONE, button -> this.onClose())
         .width(200).build());
     this.layout.visitWidgets(button -> {
