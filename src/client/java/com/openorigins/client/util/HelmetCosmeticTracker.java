@@ -22,6 +22,9 @@ public final class HelmetCosmeticTracker {
   private static final long PENDING_TTL_MS = 30000;
   private static volatile String lastArmorKey = "";
   private static volatile ItemStack lastArmorStack = ItemStack.EMPTY;
+  private static volatile ItemStack lastRealArmor = ItemStack.EMPTY;
+  private static volatile long lastRealArmorMs;
+  private static volatile boolean diffFresh;
   private static volatile boolean everNonEmptyArmor;
   private static volatile net.minecraft.world.entity.player.Player lastPlayer;
   private static volatile long lastArmorChangeMs;
@@ -58,6 +61,10 @@ public final class HelmetCosmeticTracker {
       lastArmorChangeMs = System.currentTimeMillis();
       pendingClearAt = -1;
       confirmOptimistic();
+      if (isHeadArmor(stack)) {
+        lastRealArmor = stack.copy();
+        lastRealArmorMs = System.currentTimeMillis();
+      }
       if (predictedEmpty) {
         // Our predicted removal vs the server answer:
         // non-empty sync right after = rejection, restore; empty = accepted.
@@ -68,7 +75,8 @@ public final class HelmetCosmeticTracker {
         }
         predictedEmpty = false;
       }
-      if (!pendingHelmet.isEmpty()) {
+      if (!pendingHelmet.isEmpty() && !heldAnywhere(pendingHelmet)
+          && !storedAnywhere(pendingHelmet) && !menuHas(pendingHelmet)) {
         ItemStack cur = realHelmet;
         if (cur.isEmpty() || !ItemStack.isSameItemSameComponents(cur, pendingHelmet)) {
           com.openorigins.client.util.DebugLog.info("[helmet] commit {} (was {}) gone={}",
@@ -98,7 +106,17 @@ public final class HelmetCosmeticTracker {
         }
         diffBase = base;
         diffAt = System.currentTimeMillis();
-        if (!departedHelmet.isEmpty() && System.currentTimeMillis() - departedAt < 3000
+        // Only a fresh cover (real helmet just replaced by the cosmetic) may
+        // promote vanished storage heads; re-sync wobble must not.
+        long now = System.currentTimeMillis();
+        boolean freshCover = isHeadArmor(prevArmor)
+            || (lastRealArmorMs > 0 && now - lastRealArmorMs < 5000);
+        diffFresh = freshCover;
+        if (!freshCover) {
+          departedHelmet = ItemStack.EMPTY;
+          return;
+        }
+        if (!departedHelmet.isEmpty() && now - departedAt < 3000
             && !presentAnywhere(departedHelmet)
             && (realHelmet.isEmpty() || !isSameHead(realHelmet, departedHelmet))) {
           ItemStack cur = realHelmet;
@@ -164,6 +182,29 @@ public final class HelmetCosmeticTracker {
     }
   }
 
+  /** True if the stack sits in any slot of the currently open menu
+   *  (crafting grids, chests, silent server windows). Unknown errors count as
+   *  present: commit gates must never treat a failed scan as absence. */
+  private static boolean menuHas(ItemStack stack) {
+    try {
+      net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
+      if (mc == null || mc.player == null || stack == null || stack.isEmpty()) {
+        return true;
+      }
+      for (net.minecraft.world.inventory.Slot slot : mc.player.containerMenu.slots) {
+        try {
+          if (ItemStack.isSameItemSameComponents(stack, slot.getItem())) {
+            return true;
+          }
+        } catch (Throwable ignored) {
+        }
+      }
+    } catch (Throwable ignored) {
+      return true;
+    }
+    return false;
+  }
+
   private static boolean presentAnywhere(ItemStack stack) {
     try {
       net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
@@ -180,6 +221,9 @@ public final class HelmetCosmeticTracker {
           return true;
         }
       }
+      if (menuHas(stack)) {
+        return true;
+      }
     } catch (Throwable ignored) {
       return true;
     }
@@ -188,6 +232,9 @@ public final class HelmetCosmeticTracker {
 
   /** A head item vanished from storage exactly when the combo formed: it got merged. */
   private static void diffStashVanished() {
+    if (!diffFresh) {
+      return;
+    }
     Map<Integer, ItemStack> base = diffBase;
     if (base == null || base.isEmpty()) {
       return;
@@ -222,8 +269,11 @@ public final class HelmetCosmeticTracker {
     long now = System.currentTimeMillis();
     if (diffBase != null) {
       if (now - diffAt > 500) {
-        diffStashVanished();
+        if (diffFresh) {
+          diffStashVanished();
+        }
         diffBase = null;
+        diffFresh = false;
       }
     }
     if (!pendingHelmet.isEmpty() && now - pendingAt > PENDING_TTL_MS) {
@@ -394,12 +444,13 @@ public final class HelmetCosmeticTracker {
     return false;
   }
 
-  /** True if the stack sits in storage (not armor). */
+  /** True if the stack sits in storage (not armor). Unknown errors count as
+   *  present: commit gates must never treat a failed scan as absence. */
   private static boolean storedAnywhere(ItemStack stack) {
     try {
       net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
       if (mc == null || mc.player == null) {
-        return false;
+        return true;
       }
       for (ItemStack s : mc.player.getInventory().getNonEquipmentItems()) {
         if (ItemStack.isSameItemSameComponents(stack, s)) {
@@ -407,6 +458,7 @@ public final class HelmetCosmeticTracker {
         }
       }
     } catch (Throwable ignored) {
+      return true;
     }
     return false;
   }
@@ -418,7 +470,9 @@ public final class HelmetCosmeticTracker {
       if (mc != null && mc.player != null) {
         double v = mc.player.getAttributeValue(
             net.minecraft.world.entity.ai.attributes.Attributes.ARMOR);
-        if (!pendingHelmet.isEmpty() && lastArmorValue >= 0 && v > lastArmorValue) {
+        if (!pendingHelmet.isEmpty() && lastArmorValue >= 0 && v > lastArmorValue
+            && !heldAnywhere(pendingHelmet) && !storedAnywhere(pendingHelmet)
+            && !menuHas(pendingHelmet)) {
           ItemStack cur = realHelmet;
           realHelmet = pendingHelmet.copy();
           setTip(pendingHelmet);
@@ -507,6 +561,12 @@ public final class HelmetCosmeticTracker {
     if (armorNow == null || armorNow.isEmpty()) {
       return;
     }
+    // Never commit an item that is still around (cursor, hands, storage, menu):
+    // pickup/putback must not paint the helmet slot. Only truly vanished
+    // (merged) items qualify.
+    if (heldAnywhere(moved) || storedAnywhere(moved) || menuHas(moved)) {
+      return;
+    }
     ItemStack cur = realHelmet;
     realHelmet = moved.copy();
     setTip(moved);
@@ -542,6 +602,9 @@ public final class HelmetCosmeticTracker {
         }
       }
       if (ItemStack.isSameItemSameComponents(stack, mc.player.containerMenu.getCarried())) {
+        return false;
+      }
+      if (menuHas(stack)) {
         return false;
       }
       for (int i = 0; i < 5; i++) {
