@@ -46,7 +46,6 @@ public abstract class HelmetCosmeticSlotMixin {
   @Shadow
   protected net.minecraft.world.inventory.Slot hoveredSlot;
 
-
   private boolean openorigins$active() {
     return OpenOriginsConfig.getInstance().isEnabled(OriginFeature.HELMET_COSMETIC_SLOT)
         && ((Object) this) instanceof InventoryScreen
@@ -128,9 +127,6 @@ public abstract class HelmetCosmeticSlotMixin {
     if (cosmetic.isEmpty()) {
       return;
     }
-    if (HelmetCosmeticTracker.realHelmet().isEmpty()) {
-      HelmetCosmeticTracker.dumpState(worn);
-    }
     graphics.blitSprite(RenderPipelines.GUI_TEXTURED, SLOT_SPRITE, COSMETIC_X - 1, COSMETIC_Y - 1, 18, 18);
     if (this.openorigins$isHoveringCosmetic(mouseX, mouseY)) {
       graphics.blitSprite(RenderPipelines.GUI_TEXTURED, HIGHLIGHT_BACK, COSMETIC_X - 4, COSMETIC_Y - 4, 24, 24);
@@ -143,10 +139,6 @@ public abstract class HelmetCosmeticSlotMixin {
     if (showReal) {
       graphics.item(real, HELMET_X, HELMET_Y);
       graphics.itemDecorations(Minecraft.getInstance().font, real, HELMET_X, HELMET_Y);
-    } else if (!cosmetic.isEmpty() && !this.openorigins$heldOnCursor()
-        && !HelmetCosmeticTracker.isBareHead()) {
-      graphics.item(cosmetic, HELMET_X, HELMET_Y);
-      graphics.itemDecorations(Minecraft.getInstance().font, cosmetic, HELMET_X, HELMET_Y);
     } else {
       graphics.blitSprite(RenderPipelines.GUI_TEXTURED, EMPTY_HELMET, HELMET_X, HELMET_Y, 16, 16);
     }
@@ -243,9 +235,6 @@ public abstract class HelmetCosmeticSlotMixin {
     }
     if (openorigins$isHoveringHelmet(this, mouseX, mouseY) && !cosmetic.isEmpty()) {
       java.util.List<net.minecraft.network.chat.Component> tip = HelmetCosmeticTracker.realTip();
-      if (tip == null || tip.isEmpty()) {
-        tip = net.minecraft.client.gui.screens.Screen.getTooltipFromItem(mc, cosmetic);
-      }
       if (tip != null && !tip.isEmpty()) {
         this.openorigins$showTip(graphics, mc, mouseX, mouseY, tip);
       }

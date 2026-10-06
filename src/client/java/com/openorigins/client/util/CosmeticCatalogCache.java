@@ -93,7 +93,6 @@ public final class CosmeticCatalogCache {
   }
 
   private static boolean profileArmed;
-  private static boolean profileNavigated;
   private static long profileDeadline;
   private static java.util.function.Supplier<net.minecraft.client.gui.screens.Screen> profileReturn =
       () -> null;
@@ -126,7 +125,6 @@ public final class CosmeticCatalogCache {
       return;
     }
     profileArmed = true;
-    profileNavigated = false;
     profileDeadline = System.currentTimeMillis() + 10000;
     lastProfileAttempt = System.currentTimeMillis();
   }
@@ -163,35 +161,6 @@ public final class CosmeticCatalogCache {
         }
       }
     } catch (Throwable ignored) {
-    }
-    if (!found && !profileNavigated
-        && com.openorigins.client.util.BackgroundMenu.isBackground(menu)) {
-      // Top profile menu has no wardrobe items: step into Your Profile silently.
-      try {
-        Object inv = m.player != null ? m.player.getInventory() : null;
-        int at = -1;
-        int i = -1;
-        for (Slot slot : menu.slots) {
-          i++;
-          if (inv != null && slot.container == inv) {
-            continue;
-          }
-          if (!slot.hasItem()) {
-            continue;
-          }
-          String name = slot.getItem().getHoverName().getString();
-          if (name != null && name.strip().equals("Your Profile")) {
-            at = i;
-            break;
-          }
-        }
-        if (at >= 0 && com.openorigins.client.util.BackgroundMenu.clickSlot(at)) {
-          profileNavigated = true;
-          com.openorigins.client.util.BackgroundMenu.renavigate();
-          com.openorigins.client.util.DebugLog.info("[cosmetics] stepped into Your Profile");
-        }
-      } catch (Throwable ignored) {
-      }
     }
     return found;
   }

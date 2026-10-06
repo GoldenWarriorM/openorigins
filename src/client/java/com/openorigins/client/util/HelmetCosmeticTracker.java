@@ -8,8 +8,6 @@ import net.minecraft.world.item.ItemStack;
  * Cosmetic names start with a pack glyph (PUA char), real items don't.
  */
 public final class HelmetCosmeticTracker {
-  /** Temporary kill-switch for all optimistic prediction paths. */
-  private static final boolean OPTIMISTIC_ENABLED = true;
   private HelmetCosmeticTracker() {}
 
   private static volatile ItemStack realHelmet = ItemStack.EMPTY;
@@ -24,9 +22,6 @@ public final class HelmetCosmeticTracker {
   private static final long PENDING_TTL_MS = 30000;
   private static volatile String lastArmorKey = "";
   private static volatile ItemStack lastArmorStack = ItemStack.EMPTY;
-  private static volatile ItemStack lastRealArmor = ItemStack.EMPTY;
-  private static volatile long lastRealArmorMs;
-  private static volatile boolean diffFresh;
   private static volatile boolean everNonEmptyArmor;
   private static volatile net.minecraft.world.entity.player.Player lastPlayer;
   private static volatile long lastArmorChangeMs;
@@ -63,15 +58,7 @@ public final class HelmetCosmeticTracker {
       lastArmorChangeMs = System.currentTimeMillis();
       pendingClearAt = -1;
       confirmOptimistic();
-      if (isFirework(stack) && prevArmor.isEmpty()) {
-        // Fresh cover over a bare head: hidden state unknown again.
-        bareHead = false;
-      }
-      if (isHeadArmor(stack)) {
-        lastRealArmor = stack.copy();
-        lastRealArmorMs = System.currentTimeMillis();
-      }
-      if (!pendingHelmet.isEmpty() && !coolingDown() && absenceMatured()) {
+      if (!pendingHelmet.isEmpty()) {
         ItemStack cur = realHelmet;
         if (cur.isEmpty() || !ItemStack.isSameItemSameComponents(cur, pendingHelmet)) {
           com.openorigins.client.util.DebugLog.info("[helmet] commit {} (was {}) gone={}",
@@ -82,8 +69,6 @@ public final class HelmetCosmeticTracker {
         saveHelmet();
         lastCommitMs = System.currentTimeMillis();
         pendingHelmet = ItemStack.EMPTY;
-        pendingAbsentMs = 0;
-        pendingAbsentKey = "";
       }
       if (isFirework(stack)) {
         if (isHeadArmor(prevArmor)) {
@@ -103,19 +88,7 @@ public final class HelmetCosmeticTracker {
         }
         diffBase = base;
         diffAt = System.currentTimeMillis();
-        // Only a fresh cover (real helmet just replaced by the cosmetic) may
-        // promote vanished storage heads; re-sync wobble of the cosmetic itself
-        // must not (teleport re-sends shuffle storage and re-sync armor).
-        long now = System.currentTimeMillis();
-        boolean freshCover = isHeadArmor(prevArmor)
-            || (lastRealArmorMs > 0 && now - lastRealArmorMs < 5000);
-        diffFresh = freshCover;
-        if (!freshCover) {
-          departedHelmet = ItemStack.EMPTY;
-          return;
-        }
-        if (!departedHelmet.isEmpty() && !coolingDown() && now - departedAt > 1500
-            && now - departedAt < 3000
+        if (!departedHelmet.isEmpty() && System.currentTimeMillis() - departedAt < 3000
             && !presentAnywhere(departedHelmet)
             && (realHelmet.isEmpty() || !isSameHead(realHelmet, departedHelmet))) {
           ItemStack cur = realHelmet;
@@ -125,6 +98,8 @@ public final class HelmetCosmeticTracker {
           com.openorigins.client.util.DebugLog.info("[helmet] departed-stash {} (was {}) gone={}",
               describe(departedHelmet), cur.isEmpty() ? "<empty>" : describe(cur), goneEverywhere(departedHelmet));
           departedHelmet = ItemStack.EMPTY;
+        } else {
+          diffStashVanished();
         }
       }
     }
@@ -179,27 +154,6 @@ public final class HelmetCosmeticTracker {
     }
   }
 
-  /** True if the stack sits in any slot of the currently open menu
-   *  (crafting grids, chests, silent server windows, cursor handled by callers). */
-  private static boolean menuHas(ItemStack stack) {
-    try {
-      net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
-      if (mc == null || mc.player == null || stack == null || stack.isEmpty()) {
-        return false;
-      }
-      for (net.minecraft.world.inventory.Slot slot : mc.player.containerMenu.slots) {
-        try {
-          if (ItemStack.isSameItemSameComponents(stack, slot.getItem())) {
-            return true;
-          }
-        } catch (Throwable ignored) {
-        }
-      }
-    } catch (Throwable ignored) {
-    }
-    return false;
-  }
-
   private static boolean presentAnywhere(ItemStack stack) {
     try {
       net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
@@ -208,9 +162,6 @@ public final class HelmetCosmeticTracker {
       }
       if (isStashedReal(mc.player.containerMenu.getCarried())
           && ItemStack.isSameItemSameComponents(stack, mc.player.containerMenu.getCarried())) {
-        return true;
-      }
-      if (menuHas(stack)) {
         return true;
       }
       net.minecraft.world.entity.player.Inventory inv = mc.player.getInventory();
@@ -227,9 +178,6 @@ public final class HelmetCosmeticTracker {
 
   /** A head item vanished from storage exactly when the combo formed: it got merged. */
   private static void diffStashVanished() {
-    if (coolingDown()) {
-      return;
-    }
     Map<Integer, ItemStack> base = diffBase;
     if (base == null || base.isEmpty()) {
       return;
@@ -263,12 +211,9 @@ public final class HelmetCosmeticTracker {
   public static void resolvePending() {
     long now = System.currentTimeMillis();
     if (diffBase != null) {
-      if (now - diffAt > 1500) {
-        if (diffFresh) {
-          diffStashVanished();
-        }
+      if (now - diffAt > 500) {
+        diffStashVanished();
         diffBase = null;
-        diffFresh = false;
       }
     }
     if (!pendingHelmet.isEmpty() && now - pendingAt > PENDING_TTL_MS) {
@@ -317,11 +262,6 @@ public final class HelmetCosmeticTracker {
       return;
     }
     if (provisional) {
-      // Never clobber an in-flight merge candidate with a newly held item.
-      if (!pendingHelmet.isEmpty() && !heldAnywhere(pendingHelmet)
-          && !storedAnywhere(pendingHelmet) && !menuHas(pendingHelmet)) {
-        return;
-      }
       pendingHelmet = stack.copy();
       pendingAt = System.currentTimeMillis();
       return;
@@ -338,9 +278,6 @@ public final class HelmetCosmeticTracker {
   }
 
   private static void setTip(ItemStack stack) {
-    if (stack != null && !stack.isEmpty()) {
-      bareHead = false;
-    }
     try {
       net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
       if (mc == null) {
@@ -366,7 +303,6 @@ public final class HelmetCosmeticTracker {
     realHelmet = ItemStack.EMPTY;
     realTip = java.util.Collections.emptyList();
     realTipKey = "";
-    clearCooldownMs = System.currentTimeMillis() + 5000;
     invalidateCosmeticTip();
     saveHelmet();
   }
@@ -455,20 +391,12 @@ public final class HelmetCosmeticTracker {
       if (mc != null && mc.player != null) {
         double v = mc.player.getAttributeValue(
             net.minecraft.world.entity.ai.attributes.Attributes.ARMOR);
-        long now = System.currentTimeMillis();
-        if (lastArmorValue >= 0 && v > lastArmorValue) {
-          armorRoseMs = now;
-        }
-        if (!pendingHelmet.isEmpty() && !coolingDown() && absenceMatured()
-            && now - armorRoseMs < 6000) {
-          net.minecraft.world.item.ItemStack pend = pendingHelmet;
+        if (!pendingHelmet.isEmpty() && lastArmorValue >= 0 && v > lastArmorValue) {
           ItemStack cur = realHelmet;
-          realHelmet = pend.copy();
-          setTip(pend);
+          realHelmet = pendingHelmet.copy();
+          setTip(pendingHelmet);
           lastCommitMs = System.currentTimeMillis();
           pendingHelmet = ItemStack.EMPTY;
-          pendingAbsentMs = 0;
-          pendingAbsentKey = "";
           com.openorigins.client.util.DebugLog.info("[helmet] attr-commit {} (was {}) gone={}",
               describe(realHelmet), cur.isEmpty() ? "<empty>" : describe(cur), goneEverywhere(realHelmet));
         }
@@ -481,50 +409,9 @@ public final class HelmetCosmeticTracker {
   }
 
   private static volatile double lastArmorValue = -1;
-  private static volatile long armorRoseMs;
-  private static volatile boolean bareHead;
-  private static volatile long clearCooldownMs;
-  private static String pendingAbsentKey = "";
-  private static volatile long pendingAbsentMs;
-
-  /**
-   * True once the pending helmet has been continuously absent (cursor, hands,
-   * storage, open menus) for over 1.5s. Transit items reappear within a beat;
-   * only true merges stay gone.
-   */
-  private static boolean absenceMatured() {
-    if (pendingHelmet.isEmpty() || heldAnywhere(pendingHelmet)
-        || storedAnywhere(pendingHelmet) || menuHas(pendingHelmet)) {
-      pendingAbsentMs = 0;
-      pendingAbsentKey = "";
-      return false;
-    }
-    String k = keyOf(pendingHelmet);
-    long now = System.currentTimeMillis();
-    if (!k.equals(pendingAbsentKey)) {
-      pendingAbsentKey = k;
-      pendingAbsentMs = now;
-      return false;
-    }
-    return now - pendingAbsentMs > 1500;
-  }
-
-  /** Inferential commits (pending/attr/departed/diff) stay quiet briefly after
-   *  an explicit clear; hard slot-5 evidence still commits. */
-  private static boolean coolingDown() {
-    return System.currentTimeMillis() < clearCooldownMs;
-  }
-
-  /** True once armor was removed with no hidden helmet left (suppresses fallback). */
-  public static boolean isBareHead() {
-    return bareHead;
-  }
 
   /** Optimistic stash from client prediction; rolled back if server disagrees. */
   public static void optimisticStash(ItemStack stack) {
-    if (!OPTIMISTIC_ENABLED) {
-      return;
-    }
     if (stack == null || stack.isEmpty() || isCosmetic(stack)) {
       return;
     }
@@ -551,14 +438,10 @@ public final class HelmetCosmeticTracker {
 
   /** Optimistic clear from client prediction. */
   public static void optimisticClear() {
-    if (!OPTIMISTIC_ENABLED) {
-      return;
-    }
     if (!realHelmet.isEmpty()) {
       com.openorigins.client.util.DebugLog.info("[helmet] optimistic clear (was {})",
           describe(realHelmet));
     }
-    bareHead = true;
     realHelmet = ItemStack.EMPTY;
     realTip = java.util.Collections.emptyList();
     realTipKey = "";
@@ -569,20 +452,8 @@ public final class HelmetCosmeticTracker {
 
   /** Server confirmed (any armor change after the optimistic write): keep it. */
   private static void confirmOptimistic() {
-    if (!OPTIMISTIC_ENABLED) {
-      return;
-    }
     if (optimisticMs > 0 && lastArmorChangeMs >= optimisticMs) {
-      // Confirm only if the optimistic stack actually left (merged or equipped).
-      // An unrelated re-sync (same cosmetic, wobbled key) must roll back instead.
-      if (goneEverywhere(realHelmet)) {
-        optimisticMs = -1;
-      } else {
-        optimisticMs = -1;
-        com.openorigins.client.util.DebugLog.info("[helmet] optimistic rollback, keeping nothing {}",
-            describe(realHelmet));
-        clear();
-      }
+      optimisticMs = -1;
     }
   }
 
@@ -591,9 +462,6 @@ public final class HelmetCosmeticTracker {
    * assume it is being equipped, server confirms or rolls back.
    */
   public static void optimisticEquipFrom(ItemStack moved, ItemStack armorNow) {
-    if (!OPTIMISTIC_ENABLED) {
-      return;
-    }
     if (moved == null || moved.isEmpty() || isCosmetic(moved)) {
       return;
     }
@@ -612,12 +480,6 @@ public final class HelmetCosmeticTracker {
     if (armorNow == null || armorNow.isEmpty()) {
       return;
     }
-    // Never commit an item that is still around (cursor, hands, storage, menu):
-    // pickup/putback must not paint the helmet slot. Only truly vanished
-    // (merged) items qualify; the safety net below rolls back the rest.
-    if (heldAnywhere(moved) || storedAnywhere(moved) || menuHas(moved)) {
-      return;
-    }
     ItemStack cur = realHelmet;
     realHelmet = moved.copy();
     setTip(moved);
@@ -629,16 +491,6 @@ public final class HelmetCosmeticTracker {
 
   /** Called periodically: rolls back unconfirmed optimistic writes. */
   public static void checkOptimistic() {
-    if (!OPTIMISTIC_ENABLED) {
-      return;
-    }
-    if (optimisticMs > 0 && presentAnywhere(realHelmet)) {
-      optimisticMs = -1;
-      com.openorigins.client.util.DebugLog.info("[helmet] optimistic rollback, reappeared {}",
-          describe(realHelmet));
-      clear();
-      return;
-    }
     if (optimisticMs > 0 && System.currentTimeMillis() - optimisticMs > 3000
         && lastArmorChangeMs < optimisticMs) {
       optimisticMs = -1;
@@ -665,9 +517,6 @@ public final class HelmetCosmeticTracker {
       if (ItemStack.isSameItemSameComponents(stack, mc.player.containerMenu.getCarried())) {
         return false;
       }
-      if (menuHas(stack)) {
-        return false;
-      }
       for (int i = 0; i < 5; i++) {
         try {
           if (ItemStack.isSameItemSameComponents(stack, mc.player.containerMenu.getSlot(i).getItem())) {
@@ -686,47 +535,6 @@ public final class HelmetCosmeticTracker {
     ItemStack cur = realHelmet;
     return stack != null && !stack.isEmpty() && !cur.isEmpty()
         && ItemStack.isSameItemSameComponents(cur, stack);
-  }
-
-  private static volatile boolean stateDumped;
-
-  /** One-time debug snapshot: why the helmet slot is empty. */
-  public static void dumpState(ItemStack worn) {
-    if (stateDumped) {
-      return;
-    }
-    stateDumped = true;
-    try {
-      net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
-      StringBuilder sb = new StringBuilder();
-      sb.append("worn=").append(describe(worn));
-      sb.append(" real=").append(describe(realHelmet));
-      sb.append(" everArmor=").append(everNonEmptyArmor);
-      sb.append(" lastArmorKey=").append(lastArmorKey);
-      sb.append(" pending=").append(pendingHelmet.isEmpty() ? "no" : describe(pendingHelmet));
-      sb.append(" invHeads=").append(INV_HEADS.size());
-      sb.append(" rawSaved=").append(rawSaved != null);
-      if (mc != null && mc.player != null) {
-        java.util.List<String> heads = new java.util.ArrayList<>();
-        for (ItemStack st : mc.player.getInventory().getNonEquipmentItems()) {
-          if (st == null || st.isEmpty() || isCosmetic(st)) {
-            continue;
-          }
-          boolean head = false;
-          try {
-            head = mc.player.getEquipmentSlotForItem(st)
-                == net.minecraft.world.entity.EquipmentSlot.HEAD;
-          } catch (Throwable ignored) {
-          }
-          if (head) {
-            heads.add(describe(st));
-          }
-        }
-        sb.append(" storageHeads=").append(heads);
-      }
-      com.openorigins.client.util.DebugLog.info("[helmet] state {}", sb);
-    } catch (Throwable ignored) {
-    }
   }
 
   /** True once real armor content was seen (guards login-sync empties). */
