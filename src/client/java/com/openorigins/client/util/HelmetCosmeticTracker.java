@@ -537,6 +537,47 @@ public final class HelmetCosmeticTracker {
         && ItemStack.isSameItemSameComponents(cur, stack);
   }
 
+  private static volatile boolean stateDumped;
+
+  /** One-time debug snapshot: why the helmet slot is empty. */
+  public static void dumpState(ItemStack worn) {
+    if (stateDumped) {
+      return;
+    }
+    stateDumped = true;
+    try {
+      net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
+      StringBuilder sb = new StringBuilder();
+      sb.append("worn=").append(describe(worn));
+      sb.append(" real=").append(describe(realHelmet));
+      sb.append(" everArmor=").append(everNonEmptyArmor);
+      sb.append(" lastArmorKey=").append(lastArmorKey);
+      sb.append(" pending=").append(pendingHelmet.isEmpty() ? "no" : describe(pendingHelmet));
+      sb.append(" invHeads=").append(INV_HEADS.size());
+      sb.append(" rawSaved=").append(rawSaved != null);
+      if (mc != null && mc.player != null) {
+        java.util.List<String> heads = new java.util.ArrayList<>();
+        for (ItemStack st : mc.player.getInventory().getNonEquipmentItems()) {
+          if (st == null || st.isEmpty() || isCosmetic(st)) {
+            continue;
+          }
+          boolean head = false;
+          try {
+            head = mc.player.getEquipmentSlotForItem(st)
+                == net.minecraft.world.entity.EquipmentSlot.HEAD;
+          } catch (Throwable ignored) {
+          }
+          if (head) {
+            heads.add(describe(st));
+          }
+        }
+        sb.append(" storageHeads=").append(heads);
+      }
+      com.openorigins.client.util.DebugLog.info("[helmet] state {}", sb);
+    } catch (Throwable ignored) {
+    }
+  }
+
   /** True once real armor content was seen (guards login-sync empties). */
   public static boolean hasSeenArmor() {
     return everNonEmptyArmor;

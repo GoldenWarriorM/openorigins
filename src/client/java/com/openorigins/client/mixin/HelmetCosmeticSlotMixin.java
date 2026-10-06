@@ -127,6 +127,9 @@ public abstract class HelmetCosmeticSlotMixin {
     if (cosmetic.isEmpty()) {
       return;
     }
+    if (HelmetCosmeticTracker.realHelmet().isEmpty()) {
+      HelmetCosmeticTracker.dumpState(worn);
+    }
     graphics.blitSprite(RenderPipelines.GUI_TEXTURED, SLOT_SPRITE, COSMETIC_X - 1, COSMETIC_Y - 1, 18, 18);
     if (this.openorigins$isHoveringCosmetic(mouseX, mouseY)) {
       graphics.blitSprite(RenderPipelines.GUI_TEXTURED, HIGHLIGHT_BACK, COSMETIC_X - 4, COSMETIC_Y - 4, 24, 24);
