@@ -12,7 +12,7 @@ import org.spongepowered.asm.mixin.injection.At;
 public abstract class KeyBindsVisibilityMixin {
   @WrapWithCondition(method = "<init>",
       at = @At(value = "INVOKE",
-          target = "Lnet/minecraft/client/gui/screens/options/controls/KeyBindsList;addEntry(Lnet/minecraft/client/gui/components/ContainerObjectSelectionList$Entry;)I"))
+          target = "Lnet/minecraft/client/gui/screens/options/controls/KeyBindsList;addEntry(Lnet/minecraft/client/gui/components/AbstractSelectionList$Entry;)I"))
   private boolean openorigins$hideScanKey(KeyBindsList self, Object entry) {
     try {
       if (entry instanceof KeyBindsList.KeyEntry) {
