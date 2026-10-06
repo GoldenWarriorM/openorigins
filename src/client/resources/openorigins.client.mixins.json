@@ -32,6 +32,8 @@
     "PauseScreenMixin",
     "ItemDisplayArmsFixMixin",
     "ItemInHandArmsFixMixin",
+    "KeyEntryAccessor",
+    "KeyBindsVisibilityMixin",
     "SpawnWatchMixin"
   ],
   "injectors": {

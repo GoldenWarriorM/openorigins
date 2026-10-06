@@ -1,6 +1,6 @@
 package com.openorigins.client.util;
 
-import com.openorigins.client.screen.HomesMenuScreen;
+import com.openorigins.client.screen.TeleportMenuScreen;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
@@ -20,7 +20,7 @@ public final class HomeFetch {
   private static boolean layoutFetchTried;
   private static final Set<String> TRIED =
       Collections.newSetFromMap(new ConcurrentHashMap<>());
-  private static Supplier<Screen> returnTo = HomesMenuScreen::new;
+  private static Supplier<Screen> returnTo = TeleportMenuScreen::new;
 
   public static void start() {
     if (!BackgroundMenu.tryArm("homes")) {

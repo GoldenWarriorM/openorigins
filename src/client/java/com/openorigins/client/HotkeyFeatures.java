@@ -14,7 +14,6 @@ public final class HotkeyFeatures {
   private static KeyMapping configKey;
   private static KeyMapping scanKey;
   private static KeyMapping teleportMenuKey;
-  private static KeyMapping homesMenuKey;
   private static KeyMapping blueBalloonKey;
   private static KeyMapping greenBalloonKey;
   private static KeyMapping yellowBalloonKey;
@@ -121,6 +120,8 @@ public final class HotkeyFeatures {
 
   private HotkeyFeatures() {}
 
+  public static KeyMapping scanKey() { return scanKey; }
+
   /** True when the pressed key is the bound scan key (works inside GUIs too). */
   public static boolean matchesScan(net.minecraft.client.input.KeyEvent event) {
     try {
@@ -147,8 +148,6 @@ public final class HotkeyFeatures {
         new KeyMapping("key.openorigins.scan_cosmetics", InputConstants.UNKNOWN.getValue(), category));
     teleportMenuKey = KeyMappingHelper.registerKeyMapping(
         new KeyMapping("key.openorigins.teleport_menu", InputConstants.UNKNOWN.getValue(), category));
-    homesMenuKey = KeyMappingHelper.registerKeyMapping(
-        new KeyMapping("key.openorigins.homes_menu", InputConstants.UNKNOWN.getValue(), category));
     blueBalloonKey = KeyMappingHelper.registerKeyMapping(
         new KeyMapping("key.openorigins.balloon_blue", InputConstants.UNKNOWN.getValue(), category));
     greenBalloonKey = KeyMappingHelper.registerKeyMapping(
@@ -215,13 +214,7 @@ public final class HotkeyFeatures {
         if (client.gui.screen() == null && ConnectionUtil.isConnected()) {
           client.gui.setScreen(new com.openorigins.client.screen.TeleportMenuScreen());
         }
-      }
-      while (homesMenuKey.consumeClick()) {
-        if (client.gui.screen() == null && ConnectionUtil.isConnected()) {
-          client.gui.setScreen(new com.openorigins.client.screen.HomesMenuScreen());
-        }
-      }
-      while (configKey.consumeClick()) {
+      }      while (configKey.consumeClick()) {
         if (client.gui.screen() == null) {
           client.gui.setScreen(new com.openorigins.client.screen.ConfigScreen(null));
         }

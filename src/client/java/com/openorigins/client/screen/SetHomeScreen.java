@@ -13,7 +13,7 @@ import net.minecraft.network.chat.Component;
  */
 public class SetHomeScreen extends Screen {
   /** Where to return after Done/Cancel. */
-  public static java.util.function.Supplier<Screen> returnTo = HomesMenuScreen::new;
+  public static java.util.function.Supplier<Screen> returnTo = TeleportMenuScreen::new;
 
   private static volatile SetHomeScreen active;
 

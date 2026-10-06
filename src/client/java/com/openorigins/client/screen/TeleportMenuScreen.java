@@ -242,10 +242,10 @@ public class TeleportMenuScreen extends Screen implements HomePanelHost {
       if (!cell.plus()) {
         String name = cell.label();
         String cmd = cell.command();
-        this.addRenderableWidget(HomesMenuScreen.makeHomeCell(this.minecraft, x, y, HOME_ICON, name,
+        this.addRenderableWidget(makeHomeCell(this.minecraft, x, y, HOME_ICON, name,
             () -> teleportHome(cmd), () -> deleteHome(cmd)));
       } else {
-        this.addRenderableWidget(HomesMenuScreen.makePlusCell(x, y, HOME_ICON, () -> {
+        this.addRenderableWidget(makePlusCell(x, y, HOME_ICON, () -> {
           if (this.minecraft != null) {
             SetHomeScreen.returnTo = TeleportMenuScreen::new;
             this.minecraft.gui.setScreen(new SetHomeScreen());
@@ -425,6 +425,39 @@ public class TeleportMenuScreen extends Screen implements HomePanelHost {
         graphics.text(mc.font, s, this.getX() + this.getWidth() / 2 - tw / 2,
             this.getY() + this.getHeight() + 3, 0xFFFFFFFF);
       }
+    }
+  }
+
+  static AbstractButton makeHomeCell(
+      Minecraft mc, int x, int y, int size, String name,
+      Runnable teleport, Runnable delete) {
+    ServerPackIcons.LoadedIcon li =
+        ServerPackIcons.get(HomeInfoCache.iconPath(name)).orElse(null);
+    Component tip = HomeInfoCache.tooltip(name);
+    if (li != null) {
+      return new HomeIconButton(x, y, size,
+          Component.literal(name), li.textureId(), li.width(), li.height(), false, name, tip,
+          teleport, delete);
+    } else if (mc != null && mc.player != null) {
+      Identifier skin = mc.player.getSkin().body().texturePath();
+      return new HomeIconButton(x, y, size,
+          Component.literal(name), skin, 64, 64, true, name, tip, teleport, delete);
+    } else {
+      return Button.builder(Component.literal(name), b -> teleport.run()).bounds(x, y, size, 20).build();
+    }
+  }
+
+  static AbstractButton makePlusCell(
+      int x, int y, int size, Runnable openInput) {
+    ServerPackIcons.LoadedIcon li = ServerPackIcons.get(HomeInfoCache.PLUS_ICON).orElse(null);
+    Component tip = Component.translatable("menu.openorigins.homes.new_hint");
+    if (li != null) {
+      return new HomeIconButton(x, y, size,
+          Component.translatable("menu.openorigins.homes.new"), li.textureId(),
+          li.width(), li.height(), false, "", tip, openInput, openInput);
+    } else {
+      return Button.builder(Component.translatable("menu.openorigins.homes.new"),
+          b -> openInput.run()).bounds(x, y, size, 20).build();
     }
   }
 }
