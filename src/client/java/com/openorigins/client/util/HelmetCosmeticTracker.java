@@ -69,7 +69,7 @@ public final class HelmetCosmeticTracker {
         lastRealArmor = stack.copy();
         lastRealArmorMs = System.currentTimeMillis();
       }
-      if (!pendingHelmet.isEmpty() && !heldAnywhere(pendingHelmet)
+      if (!pendingHelmet.isEmpty() && !coolingDown() && !heldAnywhere(pendingHelmet)
           && !storedAnywhere(pendingHelmet) && !menuHas(pendingHelmet)) {
         ItemStack cur = realHelmet;
         if (cur.isEmpty() || !ItemStack.isSameItemSameComponents(cur, pendingHelmet)) {
@@ -111,7 +111,7 @@ public final class HelmetCosmeticTracker {
           departedHelmet = ItemStack.EMPTY;
           return;
         }
-        if (!departedHelmet.isEmpty() && now - departedAt < 3000
+        if (!departedHelmet.isEmpty() && !coolingDown() && now - departedAt < 3000
             && !presentAnywhere(departedHelmet)
             && (realHelmet.isEmpty() || !isSameHead(realHelmet, departedHelmet))) {
           ItemStack cur = realHelmet;
@@ -225,6 +225,9 @@ public final class HelmetCosmeticTracker {
 
   /** A head item vanished from storage exactly when the combo formed: it got merged. */
   private static void diffStashVanished() {
+    if (coolingDown()) {
+      return;
+    }
     Map<Integer, ItemStack> base = diffBase;
     if (base == null || base.isEmpty()) {
       return;
@@ -356,6 +359,7 @@ public final class HelmetCosmeticTracker {
     realHelmet = ItemStack.EMPTY;
     realTip = java.util.Collections.emptyList();
     realTipKey = "";
+    clearCooldownMs = System.currentTimeMillis() + 5000;
     invalidateCosmeticTip();
     saveHelmet();
   }
@@ -444,7 +448,7 @@ public final class HelmetCosmeticTracker {
       if (mc != null && mc.player != null) {
         double v = mc.player.getAttributeValue(
             net.minecraft.world.entity.ai.attributes.Attributes.ARMOR);
-        if (!pendingHelmet.isEmpty() && lastArmorValue >= 0 && v > lastArmorValue) {
+        if (!pendingHelmet.isEmpty() && !coolingDown() && lastArmorValue >= 0 && v > lastArmorValue) {
           net.minecraft.world.item.ItemStack pend = pendingHelmet;
           if (!heldAnywhere(pend) && !storedAnywhere(pend) && !menuHas(pend)) {
             ItemStack cur = realHelmet;
@@ -466,6 +470,13 @@ public final class HelmetCosmeticTracker {
 
   private static volatile double lastArmorValue = -1;
   private static volatile boolean bareHead;
+  private static volatile long clearCooldownMs;
+
+  /** Inferential commits (pending/attr/departed/diff) stay quiet briefly after
+   *  an explicit clear; hard slot-5 evidence still commits. */
+  private static boolean coolingDown() {
+    return System.currentTimeMillis() < clearCooldownMs;
+  }
 
   /** True once armor was removed with no hidden helmet left (suppresses fallback). */
   public static boolean isBareHead() {
