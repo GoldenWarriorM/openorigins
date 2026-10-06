@@ -317,6 +317,11 @@ public final class HelmetCosmeticTracker {
       return;
     }
     if (provisional) {
+      // Never clobber an in-flight merge candidate with a newly held item.
+      if (!pendingHelmet.isEmpty() && !heldAnywhere(pendingHelmet)
+          && !storedAnywhere(pendingHelmet) && !menuHas(pendingHelmet)) {
+        return;
+      }
       pendingHelmet = stack.copy();
       pendingAt = System.currentTimeMillis();
       return;
@@ -450,8 +455,12 @@ public final class HelmetCosmeticTracker {
       if (mc != null && mc.player != null) {
         double v = mc.player.getAttributeValue(
             net.minecraft.world.entity.ai.attributes.Attributes.ARMOR);
-        if (!pendingHelmet.isEmpty() && !coolingDown() && lastArmorValue >= 0 && v > lastArmorValue
-            && absenceMatured()) {
+        long now = System.currentTimeMillis();
+        if (lastArmorValue >= 0 && v > lastArmorValue) {
+          armorRoseMs = now;
+        }
+        if (!pendingHelmet.isEmpty() && !coolingDown() && absenceMatured()
+            && now - armorRoseMs < 6000) {
           net.minecraft.world.item.ItemStack pend = pendingHelmet;
           ItemStack cur = realHelmet;
           realHelmet = pend.copy();
@@ -472,6 +481,7 @@ public final class HelmetCosmeticTracker {
   }
 
   private static volatile double lastArmorValue = -1;
+  private static volatile long armorRoseMs;
   private static volatile boolean bareHead;
   private static volatile long clearCooldownMs;
   private static String pendingAbsentKey = "";
