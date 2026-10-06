@@ -69,7 +69,8 @@ public final class HelmetCosmeticTracker {
         lastRealArmor = stack.copy();
         lastRealArmorMs = System.currentTimeMillis();
       }
-      if (!pendingHelmet.isEmpty()) {
+      if (!pendingHelmet.isEmpty() && !heldAnywhere(pendingHelmet)
+          && !storedAnywhere(pendingHelmet)) {
         ItemStack cur = realHelmet;
         if (cur.isEmpty() || !ItemStack.isSameItemSameComponents(cur, pendingHelmet)) {
           com.openorigins.client.util.DebugLog.info("[helmet] commit {} (was {}) gone={}",
@@ -548,6 +549,12 @@ public final class HelmetCosmeticTracker {
     if (armorNow == null || armorNow.isEmpty()) {
       return;
     }
+    // Never commit an item that is still around (cursor, hands, storage, menu):
+    // pickup/putback must not paint the helmet slot. Only truly vanished
+    // (merged) items qualify; the safety net below rolls back the rest.
+    if (presentAnywhere(moved)) {
+      return;
+    }
     ItemStack cur = realHelmet;
     realHelmet = moved.copy();
     setTip(moved);
@@ -559,6 +566,13 @@ public final class HelmetCosmeticTracker {
 
   /** Called periodically: rolls back unconfirmed optimistic writes. */
   public static void checkOptimistic() {
+    if (optimisticMs > 0 && presentAnywhere(realHelmet)) {
+      optimisticMs = -1;
+      com.openorigins.client.util.DebugLog.info("[helmet] optimistic rollback, reappeared {}",
+          describe(realHelmet));
+      clear();
+      return;
+    }
     if (optimisticMs > 0 && System.currentTimeMillis() - optimisticMs > 3000
         && lastArmorChangeMs < optimisticMs) {
       optimisticMs = -1;
