@@ -61,6 +61,46 @@ public final class BackgroundMenu {
     }
   }
 
+  /** True while the given menu is our silent background fetch. */
+  public static synchronized boolean isBackground(
+      net.minecraft.world.inventory.AbstractContainerMenu m) {
+    return armed && m != null && m == menu;
+  }
+
+  /** Restart packet counters after a silent navigation click (submenu incoming). */
+  public static synchronized void renavigate() {
+    contentPackets = 0;
+    lastTopSig = "";
+    deadline = System.currentTimeMillis() + 8000;
+  }
+
+  /** Silently left-clicks a slot of the background menu. */
+  public static synchronized boolean clickSlot(int slot) {
+    AbstractContainerMenu m = menu;
+    if (!armed || m == null || slot < 0 || slot >= m.slots.size()) {
+      return false;
+    }
+    net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
+    if (mc == null || mc.player == null || mc.gameMode == null) {
+      return false;
+    }
+    net.minecraft.world.entity.player.Player player = mc.player;
+    net.minecraft.world.inventory.AbstractContainerMenu prev = player.containerMenu;
+    try {
+      player.containerMenu = m;
+      mc.gameMode.handleContainerInput(m.containerId, slot, 0,
+          net.minecraft.world.inventory.ContainerInput.PICKUP, player);
+      return true;
+    } catch (Throwable t) {
+      com.openorigins.client.util.DebugLog.warn("[bgmenu] nav click failed: {}", t.toString());
+      return false;
+    } finally {
+      if (player.containerMenu == m) {
+        player.containerMenu = prev;
+      }
+    }
+  }
+
   /** A chat command not sent by us (user typed it): back off. */
   public static void noteForeignCommand() {
     lastForeignCmdMs = System.currentTimeMillis();
