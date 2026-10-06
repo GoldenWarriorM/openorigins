@@ -9,7 +9,7 @@ import net.minecraft.world.item.ItemStack;
  */
 public final class HelmetCosmeticTracker {
   /** Temporary kill-switch for all optimistic prediction paths. */
-  private static final boolean OPTIMISTIC_ENABLED = false;
+  private static final boolean OPTIMISTIC_ENABLED = true;
   private HelmetCosmeticTracker() {}
 
   private static volatile ItemStack realHelmet = ItemStack.EMPTY;
