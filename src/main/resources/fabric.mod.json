@@ -26,5 +26,5 @@
     "java": ">=25",
     "fabric-api": "*"
   },
-  "icon": "assets/openorigins/textures/gui/sprites/config_button.png"
+  "icon": "assets/openorigins/textures/gui/sprites/mod_icon.png"
 }
