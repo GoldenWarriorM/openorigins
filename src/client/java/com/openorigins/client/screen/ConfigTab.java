@@ -5,7 +5,7 @@ import java.util.List;
 
 public enum ConfigTab {
   GENERAL("category.openorigins.general", List.of(FeatureCategory.GENERAL, FeatureCategory.FIXES)),
-  NOTIFICATIONS("category.openorigins.notifications", List.of(FeatureCategory.NOTIFICATIONS)),
+  UI("category.openorigins.ui", List.of(FeatureCategory.UI)),
   MISC("category.openorigins.misc", List.of(FeatureCategory.MISC));
 
   private final String titleKey;

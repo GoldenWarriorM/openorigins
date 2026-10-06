@@ -12,7 +12,7 @@
   "config.openorigins.hud_position_hint": "Which corner shows the task HUD",
   "config.openorigins.max_slots": "Max home slots",
   "category.openorigins.fixes": "Fixes",
-  "category.openorigins.notifications": "Notifications",
+  "category.openorigins.ui": "UI",
   "category.openorigins.misc": "Misc",
   "feature.openorigins.debug_logging.desc": "Verbose diagnostic logging (spammy, off by default).",
   "feature.openorigins.allay_arms_fix.desc": "Shifts custom allay arm models into place. The server sends arm parts detached, on every client version.",

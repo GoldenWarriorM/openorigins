@@ -10,13 +10,13 @@ public enum OriginFeature {
   HELMET_COSMETIC_SLOT(FeatureCategory.GENERAL, "Helmet Cosmetic Slot"),
   EXPAND_MODEL_BOUNDING_BOX(FeatureCategory.GENERAL, "Expand Model Bounding Box"),
   HIDE_NAMES(FeatureCategory.GENERAL, "Hide Names"),
-  AUCTION_PING(FeatureCategory.NOTIFICATIONS, "Auction Ping"),
+  AUCTION_PING(FeatureCategory.UI, "Auction Ping"),
   CUTSCENE_ENHANCEMENTS(FeatureCategory.GENERAL, "Cutscene Enhancements"),
   CUSTOM_ITEM_IDS(FeatureCategory.FIXES, "Custom Item IDs"),
   DEBUG_LOGGING(FeatureCategory.MISC, false, "Debug Logging"),
   SCOREBOARD_DESYNC_FIX(FeatureCategory.FIXES, "Scoreboard Desync Fix"),
   REGISTRY_DESYNC_FIX(FeatureCategory.FIXES, "Registry Desync Fix"),
-  BADGER_TASK_HUD(FeatureCategory.GENERAL, "Badger Task HUD"),
+  BADGER_TASK_HUD(FeatureCategory.UI, "Badger Task HUD"),
   ALLAY_ARMS_FIX(FeatureCategory.FIXES, "Allay Arms Fix");
 
   private final FeatureCategory category;
