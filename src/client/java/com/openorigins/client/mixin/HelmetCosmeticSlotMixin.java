@@ -47,8 +47,8 @@ public abstract class HelmetCosmeticSlotMixin {
   protected net.minecraft.world.inventory.Slot hoveredSlot;
 
   @Shadow
-  protected void slotClicked(net.minecraft.world.inventory.Slot slot, int slotId, int buttonNum,
-      net.minecraft.world.inventory.ContainerInput containerInput);
+  protected abstract void slotClicked(net.minecraft.world.inventory.Slot slot, int slotId,
+      int buttonNum, net.minecraft.world.inventory.ContainerInput containerInput);
 
 
   private boolean openorigins$active() {
