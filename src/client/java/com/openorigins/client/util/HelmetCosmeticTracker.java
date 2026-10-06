@@ -71,8 +71,7 @@ public final class HelmetCosmeticTracker {
         lastRealArmor = stack.copy();
         lastRealArmorMs = System.currentTimeMillis();
       }
-      if (!pendingHelmet.isEmpty() && !coolingDown() && !heldAnywhere(pendingHelmet)
-          && !storedAnywhere(pendingHelmet) && !menuHas(pendingHelmet)) {
+      if (!pendingHelmet.isEmpty() && !coolingDown() && absenceMatured()) {
         ItemStack cur = realHelmet;
         if (cur.isEmpty() || !ItemStack.isSameItemSameComponents(cur, pendingHelmet)) {
           com.openorigins.client.util.DebugLog.info("[helmet] commit {} (was {}) gone={}",
@@ -83,6 +82,8 @@ public final class HelmetCosmeticTracker {
         saveHelmet();
         lastCommitMs = System.currentTimeMillis();
         pendingHelmet = ItemStack.EMPTY;
+        pendingAbsentMs = 0;
+        pendingAbsentKey = "";
       }
       if (isFirework(stack)) {
         if (isHeadArmor(prevArmor)) {
@@ -113,7 +114,8 @@ public final class HelmetCosmeticTracker {
           departedHelmet = ItemStack.EMPTY;
           return;
         }
-        if (!departedHelmet.isEmpty() && !coolingDown() && now - departedAt < 3000
+        if (!departedHelmet.isEmpty() && !coolingDown() && now - departedAt > 1500
+            && now - departedAt < 3000
             && !presentAnywhere(departedHelmet)
             && (realHelmet.isEmpty() || !isSameHead(realHelmet, departedHelmet))) {
           ItemStack cur = realHelmet;
@@ -123,8 +125,6 @@ public final class HelmetCosmeticTracker {
           com.openorigins.client.util.DebugLog.info("[helmet] departed-stash {} (was {}) gone={}",
               describe(departedHelmet), cur.isEmpty() ? "<empty>" : describe(cur), goneEverywhere(departedHelmet));
           departedHelmet = ItemStack.EMPTY;
-        } else {
-          diffStashVanished();
         }
       }
     }
@@ -263,7 +263,7 @@ public final class HelmetCosmeticTracker {
   public static void resolvePending() {
     long now = System.currentTimeMillis();
     if (diffBase != null) {
-      if (now - diffAt > 500) {
+      if (now - diffAt > 1500) {
         if (diffFresh) {
           diffStashVanished();
         }
@@ -450,17 +450,18 @@ public final class HelmetCosmeticTracker {
       if (mc != null && mc.player != null) {
         double v = mc.player.getAttributeValue(
             net.minecraft.world.entity.ai.attributes.Attributes.ARMOR);
-        if (!pendingHelmet.isEmpty() && !coolingDown() && lastArmorValue >= 0 && v > lastArmorValue) {
+        if (!pendingHelmet.isEmpty() && !coolingDown() && lastArmorValue >= 0 && v > lastArmorValue
+            && absenceMatured()) {
           net.minecraft.world.item.ItemStack pend = pendingHelmet;
-          if (!heldAnywhere(pend) && !storedAnywhere(pend) && !menuHas(pend)) {
-            ItemStack cur = realHelmet;
-            realHelmet = pend.copy();
-            setTip(pend);
-            lastCommitMs = System.currentTimeMillis();
-            pendingHelmet = ItemStack.EMPTY;
-            com.openorigins.client.util.DebugLog.info("[helmet] attr-commit {} (was {}) gone={}",
-                describe(realHelmet), cur.isEmpty() ? "<empty>" : describe(cur), goneEverywhere(realHelmet));
-          }
+          ItemStack cur = realHelmet;
+          realHelmet = pend.copy();
+          setTip(pend);
+          lastCommitMs = System.currentTimeMillis();
+          pendingHelmet = ItemStack.EMPTY;
+          pendingAbsentMs = 0;
+          pendingAbsentKey = "";
+          com.openorigins.client.util.DebugLog.info("[helmet] attr-commit {} (was {}) gone={}",
+              describe(realHelmet), cur.isEmpty() ? "<empty>" : describe(cur), goneEverywhere(realHelmet));
         }
         lastArmorValue = v;
       }
@@ -473,6 +474,30 @@ public final class HelmetCosmeticTracker {
   private static volatile double lastArmorValue = -1;
   private static volatile boolean bareHead;
   private static volatile long clearCooldownMs;
+  private static String pendingAbsentKey = "";
+  private static volatile long pendingAbsentMs;
+
+  /**
+   * True once the pending helmet has been continuously absent (cursor, hands,
+   * storage, open menus) for over 1.5s. Transit items reappear within a beat;
+   * only true merges stay gone.
+   */
+  private static boolean absenceMatured() {
+    if (pendingHelmet.isEmpty() || heldAnywhere(pendingHelmet)
+        || storedAnywhere(pendingHelmet) || menuHas(pendingHelmet)) {
+      pendingAbsentMs = 0;
+      pendingAbsentKey = "";
+      return false;
+    }
+    String k = keyOf(pendingHelmet);
+    long now = System.currentTimeMillis();
+    if (!k.equals(pendingAbsentKey)) {
+      pendingAbsentKey = k;
+      pendingAbsentMs = now;
+      return false;
+    }
+    return now - pendingAbsentMs > 1500;
+  }
 
   /** Inferential commits (pending/attr/departed/diff) stay quiet briefly after
    *  an explicit clear; hard slot-5 evidence still commits. */
