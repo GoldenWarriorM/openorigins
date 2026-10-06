@@ -27,7 +27,7 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
           }
         }
       }
-      if (category == com.openorigins.client.FeatureCategory.GENERAL) {
+      if (category == com.openorigins.client.FeatureCategory.UI) {
         this.addEntry(new StepperRow(this, "config.openorigins.max_slots",
             "config.openorigins.capacity_hint", 0, 15,
             () -> OpenOriginsConfig.getInstance().getHomeCapacity(),
