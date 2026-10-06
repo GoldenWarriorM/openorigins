@@ -70,7 +70,7 @@ public final class HelmetCosmeticTracker {
         lastRealArmorMs = System.currentTimeMillis();
       }
       if (!pendingHelmet.isEmpty() && !heldAnywhere(pendingHelmet)
-          && !storedAnywhere(pendingHelmet)) {
+          && !storedAnywhere(pendingHelmet) && !menuHas(pendingHelmet)) {
         ItemStack cur = realHelmet;
         if (cur.isEmpty() || !ItemStack.isSameItemSameComponents(cur, pendingHelmet)) {
           com.openorigins.client.util.DebugLog.info("[helmet] commit {} (was {}) gone={}",
@@ -446,7 +446,7 @@ public final class HelmetCosmeticTracker {
             net.minecraft.world.entity.ai.attributes.Attributes.ARMOR);
         if (!pendingHelmet.isEmpty() && lastArmorValue >= 0 && v > lastArmorValue) {
           net.minecraft.world.item.ItemStack pend = pendingHelmet;
-          if (!heldAnywhere(pend) && !storedAnywhere(pend)) {
+          if (!heldAnywhere(pend) && !storedAnywhere(pend) && !menuHas(pend)) {
             ItemStack cur = realHelmet;
             realHelmet = pend.copy();
             setTip(pend);
