@@ -5,7 +5,6 @@ public enum OriginFeature {
   ENHANCED_COSMETICS(FeatureCategory.GENERAL, "Enhanced Cosmetics"),
   SMOOTH_ANIMATIONS(FeatureCategory.GENERAL, "Smooth Animations"),
   BLOCK_ENHANCEMENTS(FeatureCategory.FIXES, "Block Enhancements"),
-  GHOST_BLOCK_FIX(FeatureCategory.FIXES, false, "Ghost Block Fix"),
   BACK_SWAG_SLOT(FeatureCategory.UI, "Back Swag Slot"),
   HELMET_COSMETIC_SLOT(FeatureCategory.UI, "Helmet Cosmetic Slot"),
   EXPAND_MODEL_BOUNDING_BOX(FeatureCategory.GENERAL, "Expand Model Bounding Box"),

@@ -124,12 +124,7 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
     }
 
     private static Component featureTooltip(OriginFeature feature) {
-      Component desc = Component.translatable(feature.getDescriptionKey());
-      if (feature == OriginFeature.GHOST_BLOCK_FIX) {
-        return desc.copy().append("\n").append(Component.translatable("label.openorigins.experimental")
-            .withStyle(net.minecraft.ChatFormatting.YELLOW));
-      }
-      return desc;
+      return Component.translatable(feature.getDescriptionKey());
     }
 
     @Override

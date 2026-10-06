@@ -27,7 +27,6 @@
     "RenderStateTagMixin",
     "NoteBlockFixMixin",
     "TripWireFixMixin",
-    "DigSlowdownMixin",
     "EntityCullingMixin",
     "EntityDistanceMixin",
     "PauseScreenMixin",
