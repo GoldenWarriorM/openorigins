@@ -34,6 +34,10 @@ public abstract class MenuClickMixin {
       } catch (Throwable ignored) {
         preClickItem = ItemStack.EMPTY;
       }
+      if (slotIndex == 5) {
+        com.openorigins.client.util.DebugLog.info("[helmet-click] slot5 {} pre={}",
+            clickType, com.openorigins.client.util.HelmetCosmeticTracker.describe(preClickItem));
+      }
       return;
     }
     try {
