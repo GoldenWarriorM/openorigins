@@ -498,6 +498,55 @@ public final class HelmetCosmeticTracker {
     return false;
   }
 
+  private static String lastSnap = "";
+
+  /** Full-state snapshot for comparing worn vs displayed helmet. Logs on change. */
+  private static void snapState(double armor) {
+    try {
+      net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
+      if (mc == null || mc.player == null) {
+        return;
+      }
+      net.minecraft.world.item.ItemStack slot5 = ItemStack.EMPTY;
+      try {
+        slot5 = mc.player.containerMenu.getSlot(5).getItem();
+      } catch (Throwable ignored) {
+      }
+      net.minecraft.world.item.ItemStack entityHead =
+          mc.player.getItemBySlot(net.minecraft.world.entity.EquipmentSlot.HEAD);
+      StringBuilder lore = new StringBuilder();
+      try {
+        net.minecraft.world.item.component.ItemLore loreComp = slot5.get(
+            net.minecraft.core.component.DataComponents.LORE);
+        if (loreComp != null) {
+          int n = 0;
+          for (net.minecraft.network.chat.Component line : loreComp.lines()) {
+            if (n >= 5) {
+              break;
+            }
+            String s = line.getString().strip().replace('\n', ' ');
+            if (s.isEmpty()) {
+              continue;
+            }
+            if (lore.length() > 0) {
+              lore.append(" | ");
+            }
+            lore.append(s.length() > 40 ? s.substring(0, 40) : s);
+            n++;
+          }
+        }
+      } catch (Throwable ignored) {
+      }
+      String snap = "slot5=" + describe(slot5) + " entity=" + describe(entityHead)
+          + " shown=" + describe(realHelmet) + " armor=" + armor + " lore=[" + lore + "]";
+      if (!snap.equals(lastSnap)) {
+        lastSnap = snap;
+        com.openorigins.client.util.DebugLog.info("[helmet] snap {}", snap);
+      }
+    } catch (Throwable ignored) {
+    }
+  }
+
   /** Periodic cleanup for headless flows (no GUI open). */
   public static void tick() {
     try {
@@ -521,6 +570,7 @@ public final class HelmetCosmeticTracker {
         if (prevArmor >= 0 && v != prevArmor) {
           com.openorigins.client.util.DebugLog.info("[helmet] armor {} -> {}", prevArmor, v);
         }
+        snapState(v);
       }
     } catch (Throwable ignored) {
     }
