@@ -32,6 +32,7 @@
     "PauseScreenMixin",
     "ItemDisplayArmsFixMixin",
     "ItemInHandArmsFixMixin",
+    "StrictRecipeMatchMixin",
   ],
   "injectors": {
     "defaultRequire": 1
