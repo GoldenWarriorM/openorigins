@@ -43,9 +43,9 @@ public final class HelmetCosmeticTracker {
   }
 
   /** Full component signature minus hover name: id + count + sorted components.
-   *  Name-only wobble (glyph prefix flapping) keeps the same signature, while
-   *  a server-side content swap (new hidden-helmet data in lore/components)
-   *  changes it even when id, name and count stay put. */
+   *  Name-only wobble (glyph prefix flapping inside custom_name/item_name) keeps
+   *  the same signature, while a server-side content swap (new hidden-helmet
+   *  data in lore/components) changes it even when id and count stay put. */
   private static String sigNoName(ItemStack stack) {
     if (stack == null || stack.isEmpty()) {
       return "<empty>";
@@ -56,13 +56,22 @@ public final class HelmetCosmeticTracker {
     try {
       java.util.List<String> parts = new java.util.ArrayList<>();
       for (net.minecraft.core.component.DataComponentType<?> type : stack.getComponents().keySet()) {
+        String typeName;
+        try {
+          typeName = type.toString();
+        } catch (Throwable t) {
+          continue;
+        }
+        if (typeName.equals("minecraft:custom_name") || typeName.equals("minecraft:item_name")) {
+          continue;
+        }
         Object value;
         try {
           value = stack.get(type);
         } catch (Throwable t) {
           value = "?";
         }
-        parts.add(type.toString() + "=" + value);
+        parts.add(typeName + "=" + value);
       }
       java.util.Collections.sort(parts);
       for (String part : parts) {
