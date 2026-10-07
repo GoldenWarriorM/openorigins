@@ -587,6 +587,8 @@ public final class HelmetCosmeticTracker {
     }
     equipWatch = moved.copy();
     equipWatchMs = System.currentTimeMillis();
+    com.openorigins.client.util.DebugLog.info("[helmet] equip-watch armed {}",
+        describe(equipWatch));
   }
 
   private static void pollEquipWatch() {
@@ -603,7 +605,7 @@ public final class HelmetCosmeticTracker {
       equipWatch = ItemStack.EMPTY;
       return;
     }
-    if (age < 1200) {
+    if (age < 400) {
       return;
     }
     if (heldAnywhere(equipWatch) || storedAnywhere(equipWatch)) {
