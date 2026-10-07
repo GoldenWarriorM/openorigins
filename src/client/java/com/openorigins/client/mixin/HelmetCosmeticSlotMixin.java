@@ -134,11 +134,11 @@ public abstract class HelmetCosmeticSlotMixin {
     graphics.item(cosmetic, COSMETIC_X, COSMETIC_Y);
     graphics.itemDecorations(Minecraft.getInstance().font, cosmetic, COSMETIC_X, COSMETIC_Y);
     graphics.blitSprite(RenderPipelines.GUI_TEXTURED, SLOT_SPRITE, HELMET_X - 1, HELMET_Y - 1, 18, 18);
-    ItemStack real = HelmetCosmeticTracker.realHelmet();
-    boolean showReal = !real.isEmpty() && !this.openorigins$heldOnCursor();
+    ItemStack shown = HelmetCosmeticTracker.displayHelmet(cosmetic);
+    boolean showReal = !shown.isEmpty() && !this.openorigins$heldOnCursor();
     if (showReal) {
-      graphics.item(real, HELMET_X, HELMET_Y);
-      graphics.itemDecorations(Minecraft.getInstance().font, real, HELMET_X, HELMET_Y);
+      graphics.item(shown, HELMET_X, HELMET_Y);
+      graphics.itemDecorations(Minecraft.getInstance().font, shown, HELMET_X, HELMET_Y);
     } else {
       graphics.blitSprite(RenderPipelines.GUI_TEXTURED, EMPTY_HELMET, HELMET_X, HELMET_Y, 16, 16);
     }
@@ -234,7 +234,9 @@ public abstract class HelmetCosmeticSlotMixin {
       this.openorigins$showTip(graphics, mc, mouseX, mouseY, cosmeticTip);
     }
     if (openorigins$isHoveringHelmet(this, mouseX, mouseY) && !cosmetic.isEmpty()) {
-      java.util.List<net.minecraft.network.chat.Component> tip = HelmetCosmeticTracker.realTip();
+      ItemStack shown = HelmetCosmeticTracker.displayHelmet(cosmetic);
+      java.util.List<net.minecraft.network.chat.Component> tip =
+          HelmetCosmeticTracker.displayTip(mc, cosmetic, shown);
       if (tip != null && !tip.isEmpty()) {
         this.openorigins$showTip(graphics, mc, mouseX, mouseY, tip);
       }

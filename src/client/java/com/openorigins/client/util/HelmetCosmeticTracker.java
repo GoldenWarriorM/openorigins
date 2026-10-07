@@ -547,6 +547,116 @@ public final class HelmetCosmeticTracker {
     }
   }
 
+  /**
+   * Derives the hidden helmet from the worn cosmetic's own lore: a lore line
+   * naming a non-cosmetic head item present in storage. The server keeps this
+   * lore in sync with what is actually hidden, so this needs no snapshots,
+   * no commits and no rollback. Empty when bare or unresolvable.
+   */
+  public static ItemStack matchHidden(ItemStack cosmetic) {
+    if (cosmetic == null || cosmetic.isEmpty()) {
+      return ItemStack.EMPTY;
+    }
+    try {
+      net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
+      if (mc == null || mc.player == null) {
+        return ItemStack.EMPTY;
+      }
+      net.minecraft.world.item.component.ItemLore loreComp = cosmetic.get(
+          net.minecraft.core.component.DataComponents.LORE);
+      if (loreComp == null || loreComp.lines().isEmpty()) {
+        return ItemStack.EMPTY;
+      }
+      String selfName;
+      try {
+        selfName = com.openorigins.client.util.CosmeticCatalogCache.normName(
+            cosmetic.getHoverName().getString());
+      } catch (Throwable t) {
+        selfName = "";
+      }
+      java.util.List<String> lines = new java.util.ArrayList<>();
+      for (net.minecraft.network.chat.Component line : loreComp.lines()) {
+        String norm;
+        try {
+          norm = com.openorigins.client.util.CosmeticCatalogCache.normName(line.getString());
+        } catch (Throwable t) {
+          continue;
+        }
+        if (norm.isEmpty() || norm.equalsIgnoreCase(selfName)) {
+          continue;
+        }
+        lines.add(norm);
+      }
+      if (lines.isEmpty()) {
+        return ItemStack.EMPTY;
+      }
+      for (ItemStack st : mc.player.getInventory().getNonEquipmentItems()) {
+        if (st == null || st.isEmpty() || isCosmetic(st)) {
+          continue;
+        }
+        boolean head;
+        try {
+          head = mc.player.getEquipmentSlotForItem(st)
+              == net.minecraft.world.entity.EquipmentSlot.HEAD;
+        } catch (Throwable t) {
+          head = false;
+        }
+        if (!head) {
+          continue;
+        }
+        String have;
+        try {
+          have = com.openorigins.client.util.CosmeticCatalogCache.normName(
+              st.getHoverName().getString());
+        } catch (Throwable t) {
+          continue;
+        }
+        for (String want : lines) {
+          if (have.equalsIgnoreCase(want)) {
+            return st.copy();
+          }
+        }
+      }
+    } catch (Throwable ignored) {
+    }
+    return ItemStack.EMPTY;
+  }
+
+  /** What the helmet slot should display under a worn cosmetic. */
+  public static ItemStack displayHelmet(ItemStack cosmetic) {
+    if (cosmetic == null || cosmetic.isEmpty()) {
+      return ItemStack.EMPTY;
+    }
+    ItemStack hidden = matchHidden(cosmetic);
+    if (!hidden.isEmpty()) {
+      return hidden;
+    }
+    ItemStack cur = realHelmet();
+    if (!cur.isEmpty() && !heldAnywhere(cur) && !storedAnywhere(cur) && !menuHas(cur)) {
+      return cur;
+    }
+    return ItemStack.EMPTY;
+  }
+
+  /** Tooltip for whatever displayHelmet chose. */
+  public static java.util.List<net.minecraft.network.chat.Component> displayTip(
+      net.minecraft.client.Minecraft mc, ItemStack cosmetic, ItemStack shown) {
+    if (shown == null || shown.isEmpty() || mc == null) {
+      return java.util.Collections.emptyList();
+    }
+    ItemStack cur = realHelmet();
+    if (!cur.isEmpty() && ItemStack.isSameItemSameComponents(cur, shown)
+        && realTip != null && !realTip.isEmpty()) {
+      return realTip;
+    }
+    try {
+      return new java.util.ArrayList<>(
+          net.minecraft.client.gui.screens.Screen.getTooltipFromItem(mc, shown));
+    } catch (Throwable ignored) {
+      return java.util.Collections.emptyList();
+    }
+  }
+
   /** Periodic cleanup for headless flows (no GUI open). */
   public static void tick() {
     try {
