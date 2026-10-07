@@ -681,6 +681,14 @@ public final class HelmetCosmeticTracker {
           com.openorigins.client.util.DebugLog.info("[helmet] armor {} -> {}", prevArmor, v);
         }
         snapState(v);
+        try {
+          net.minecraft.world.item.ItemStack carried = mc.player.containerMenu.getCarried();
+          if (!pendingHelmet.isEmpty() || (carried != null && !carried.isEmpty())) {
+            com.openorigins.client.util.DebugLog.info("[helmet] tick pending={} cursor={}",
+                describe(pendingHelmet), describe(carried));
+          }
+        } catch (Throwable ignored) {
+        }
       }
     } catch (Throwable ignored) {
     }
