@@ -472,6 +472,32 @@ public final class HelmetCosmeticTracker {
     checkOptimistic();
     pollEquipWatch();
     resolvePending();
+    checkEntityHead();
+  }
+
+  private static String lastHeadPair = "";
+
+  /** Compares entity head equipment (paperdoll truth) vs container slot 5. */
+  public static void checkEntityHead() {
+    try {
+      net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
+      if (mc == null || mc.player == null) {
+        return;
+      }
+      net.minecraft.world.item.ItemStack entityHead =
+          mc.player.getItemBySlot(net.minecraft.world.entity.EquipmentSlot.HEAD);
+      net.minecraft.world.item.ItemStack slot5 = ItemStack.EMPTY;
+      try {
+        slot5 = mc.player.containerMenu.getSlot(5).getItem();
+      } catch (Throwable ignored) {
+      }
+      String pair = describe(entityHead) + " | " + describe(slot5);
+      if (!pair.equals(lastHeadPair)) {
+        lastHeadPair = pair;
+        com.openorigins.client.util.DebugLog.info("[helmet] entity-head vs slot5: {}", pair);
+      }
+    } catch (Throwable ignored) {
+    }
   }
 
   private static volatile double lastArmorValue = -1;
