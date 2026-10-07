@@ -25,6 +25,8 @@ public final class HelmetCosmeticTracker {
   private static volatile ItemStack lastRealArmor = ItemStack.EMPTY;
   private static volatile long lastRealArmorMs;
   private static volatile boolean diffFresh;
+  private static volatile ItemStack equipWatch = ItemStack.EMPTY;
+  private static volatile long equipWatchMs;
   private static volatile boolean everNonEmptyArmor;
   private static volatile net.minecraft.world.entity.player.Player lastPlayer;
   private static volatile long lastArmorChangeMs;
@@ -464,6 +466,7 @@ public final class HelmetCosmeticTracker {
     } catch (Throwable ignored) {
     }
     checkOptimistic();
+    pollEquipWatch();
     resolvePending();
   }
 
@@ -551,12 +554,78 @@ public final class HelmetCosmeticTracker {
         describe(moved), cur.isEmpty() ? "<empty>" : describe(cur), goneEverywhere(moved));
   }
 
-  /** Called periodically: rolls back unconfirmed optimistic writes. */
+  /**
+   * Arms a short watcher after a shift-click that looked like equipping a
+   * helmet while the head slot stayed covered: vanilla prediction cannot show
+   * it, so commit once the item stays gone (server merged it invisibly).
+   * Never commits while the item is still reachable. Disarms silently.
+   */
+  public static void armEquipWatch(ItemStack moved, ItemStack armorNow, int slotIndex,
+      net.minecraft.world.inventory.ContainerInput clickType) {
+    if (clickType != net.minecraft.world.inventory.ContainerInput.QUICK_MOVE
+        || slotIndex == 5) {
+      return;
+    }
+    if (moved == null || moved.isEmpty() || isCosmetic(moved)) {
+      return;
+    }
+    net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
+    if (mc == null || mc.player == null) {
+      return;
+    }
+    try {
+      if (mc.player.getEquipmentSlotForItem(moved)
+          != net.minecraft.world.entity.EquipmentSlot.HEAD) {
+        return;
+      }
+    } catch (Throwable t) {
+      return;
+    }
+    if (armorNow != null && !armorNow.isEmpty()
+        && ItemStack.isSameItemSameComponents(moved, armorNow)) {
+      return;
+    }
+    equipWatch = moved.copy();
+    equipWatchMs = System.currentTimeMillis();
+  }
+
+  private static void pollEquipWatch() {
+    if (equipWatch.isEmpty()) {
+      return;
+    }
+    net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
+    if (mc == null || mc.player == null) {
+      equipWatch = ItemStack.EMPTY;
+      return;
+    }
+    long age = System.currentTimeMillis() - equipWatchMs;
+    if (age > 5000) {
+      equipWatch = ItemStack.EMPTY;
+      return;
+    }
+    if (age < 1200) {
+      return;
+    }
+    if (heldAnywhere(equipWatch) || storedAnywhere(equipWatch)) {
+      return;
+    }
+    ItemStack cur = realHelmet;
+    realHelmet = equipWatch.copy();
+    setTip(equipWatch);
+    saveHelmet();
+    lastCommitMs = System.currentTimeMillis();
+    optimisticMs = lastCommitMs;
+    com.openorigins.client.util.DebugLog.info("[helmet] equip-commit {} (was {})",
+        describe(realHelmet), cur.isEmpty() ? "<empty>" : describe(cur));
+    equipWatch = ItemStack.EMPTY;
+  }
+
+  /** Called periodically: rolls back optimistic writes the player still holds. */
   public static void checkOptimistic() {
-    if (optimisticMs > 0 && System.currentTimeMillis() - optimisticMs > 3000
-        && lastArmorChangeMs < optimisticMs) {
+    if (optimisticMs > 0 && !realHelmet.isEmpty()
+        && (heldAnywhere(realHelmet) || storedAnywhere(realHelmet))) {
       optimisticMs = -1;
-      com.openorigins.client.util.DebugLog.info("[helmet] optimistic rollback, dropping {}",
+      com.openorigins.client.util.DebugLog.info("[helmet] optimistic rollback, reappeared {}",
           describe(realHelmet));
       clearLocal();
     }

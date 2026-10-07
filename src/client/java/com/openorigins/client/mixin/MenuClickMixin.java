@@ -95,6 +95,8 @@ public abstract class MenuClickMixin {
           || !ItemStack.isSameItemSameComponents(pre, post))) {
         com.openorigins.client.util.HelmetCosmeticTracker.optimisticEquipFrom(pre, armor5);
       }
+      com.openorigins.client.util.HelmetCosmeticTracker.armEquipWatch(pre, armor5, slotIndex,
+          clickType);
     } catch (Throwable ignored) {
     }
   }
