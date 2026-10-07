@@ -308,7 +308,9 @@ public final class HelmetCosmeticTracker {
     if (isStashedReal(stack)) {
       com.openorigins.client.util.DebugLog.info("[helmet] linked picked up, clearing {}",
           describe(realHelmet));
-      clear();
+      // Memory only: the disk snapshot stays as last good state. Picking up a
+      // same-looking spare must not wipe what a relogin would restore.
+      clearLocal();
     }
   }
 
