@@ -42,6 +42,40 @@ public final class HelmetCosmeticTracker {
     return describe(stack);
   }
 
+  /** Full component signature minus hover name: id + count + sorted components.
+   *  Name-only wobble (glyph prefix flapping) keeps the same signature, while
+   *  a server-side content swap (new hidden-helmet data in lore/components)
+   *  changes it even when id, name and count stay put. */
+  private static String sigNoName(ItemStack stack) {
+    if (stack == null || stack.isEmpty()) {
+      return "<empty>";
+    }
+    StringBuilder sb = new StringBuilder(
+        net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(stack.getItem()).toString());
+    sb.append('#').append(stack.getCount()).append('#');
+    try {
+      java.util.List<String> parts = new java.util.ArrayList<>();
+      for (net.minecraft.core.component.DataComponentType<?> type : stack.getComponents().keySet()) {
+        Object value;
+        try {
+          value = stack.get(type);
+        } catch (Throwable t) {
+          value = "?";
+        }
+        parts.add(type.toString() + "=" + value);
+      }
+      java.util.Collections.sort(parts);
+      for (String part : parts) {
+        sb.append(part).append(';');
+      }
+    } catch (Throwable ignored) {
+    }
+    return sb.toString();
+  }
+
+  private static volatile String lastArmorSig = null;
+  private static volatile long lastSwapMs;
+
   /** Called on every armor-slot-5 server sync. */
   public static void noteArmor(ItemStack stack) {    try {
       net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
@@ -49,6 +83,7 @@ public final class HelmetCosmeticTracker {
         lastPlayer = mc.player;
         everNonEmptyArmor = false;
         lastArmorKey = "";
+        lastArmorSig = null;
       }
     } catch (Throwable ignored) {
     }
@@ -56,6 +91,16 @@ public final class HelmetCosmeticTracker {
       everNonEmptyArmor = true;
     }
     String k = keyOf(stack);
+    String sig = sigNoName(stack);
+    if (!sig.equals(lastArmorSig)) {
+      boolean first = lastArmorSig == null;
+      lastArmorSig = sig;
+      if (!first) {
+        lastSwapMs = System.currentTimeMillis();
+        com.openorigins.client.util.DebugLog.info("[helmet] swap sig {}",
+            stack == null || stack.isEmpty() ? "<empty>" : describe(stack));
+      }
+    }
     if (!k.equals(lastArmorKey)) {
       ItemStack prevArmor = lastArmorStack;
       lastArmorStack = stack == null ? ItemStack.EMPTY : stack.copy();
@@ -102,7 +147,8 @@ public final class HelmetCosmeticTracker {
         // promote vanished storage heads; re-sync wobble must not.
         long now = System.currentTimeMillis();
         boolean freshCover = isHeadArmor(prevArmor)
-            || (lastRealArmorMs > 0 && now - lastRealArmorMs < 5000);
+            || (lastRealArmorMs > 0 && now - lastRealArmorMs < 5000)
+            || (now - lastSwapMs < 5000);
         diffFresh = freshCover;
         if (!freshCover) {
           departedHelmet = ItemStack.EMPTY;
