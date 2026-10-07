@@ -107,8 +107,6 @@ public abstract class ContainerSyncMixin {
     if (packet.getContainerId() == 0) {
       com.openorigins.client.util.HelmetCosmeticTracker.noteInvSlot(packet.getSlot(), packet.getItem());
       if (packet.getSlot() == 5) {
-        com.openorigins.client.util.DebugLog.info("[helmet] slot5 sync {}",
-            com.openorigins.client.util.HelmetCosmeticTracker.describe(packet.getItem()));
         noteArmor(packet.getItem());
       }
     }
@@ -130,7 +128,5 @@ public abstract class ContainerSyncMixin {
       net.minecraft.network.protocol.game.ClientboundSetCursorItemPacket packet, CallbackInfo ci) {
     com.openorigins.client.util.HelmetCosmeticTracker.offerReal(packet.contents(), true);
     com.openorigins.client.util.HelmetCosmeticTracker.noteCursor(packet.contents());
-    com.openorigins.client.util.DebugLog.info("[helmet] cursor <- {}",
-        com.openorigins.client.util.HelmetCosmeticTracker.describe(packet.contents()));
   }
 }

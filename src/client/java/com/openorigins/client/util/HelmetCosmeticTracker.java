@@ -107,8 +107,6 @@ public final class HelmetCosmeticTracker {
       lastArmorSig = sig;
       if (!first) {
         lastSwapMs = System.currentTimeMillis();
-        com.openorigins.client.util.DebugLog.info("[helmet] swap sig {}",
-            stack == null || stack.isEmpty() ? "<empty>" : describe(stack));
       }
     }
     if (!k.equals(lastArmorKey)) {
@@ -502,55 +500,6 @@ public final class HelmetCosmeticTracker {
     return false;
   }
 
-  private static String lastSnap = "";
-
-  /** Full-state snapshot for comparing worn vs displayed helmet. Logs on change. */
-  private static void snapState(double armor) {
-    try {
-      net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
-      if (mc == null || mc.player == null) {
-        return;
-      }
-      net.minecraft.world.item.ItemStack slot5 = ItemStack.EMPTY;
-      try {
-        slot5 = mc.player.containerMenu.getSlot(5).getItem();
-      } catch (Throwable ignored) {
-      }
-      net.minecraft.world.item.ItemStack entityHead =
-          mc.player.getItemBySlot(net.minecraft.world.entity.EquipmentSlot.HEAD);
-      StringBuilder lore = new StringBuilder();
-      try {
-        net.minecraft.world.item.component.ItemLore loreComp = slot5.get(
-            net.minecraft.core.component.DataComponents.LORE);
-        if (loreComp != null) {
-          int n = 0;
-          for (net.minecraft.network.chat.Component line : loreComp.lines()) {
-            if (n >= 5) {
-              break;
-            }
-            String s = line.getString().strip().replace('\n', ' ');
-            if (s.isEmpty()) {
-              continue;
-            }
-            if (lore.length() > 0) {
-              lore.append(" | ");
-            }
-            lore.append(s.length() > 40 ? s.substring(0, 40) : s);
-            n++;
-          }
-        }
-      } catch (Throwable ignored) {
-      }
-      String snap = "slot5=" + describe(slot5) + " entity=" + describe(entityHead)
-          + " shown=" + describe(displayHelmet(slot5)) + " armor=" + armor + " lore=[" + lore + "]";
-      if (!snap.equals(lastSnap)) {
-        lastSnap = snap;
-        com.openorigins.client.util.DebugLog.info("[helmet] snap {}", snap);
-      }
-    } catch (Throwable ignored) {
-    }
-  }
-
   /**
    * Derives the hidden helmet from the worn cosmetic's own lore: a lore line
    * naming a non-cosmetic head item present in storage. The server keeps this
@@ -615,7 +564,6 @@ public final class HelmetCosmeticTracker {
         candidates.add(mc.player.getOffhandItem());
       } catch (Throwable ignored) {
       }
-      StringBuilder dbg = new StringBuilder();
       for (ItemStack st : candidates) {
         if (st == null || st.isEmpty() || isCosmetic(st)) {
           continue;
@@ -637,19 +585,12 @@ public final class HelmetCosmeticTracker {
         } catch (Throwable t) {
           continue;
         }
-        if (dbg.length() < 200) {
-          if (dbg.length() > 0) {
-            dbg.append(", ");
-          }
-          dbg.append(have);
-        }
         for (String want : wants) {
           if (have.equalsIgnoreCase(want)) {
             return st.copy();
           }
         }
       }
-      String missKey = wants.toString();
       for (String want : wants) {
         ItemStack cached = SEEN_HEADS.get(want);
         if (cached == null) {
@@ -661,26 +602,13 @@ public final class HelmetCosmeticTracker {
           }
         }
         if (cached != null && !cached.isEmpty()) {
-          if (!loggedCacheKey.equals(missKey)) {
-            loggedCacheKey = missKey;
-            com.openorigins.client.util.DebugLog.info("[helmet] cache-hit {}",
-                describe(cached));
-          }
           return cached.copy();
         }
-      }
-      if (!loggedMissKey.equals(missKey)) {
-        loggedMissKey = missKey;
-        com.openorigins.client.util.DebugLog.info("[helmet] match-miss wants={} cands=[{}]",
-            missKey, dbg);
       }
     } catch (Throwable ignored) {
     }
     return ItemStack.EMPTY;
   }
-
-  private static String loggedMissKey = "";
-  private static String loggedCacheKey = "";
 
   /** Every head-armor stack ever seen (storage syncs, cursor, hands, worn):
    *  fallback source when the lore-named helmet has no reachable copy
@@ -794,57 +722,13 @@ public final class HelmetCosmeticTracker {
           com.openorigins.client.util.DebugLog.info("[helmet] attr-commit {} (was {}) gone={}",
               describe(realHelmet), cur.isEmpty() ? "<empty>" : describe(cur), goneEverywhere(realHelmet));
         }
-        double prevArmor = lastArmorValue;
         lastArmorValue = v;
-        if (prevArmor >= 0 && v != prevArmor) {
-          com.openorigins.client.util.DebugLog.info("[helmet] armor {} -> {}", prevArmor, v);
-        }
-        snapState(v);
-        try {
-          net.minecraft.world.item.ItemStack carried = mc.player.containerMenu.getCarried();
-          if (!pendingHelmet.isEmpty() || (carried != null && !carried.isEmpty())) {
-            net.minecraft.world.item.ItemStack hand = ItemStack.EMPTY;
-            try {
-              hand = mc.player.getMainHandItem();
-            } catch (Throwable ignored) {
-            }
-            com.openorigins.client.util.DebugLog.info("[helmet] tick pending={} cursor={} hand={}",
-                describe(pendingHelmet), describe(carried), describe(hand));
-          }
-        } catch (Throwable ignored) {
-        }
       }
     } catch (Throwable ignored) {
     }
     checkOptimistic();
     pollEquipWatch();
     resolvePending();
-    checkEntityHead();
-  }
-
-  private static String lastHeadPair = "";
-
-  /** Compares entity head equipment (paperdoll truth) vs container slot 5. */
-  public static void checkEntityHead() {
-    try {
-      net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
-      if (mc == null || mc.player == null) {
-        return;
-      }
-      net.minecraft.world.item.ItemStack entityHead =
-          mc.player.getItemBySlot(net.minecraft.world.entity.EquipmentSlot.HEAD);
-      net.minecraft.world.item.ItemStack slot5 = ItemStack.EMPTY;
-      try {
-        slot5 = mc.player.containerMenu.getSlot(5).getItem();
-      } catch (Throwable ignored) {
-      }
-      String pair = describe(entityHead) + " | " + describe(slot5);
-      if (!pair.equals(lastHeadPair)) {
-        lastHeadPair = pair;
-        com.openorigins.client.util.DebugLog.info("[helmet] entity-head vs slot5: {}", pair);
-      }
-    } catch (Throwable ignored) {
-    }
   }
 
   private static volatile double lastArmorValue = -1;
