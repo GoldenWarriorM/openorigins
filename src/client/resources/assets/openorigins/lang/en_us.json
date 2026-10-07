@@ -74,7 +74,7 @@
   "feature.openorigins.helmet_cosmetic_slot.desc": "Shows helmet cosmetic in a separate slot, real helmet in the helmet slot.",
   "feature.openorigins.helmet_cosmetic_slot.hint": "If the helmet is missing or wrong, take the item off and put it back on.",
   "feature.openorigins.strict_recipe_match.desc": "Strict recipe-book matching for custom items.",
-  "feature.openorigins.strict_recipe_match.hint": "Custom-component stacks never count as ingredients. Removes false positives (banana box as paper) but hides legitimate custom-ingredient crafts.",
+  "feature.openorigins.strict_recipe_match.hint": "Custom items only satisfy matching custom inputs (by polymer id). Removes false positives (banana box as paper) but may hide crafts the server would accept.",
   "hud.openorigins.badger_task": "Badger Task (streak %s)",
   "hud.openorigins.badger_timeleft": "Time left: %s",
   "hud.openorigins.badger_reset": "Streak resets in %sd"
