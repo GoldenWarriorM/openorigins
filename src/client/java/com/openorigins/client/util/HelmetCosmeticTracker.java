@@ -603,6 +603,7 @@ public final class HelmetCosmeticTracker {
         candidates.add(mc.player.getOffhandItem());
       } catch (Throwable ignored) {
       }
+      StringBuilder dbg = new StringBuilder();
       for (ItemStack st : candidates) {
         if (st == null || st.isEmpty() || isCosmetic(st)) {
           continue;
@@ -624,16 +625,30 @@ public final class HelmetCosmeticTracker {
         } catch (Throwable t) {
           continue;
         }
+        if (dbg.length() < 200) {
+          if (dbg.length() > 0) {
+            dbg.append(", ");
+          }
+          dbg.append(have);
+        }
         for (String want : lines) {
           if (have.equalsIgnoreCase(want)) {
             return st.copy();
           }
         }
       }
+      String missKey = lines.toString();
+      if (!loggedMissKey.equals(missKey)) {
+        loggedMissKey = missKey;
+        com.openorigins.client.util.DebugLog.info("[helmet] match-miss wants={} cands=[{}]",
+            missKey, dbg);
+      }
     } catch (Throwable ignored) {
     }
     return ItemStack.EMPTY;
   }
+
+  private static String loggedMissKey = "";
 
   /** What the helmet slot should display under a worn cosmetic. */
   public static ItemStack displayHelmet(ItemStack cosmetic) {
