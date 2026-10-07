@@ -658,7 +658,9 @@ public final class HelmetCosmeticTracker {
 
   private static String loggedMissKey = "";
 
-  /** What the helmet slot should display under a worn cosmetic. */
+  /** What the helmet slot should display under a worn cosmetic: a lore-matched
+   *  copy, a lore-corroborated snapshot, a legacy snapshot nothing contradicts,
+   *  else empty. The cosmetic itself is never shown here. */
   public static ItemStack displayHelmet(ItemStack cosmetic) {
     if (cosmetic == null || cosmetic.isEmpty()) {
       return ItemStack.EMPTY;
@@ -670,32 +672,25 @@ public final class HelmetCosmeticTracker {
     }
     ItemStack cur = realHelmet();
     if (cur.isEmpty()) {
-      return cosmetic;
+      return ItemStack.EMPTY;
     }
     if (!wants.isEmpty()) {
-      // Lore names a merged helmet with no reachable copy: a stale snapshot
-      // must not paint over it, show the dirty cosmetic instead.
-      boolean stale = true;
       try {
         String have = com.openorigins.client.util.CosmeticCatalogCache.normName(
             cur.getHoverName().getString());
         for (String want : wants) {
           if (have.equalsIgnoreCase(want)) {
-            stale = false;
-            break;
+            return cur;
           }
         }
       } catch (Throwable ignored) {
       }
-      if (stale) {
-        return cosmetic;
-      }
-      return cur;
+      return ItemStack.EMPTY;
     }
     if (!heldAnywhere(cur) && !storedAnywhere(cur) && !menuHas(cur)) {
       return cur;
     }
-    return cosmetic;
+    return ItemStack.EMPTY;
   }
 
   /** Tooltip for whatever displayHelmet chose. */
