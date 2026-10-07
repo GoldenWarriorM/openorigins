@@ -93,6 +93,7 @@ public final class HelmetCosmeticTracker {
         everNonEmptyArmor = false;
         lastArmorKey = "";
         lastArmorSig = null;
+        SEEN_HEADS.clear();
       }
     } catch (Throwable ignored) {
     }
@@ -194,6 +195,7 @@ public final class HelmetCosmeticTracker {
     ItemStack old = INV_HEADS.get(menuSlot);
     if (isHeadArmor(stack)) {
       INV_HEADS.put(menuSlot, stack.copy());
+      noteSeen(stack);
     } else {
       INV_HEADS.remove(menuSlot);
     }
@@ -367,6 +369,7 @@ public final class HelmetCosmeticTracker {
     if (slot != net.minecraft.world.entity.EquipmentSlot.HEAD) {
       return;
     }
+    noteSeen(stack);
     if (provisional) {
       pendingHelmet = stack.copy();
       pendingAt = System.currentTimeMillis();
@@ -645,6 +648,25 @@ public final class HelmetCosmeticTracker {
         }
       }
       String missKey = wants.toString();
+      for (String want : wants) {
+        ItemStack cached = SEEN_HEADS.get(want);
+        if (cached == null) {
+          for (java.util.Map.Entry<String, ItemStack> e : SEEN_HEADS.entrySet()) {
+            if (e.getKey().equalsIgnoreCase(want)) {
+              cached = e.getValue();
+              break;
+            }
+          }
+        }
+        if (cached != null && !cached.isEmpty()) {
+          if (!loggedCacheKey.equals(missKey)) {
+            loggedCacheKey = missKey;
+            com.openorigins.client.util.DebugLog.info("[helmet] cache-hit {}",
+                describe(cached));
+          }
+          return cached.copy();
+        }
+      }
       if (!loggedMissKey.equals(missKey)) {
         loggedMissKey = missKey;
         com.openorigins.client.util.DebugLog.info("[helmet] match-miss wants={} cands=[{}]",
@@ -656,6 +678,47 @@ public final class HelmetCosmeticTracker {
   }
 
   private static String loggedMissKey = "";
+  private static String loggedCacheKey = "";
+
+  /** Every head-armor stack ever seen (storage syncs, cursor, hands, worn):
+   *  fallback source when the lore-named helmet has no reachable copy
+   *  (truly merged on the server side). */
+  private static final java.util.Map<String, ItemStack> SEEN_HEADS =
+      new java.util.concurrent.ConcurrentHashMap<>();
+
+  private static void noteSeen(ItemStack stack) {
+    if (stack == null || stack.isEmpty() || isCosmetic(stack)) {
+      return;
+    }
+    try {
+      net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
+      if (mc == null || mc.player == null) {
+        return;
+      }
+      if (mc.player.getEquipmentSlotForItem(stack)
+          != net.minecraft.world.entity.EquipmentSlot.HEAD) {
+        return;
+      }
+      String key;
+      try {
+        key = com.openorigins.client.util.CosmeticCatalogCache.normName(
+            stack.getHoverName().getString());
+      } catch (Throwable t) {
+        return;
+      }
+      if (key.isEmpty()) {
+        return;
+      }
+      ItemStack prev = SEEN_HEADS.get(key);
+      if (prev == null || !ItemStack.isSameItemSameComponents(prev, stack)) {
+        if (SEEN_HEADS.size() > 32) {
+          SEEN_HEADS.clear();
+        }
+        SEEN_HEADS.put(key, stack.copy());
+      }
+    } catch (Throwable ignored) {
+    }
+  }
 
   /** What the helmet slot should display under a worn cosmetic: a lore-matched
    *  copy, a lore-corroborated snapshot, a legacy snapshot nothing contradicts,
