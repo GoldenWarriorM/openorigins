@@ -590,7 +590,20 @@ public final class HelmetCosmeticTracker {
       if (lines.isEmpty()) {
         return ItemStack.EMPTY;
       }
+      java.util.List<ItemStack> candidates = new java.util.ArrayList<>();
       for (ItemStack st : mc.player.getInventory().getNonEquipmentItems()) {
+        candidates.add(st);
+      }
+      try {
+        candidates.add(mc.player.containerMenu.getCarried());
+      } catch (Throwable ignored) {
+      }
+      try {
+        candidates.add(mc.player.getMainHandItem());
+        candidates.add(mc.player.getOffhandItem());
+      } catch (Throwable ignored) {
+      }
+      for (ItemStack st : candidates) {
         if (st == null || st.isEmpty() || isCosmetic(st)) {
           continue;
         }
