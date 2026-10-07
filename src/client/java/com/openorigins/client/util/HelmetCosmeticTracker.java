@@ -258,8 +258,7 @@ public final class HelmetCosmeticTracker {
       if (mc == null || mc.player == null) {
         return true;
       }
-      if (isStashedReal(mc.player.containerMenu.getCarried())
-          && ItemStack.isSameItemSameComponents(stack, mc.player.containerMenu.getCarried())) {
+      if (ItemStack.isSameItemSameComponents(stack, mc.player.containerMenu.getCarried())) {
         return true;
       }
       net.minecraft.world.entity.player.Inventory inv = mc.player.getInventory();
