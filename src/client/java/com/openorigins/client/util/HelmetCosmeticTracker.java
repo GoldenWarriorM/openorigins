@@ -538,7 +538,7 @@ public final class HelmetCosmeticTracker {
       } catch (Throwable ignored) {
       }
       String snap = "slot5=" + describe(slot5) + " entity=" + describe(entityHead)
-          + " shown=" + describe(realHelmet) + " armor=" + armor + " lore=[" + lore + "]";
+          + " shown=" + describe(displayHelmet(slot5)) + " armor=" + armor + " lore=[" + lore + "]";
       if (!snap.equals(lastSnap)) {
         lastSnap = snap;
         com.openorigins.client.util.DebugLog.info("[helmet] snap {}", snap);
