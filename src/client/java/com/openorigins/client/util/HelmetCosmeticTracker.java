@@ -461,7 +461,11 @@ public final class HelmetCosmeticTracker {
           com.openorigins.client.util.DebugLog.info("[helmet] attr-commit {} (was {}) gone={}",
               describe(realHelmet), cur.isEmpty() ? "<empty>" : describe(cur), goneEverywhere(realHelmet));
         }
+        double prevArmor = lastArmorValue;
         lastArmorValue = v;
+        if (prevArmor >= 0 && v != prevArmor) {
+          com.openorigins.client.util.DebugLog.info("[helmet] armor {} -> {}", prevArmor, v);
+        }
       }
     } catch (Throwable ignored) {
     }
@@ -608,7 +612,7 @@ public final class HelmetCosmeticTracker {
     if (age < 400) {
       return;
     }
-    if (heldAnywhere(equipWatch) || storedAnywhere(equipWatch)) {
+    if (heldAnywhere(equipWatch) || storedAnywhere(equipWatch) || menuHas(equipWatch)) {
       return;
     }
     ItemStack cur = realHelmet;
