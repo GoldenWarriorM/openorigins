@@ -63,9 +63,32 @@ public final class CosmeticCatalogCache {
     return (lines == null || lines.isEmpty()) ? null : lines;
   }
 
+  /** Market listings (/ah etc.) carry cosmetic-looking lore plus price/seller
+   *  lines — never learn memos from those, they poison real descriptions. */
+  private static boolean isMarketLore(ItemStack stack) {
+    try {
+      net.minecraft.world.item.component.ItemLore lore = stack.get(
+          net.minecraft.core.component.DataComponents.LORE);
+      if (lore == null) {
+        return false;
+      }
+      for (net.minecraft.network.chat.Component line : lore.lines()) {
+        String s = line.getString().toLowerCase(java.util.Locale.ROOT);
+        if (s.contains("price:") || s.contains("seller:")
+            || s.contains("time left") || s.contains("redeem this")
+            || s.contains("starting bid") || s.contains("current bid")
+            || s.contains("top bid") || s.contains("buy now")) {
+          return true;
+        }
+      }
+    } catch (Throwable ignored) {
+    }
+    return false;
+  }
+
   /** Stores a clean snapshot, e.g. captured at equip-click time. */
   public static void putClean(ItemStack stack) {
-    if (stack == null || stack.isEmpty()) {
+    if (stack == null || stack.isEmpty() || isMarketLore(stack)) {
       return;
     }
     ItemLore lore = stack.get(DataComponents.LORE);
@@ -218,7 +241,7 @@ public final class CosmeticCatalogCache {
       }
       ItemStack stack = slot.getItem();
       ItemLore lore = stack.get(DataComponents.LORE);
-      if (lore == null || lore.lines().isEmpty()) {
+      if (lore == null || lore.lines().isEmpty() || isMarketLore(stack)) {
         continue;
       }
       boolean catalog = false;
