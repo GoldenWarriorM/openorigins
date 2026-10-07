@@ -553,19 +553,17 @@ public final class HelmetCosmeticTracker {
    * lore in sync with what is actually hidden, so this needs no snapshots,
    * no commits and no rollback. Empty when bare or unresolvable.
    */
-  public static ItemStack matchHidden(ItemStack cosmetic) {
+  /** Lore names that look like a hidden helmet (excluding the cosmetic itself). */
+  private static java.util.List<String> hiddenWants(ItemStack cosmetic) {
+    java.util.List<String> wants = new java.util.ArrayList<>();
     if (cosmetic == null || cosmetic.isEmpty()) {
-      return ItemStack.EMPTY;
+      return wants;
     }
     try {
-      net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
-      if (mc == null || mc.player == null) {
-        return ItemStack.EMPTY;
-      }
       net.minecraft.world.item.component.ItemLore loreComp = cosmetic.get(
           net.minecraft.core.component.DataComponents.LORE);
-      if (loreComp == null || loreComp.lines().isEmpty()) {
-        return ItemStack.EMPTY;
+      if (loreComp == null) {
+        return wants;
       }
       String selfName;
       try {
@@ -574,7 +572,6 @@ public final class HelmetCosmeticTracker {
       } catch (Throwable t) {
         selfName = "";
       }
-      java.util.List<String> lines = new java.util.ArrayList<>();
       for (net.minecraft.network.chat.Component line : loreComp.lines()) {
         String norm;
         try {
@@ -582,12 +579,23 @@ public final class HelmetCosmeticTracker {
         } catch (Throwable t) {
           continue;
         }
-        if (norm.isEmpty() || norm.equalsIgnoreCase(selfName)) {
+        if (norm.isEmpty() || norm.equalsIgnoreCase(selfName) || wants.contains(norm)) {
           continue;
         }
-        lines.add(norm);
+        wants.add(norm);
       }
-      if (lines.isEmpty()) {
+    } catch (Throwable ignored) {
+    }
+    return wants;
+  }
+
+  private static ItemStack matchHidden(ItemStack cosmetic, java.util.List<String> wants) {
+    if (wants.isEmpty()) {
+      return ItemStack.EMPTY;
+    }
+    try {
+      net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
+      if (mc == null || mc.player == null) {
         return ItemStack.EMPTY;
       }
       java.util.List<ItemStack> candidates = new java.util.ArrayList<>();
@@ -631,13 +639,13 @@ public final class HelmetCosmeticTracker {
           }
           dbg.append(have);
         }
-        for (String want : lines) {
+        for (String want : wants) {
           if (have.equalsIgnoreCase(want)) {
             return st.copy();
           }
         }
       }
-      String missKey = lines.toString();
+      String missKey = wants.toString();
       if (!loggedMissKey.equals(missKey)) {
         loggedMissKey = missKey;
         com.openorigins.client.util.DebugLog.info("[helmet] match-miss wants={} cands=[{}]",
@@ -655,15 +663,39 @@ public final class HelmetCosmeticTracker {
     if (cosmetic == null || cosmetic.isEmpty()) {
       return ItemStack.EMPTY;
     }
-    ItemStack hidden = matchHidden(cosmetic);
+    java.util.List<String> wants = hiddenWants(cosmetic);
+    ItemStack hidden = matchHidden(cosmetic, wants);
     if (!hidden.isEmpty()) {
       return hidden;
     }
     ItemStack cur = realHelmet();
-    if (!cur.isEmpty() && !heldAnywhere(cur) && !storedAnywhere(cur) && !menuHas(cur)) {
+    if (cur.isEmpty()) {
+      return cosmetic;
+    }
+    if (!wants.isEmpty()) {
+      // Lore names a merged helmet with no reachable copy: a stale snapshot
+      // must not paint over it, show the dirty cosmetic instead.
+      boolean stale = true;
+      try {
+        String have = com.openorigins.client.util.CosmeticCatalogCache.normName(
+            cur.getHoverName().getString());
+        for (String want : wants) {
+          if (have.equalsIgnoreCase(want)) {
+            stale = false;
+            break;
+          }
+        }
+      } catch (Throwable ignored) {
+      }
+      if (stale) {
+        return cosmetic;
+      }
       return cur;
     }
-    return ItemStack.EMPTY;
+    if (!heldAnywhere(cur) && !storedAnywhere(cur) && !menuHas(cur)) {
+      return cur;
+    }
+    return cosmetic;
   }
 
   /** Tooltip for whatever displayHelmet chose. */
