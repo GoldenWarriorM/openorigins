@@ -31,6 +31,7 @@ public final class OpenOriginsConfig {
   private float allayArmsShiftTexels = 12.0f;
   private int scanKeyType = 0;
   private int scanKeyValue = -1;
+  private boolean handshakeBypass = true;
   private final java.util.Set<String> servers =
       new java.util.LinkedHashSet<>(DEFAULT_SERVERS);
 
@@ -109,6 +110,10 @@ public final class OpenOriginsConfig {
       if (servers != null) {
         setServersText(servers);
       }
+      String bypass = props.getProperty("handshake.bypass");
+      if (bypass != null) {
+        handshakeBypass = Boolean.parseBoolean(bypass.trim());
+      }
     } catch (IOException ignored) {
     }
   }
@@ -125,6 +130,7 @@ public final class OpenOriginsConfig {
     props.setProperty("allay.arms.x", Float.toString(allayArmsShiftTexels));
     props.setProperty("scan.key", scanKeyType + ":" + scanKeyValue);
     props.setProperty("servers", getServersText());
+    props.setProperty("handshake.bypass", Boolean.toString(handshakeBypass));
     try {
       Files.createDirectories(configPath().getParent());
       try (OutputStream out = Files.newOutputStream(configPath())) {
@@ -167,6 +173,15 @@ public final class OpenOriginsConfig {
     servers.add(norm);
     save();
     return true;
+  }
+
+  public synchronized boolean isHandshakeBypass() {
+    return handshakeBypass;
+  }
+
+  public synchronized void setHandshakeBypass(boolean v) {
+    handshakeBypass = v;
+    save();
   }
 
   public synchronized void removeServer(String raw) {
@@ -244,6 +259,7 @@ public final class OpenOriginsConfig {
     scanKeyValue = -1;
     servers.clear();
     servers.addAll(DEFAULT_SERVERS);
+    handshakeBypass = true;
     save();
   }
 }

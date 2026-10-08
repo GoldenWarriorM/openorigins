@@ -57,6 +57,13 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
 
   private void addServerRows() {
     this.addEntry(new ServerInfoRow(this));
+    this.addEntry(new CycleRow(this, "config.openorigins.handshake_bypass",
+        "config.openorigins.handshake_bypass_hint",
+        () -> Component.translatable(OpenOriginsConfig.getInstance().isHandshakeBypass()
+            ? "options.on" : "options.off").getString(),
+        () -> OpenOriginsConfig.getInstance().setHandshakeBypass(
+            !OpenOriginsConfig.getInstance().isHandshakeBypass()),
+        false));
     for (String s : OpenOriginsConfig.getInstance().getServers()) {
       this.addEntry(new ServerRow(this, s));
     }
