@@ -1,5 +1,6 @@
 package com.openorigins.client.screen;
 
+import com.openorigins.client.ConnectionUtil;
 import com.openorigins.client.OpenOriginsConfig;
 import com.openorigins.client.OriginFeature;
 import java.util.List;
@@ -40,6 +41,10 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
             () -> OpenOriginsConfig.getInstance().getHomeCapacity(),
             v -> OpenOriginsConfig.getInstance().setHomeCapacity(v)));
       }
+    }
+    if (tab == ConfigTab.SERVERS) {
+      this.addEntry(new ServerInfoRow(this));
+      this.addEntry(new ServerTextRow(this));
     }
   }
 
@@ -329,6 +334,104 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
         return List.of(this.minusButton, this.field, this.plusButton);
       }
       return List.of(this.minusButton, this.plusButton);
+    }
+  }
+
+  /** Current-server readout for the Servers tab. */
+  public static class ServerInfoRow extends Entry {
+    private final FeatureList list;
+    private String value = "";
+
+    public ServerInfoRow(FeatureList list) {
+      this.list = list;
+      this.refreshEntry();
+    }
+
+    public void refreshEntry() {
+      String id = ConnectionUtil.currentServerId();
+      this.value = id.isEmpty() ? "-" : id;
+    }
+
+    @Override
+    public void extractContent(GuiGraphicsExtractor graphics, int mouseX, int mouseY, boolean hovered,
+        float partialTick) {
+      net.minecraft.client.gui.Font font = net.minecraft.client.Minecraft.getInstance().font;
+      graphics.text(font, Component.translatable("config.openorigins.servers_current"),
+          this.getContentX(), this.getContentYMiddle() - 4, 0xFFFFFFFF);
+      int w = font.width(this.value);
+      graphics.text(font, Component.literal(this.value),
+          this.list.getRowRight() - w, this.getContentYMiddle() - 4, 0xFFAAAAAA);
+    }
+
+    @Override
+    public List<? extends GuiEventListener> children() {
+      return List.of();
+    }
+
+    @Override
+    public List<? extends NarratableEntry> narratables() {
+      return List.of();
+    }
+  }
+
+  /** Comma-separated server allowlist editor for the Servers tab. */
+  public static class ServerTextRow extends Entry {
+    private final FeatureList list;
+    private final String labelKey;
+    private net.minecraft.client.gui.components.EditBox field;
+
+    public ServerTextRow(FeatureList list) {
+      this.list = list;
+      this.labelKey = "config.openorigins.servers";
+    }
+
+    public void refreshEntry() {
+      if (this.field != null) {
+        String v = OpenOriginsConfig.getInstance().getServersText();
+        if (!this.field.getValue().equals(v)) {
+          this.field.setValue(v);
+        }
+      }
+    }
+
+    @Override
+    public void extractContent(GuiGraphicsExtractor graphics, int mouseX, int mouseY, boolean hovered,
+        float partialTick) {
+      int right = this.list.getRowRight();
+      net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
+      if (this.field == null && mc != null) {
+        this.field = new net.minecraft.client.gui.components.EditBox(mc.font, 0, 0, 220, 20,
+            Component.translatable(this.labelKey));
+        this.field.setMaxLength(256);
+        this.field.setValue(OpenOriginsConfig.getInstance().getServersText());
+        this.field.setTooltip(net.minecraft.client.gui.components.Tooltip.create(
+            Component.translatable("config.openorigins.servers_hint")));
+        this.field.setResponder(s -> OpenOriginsConfig.getInstance().setServersText(s));
+      }
+      if (this.field != null) {
+        this.field.setX(right - 220);
+        this.field.setY(this.getContentY() + 2);
+        this.field.extractRenderState(graphics, mouseX, mouseY, partialTick);
+      }
+      net.minecraft.client.gui.Font font = net.minecraft.client.Minecraft.getInstance().font;
+      graphics.text(font, Component.translatable(this.labelKey), this.getContentX(),
+          this.getContentYMiddle() - 4, 0xFFFFFFFF);
+    }
+
+    @Override
+    public List<? extends GuiEventListener> children() {
+      if (this.field != null) {
+        return List.of(this.field);
+      }
+      return List.of();
+    }
+
+    @Override
+    public List<? extends NarratableEntry> narratables() {
+      if (this.field != null) {
+        return List.of(this.field);
+      }
+      return List.of();
     }
   }
 

@@ -80,6 +80,7 @@ public final class OENetwork {
     ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {
       HandshakeState.setHandshakeComplete(false);
       HandshakeState.setOutdated(false);
+      com.openorigins.client.util.BackgroundMenu.disarmNow();
       refreshLoginReceiver();
     });
   }

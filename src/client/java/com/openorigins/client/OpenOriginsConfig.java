@@ -24,6 +24,7 @@ public final class OpenOriginsConfig {
   private float allayArmsShiftTexels = 12.0f;
   private int scanKeyType = 0;
   private int scanKeyValue = -1;
+  private final java.util.Set<String> servers = new java.util.LinkedHashSet<>();
 
   private OpenOriginsConfig() {
     for (OriginFeature f : OriginFeature.values()) enabled.put(f, f.getDefaultValue());
@@ -96,6 +97,10 @@ public final class OpenOriginsConfig {
         } catch (NumberFormatException ignored) {
         }
       }
+      String servers = props.getProperty("servers");
+      if (servers != null) {
+        setServersText(servers);
+      }
     } catch (IOException ignored) {
     }
   }
@@ -111,6 +116,7 @@ public final class OpenOriginsConfig {
     props.setProperty("homes.capacity", Integer.toString(homeCapacity));
     props.setProperty("allay.arms.x", Float.toString(allayArmsShiftTexels));
     props.setProperty("scan.key", scanKeyType + ":" + scanKeyValue);
+    props.setProperty("servers", getServersText());
     try {
       Files.createDirectories(configPath().getParent());
       try (OutputStream out = Files.newOutputStream(configPath())) {
@@ -118,6 +124,31 @@ public final class OpenOriginsConfig {
       }
     } catch (IOException ignored) {
     }
+  }
+
+  public static String normalizeServerId(String s) {
+    return s == null ? "" : s.trim().toLowerCase(java.util.Locale.ROOT);
+  }
+
+  public synchronized java.util.Set<String> getServers() {
+    return new java.util.LinkedHashSet<>(servers);
+  }
+
+  public synchronized String getServersText() {
+    return String.join(",", servers);
+  }
+
+  public synchronized void setServersText(String text) {
+    servers.clear();
+    if (text != null) {
+      for (String part : text.split(",")) {
+        String norm = normalizeServerId(part);
+        if (!norm.isEmpty()) {
+          servers.add(norm);
+        }
+      }
+    }
+    save();
   }
 
   public boolean isEnabled(OriginFeature f) { return enabled.getOrDefault(f, true); }
@@ -187,6 +218,7 @@ public final class OpenOriginsConfig {
     allayArmsShiftTexels = 12.0f;
     scanKeyType = 0;
     scanKeyValue = -1;
+    servers.clear();
     save();
   }
 }

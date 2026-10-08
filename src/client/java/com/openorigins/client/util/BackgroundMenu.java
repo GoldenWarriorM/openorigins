@@ -75,6 +75,9 @@ public final class BackgroundMenu {
     if (armed) {
       return false;
     }
+    if (!com.openorigins.client.ConnectionUtil.isConnected()) {
+      return false;
+    }
     armed = true;
     deadline = System.currentTimeMillis() + 30000;
     menu = null;
@@ -93,6 +96,11 @@ public final class BackgroundMenu {
 
   public static long lastEmptyFinishMs() {
     return lastEmptyFinishMs;
+  }
+
+  /** Public disarm for connection teardown. */
+  public static synchronized void disarmNow() {
+    disarm();
   }
 
   private static synchronized void disarm() {
