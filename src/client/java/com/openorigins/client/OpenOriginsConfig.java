@@ -24,7 +24,15 @@ public final class OpenOriginsConfig {
   private float allayArmsShiftTexels = 12.0f;
   private int scanKeyType = 0;
   private int scanKeyValue = -1;
-  private final java.util.Set<String> servers = new java.util.LinkedHashSet<>();
+  private static final java.util.List<String> DEFAULT_SERVERS = java.util.List.of(
+      "play.originrealms.com",
+      "tcpshield.originrealms.com",
+      "tcpshield-iad.originrealms.com",
+      "spectrum-tcpshield.originrealms.com",
+      "bhs.originrealms.com");
+
+  private final java.util.Set<String> servers =
+      new java.util.LinkedHashSet<>(DEFAULT_SERVERS);
 
   private OpenOriginsConfig() {
     for (OriginFeature f : OriginFeature.values()) enabled.put(f, f.getDefaultValue());
@@ -235,6 +243,7 @@ public final class OpenOriginsConfig {
     scanKeyType = 0;
     scanKeyValue = -1;
     servers.clear();
+    servers.addAll(DEFAULT_SERVERS);
     save();
   }
 }
