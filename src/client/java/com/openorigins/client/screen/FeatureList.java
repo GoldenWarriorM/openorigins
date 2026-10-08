@@ -43,9 +43,24 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
       }
     }
     if (tab == ConfigTab.SERVERS) {
-      this.addEntry(new ServerInfoRow(this));
-      this.addEntry(new ServerTextRow(this));
+      this.addServerRows();
     }
+  }
+
+  /** Rebuilds the Servers tab contents (info + one row per address + add row). */
+  public void rebuildServerEntries() {
+    for (Entry e : new java.util.ArrayList<>(this.children())) {
+      this.removeEntry(e);
+    }
+    this.addServerRows();
+  }
+
+  private void addServerRows() {
+    this.addEntry(new ServerInfoRow(this));
+    for (String s : OpenOriginsConfig.getInstance().getServers()) {
+      this.addEntry(new ServerRow(this, s));
+    }
+    this.addEntry(new ServerAddRow(this));
   }
 
   private static String cornerName() {
@@ -375,23 +390,67 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
   }
 
   /** Comma-separated server allowlist editor for the Servers tab. */
-  public static class ServerTextRow extends Entry {
+  /** One allowlisted address with a red remove button. */
+  public static class ServerRow extends Entry {
     private final FeatureList list;
-    private final String labelKey;
-    private net.minecraft.client.gui.components.EditBox field;
+    private final String address;
+    private final Button removeButton;
 
-    public ServerTextRow(FeatureList list) {
+    public ServerRow(FeatureList list, String address) {
       this.list = list;
-      this.labelKey = "config.openorigins.servers";
+      this.address = address;
+      this.removeButton = Button.builder(
+          Component.literal("-").withStyle(net.minecraft.ChatFormatting.RED), b -> {
+            OpenOriginsConfig.getInstance().removeServer(this.address);
+            this.list.rebuildServerEntries();
+          }).bounds(0, 0, 20, 20).build();
     }
 
     public void refreshEntry() {
-      if (this.field != null) {
-        String v = OpenOriginsConfig.getInstance().getServersText();
-        if (!this.field.getValue().equals(v)) {
-          this.field.setValue(v);
-        }
-      }
+    }
+
+    @Override
+    public void extractContent(GuiGraphicsExtractor graphics, int mouseX, int mouseY, boolean hovered,
+        float partialTick) {
+      int right = this.list.getRowRight();
+      this.removeButton.setX(right - 20);
+      this.removeButton.setY(this.getContentY() + 2);
+      this.removeButton.extractRenderState(graphics, mouseX, mouseY, partialTick);
+      net.minecraft.client.gui.Font font = net.minecraft.client.Minecraft.getInstance().font;
+      graphics.text(font, Component.literal(this.address), this.getContentX(),
+          this.getContentYMiddle() - 4, 0xFFFFFFFF);
+    }
+
+    @Override
+    public List<? extends GuiEventListener> children() {
+      return List.of(this.removeButton);
+    }
+
+    @Override
+    public List<? extends NarratableEntry> narratables() {
+      return List.of(this.removeButton);
+    }
+  }
+
+  /** Empty input field with a green plus button appending a new address. */
+  public static class ServerAddRow extends Entry {
+    private final FeatureList list;
+    private final Button addButton;
+    private net.minecraft.client.gui.components.EditBox field;
+
+    public ServerAddRow(FeatureList list) {
+      this.list = list;
+      this.addButton = Button.builder(
+          Component.literal("+").withStyle(net.minecraft.ChatFormatting.GREEN), b -> {
+            if (this.field != null
+                && OpenOriginsConfig.getInstance().addServer(this.field.getValue())) {
+              this.field.setValue("");
+            }
+            this.list.rebuildServerEntries();
+          }).bounds(0, 0, 20, 20).build();
+    }
+
+    public void refreshEntry() {
     }
 
     @Override
@@ -401,37 +460,38 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
       net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
       if (this.field == null && mc != null) {
         this.field = new net.minecraft.client.gui.components.EditBox(mc.font, 0, 0, 220, 20,
-            Component.translatable(this.labelKey));
-        this.field.setMaxLength(256);
-        this.field.setValue(OpenOriginsConfig.getInstance().getServersText());
+            Component.translatable("config.openorigins.servers"));
+        this.field.setMaxLength(128);
         this.field.setTooltip(net.minecraft.client.gui.components.Tooltip.create(
             Component.translatable("config.openorigins.servers_hint")));
-        this.field.setResponder(s -> OpenOriginsConfig.getInstance().setServersText(s));
       }
+      this.addButton.setX(right - 20);
+      this.addButton.setY(this.getContentY() + 2);
       if (this.field != null) {
-        this.field.setX(right - 220);
+        this.field.setX(right - 20 - 4 - 220);
         this.field.setY(this.getContentY() + 2);
         this.field.extractRenderState(graphics, mouseX, mouseY, partialTick);
       }
+      this.addButton.extractRenderState(graphics, mouseX, mouseY, partialTick);
       net.minecraft.client.gui.Font font = net.minecraft.client.Minecraft.getInstance().font;
-      graphics.text(font, Component.translatable(this.labelKey), this.getContentX(),
-          this.getContentYMiddle() - 4, 0xFFFFFFFF);
+      graphics.text(font, Component.translatable("config.openorigins.servers_add"),
+          this.getContentX(), this.getContentYMiddle() - 4, 0xFFFFFFFF);
     }
 
     @Override
     public List<? extends GuiEventListener> children() {
       if (this.field != null) {
-        return List.of(this.field);
+        return List.of(this.field, this.addButton);
       }
-      return List.of();
+      return List.of(this.addButton);
     }
 
     @Override
     public List<? extends NarratableEntry> narratables() {
       if (this.field != null) {
-        return List.of(this.field);
+        return List.of(this.field, this.addButton);
       }
-      return List.of();
+      return List.of(this.addButton);
     }
   }
 

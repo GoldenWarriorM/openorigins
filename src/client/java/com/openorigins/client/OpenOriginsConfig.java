@@ -151,6 +151,22 @@ public final class OpenOriginsConfig {
     save();
   }
 
+  public synchronized boolean addServer(String raw) {
+    String norm = normalizeServerId(raw);
+    if (norm.isEmpty() || servers.contains(norm)) {
+      return false;
+    }
+    servers.add(norm);
+    save();
+    return true;
+  }
+
+  public synchronized void removeServer(String raw) {
+    if (servers.remove(normalizeServerId(raw))) {
+      save();
+    }
+  }
+
   public boolean isEnabled(OriginFeature f) { return enabled.getOrDefault(f, true); }
   public String getDiscordClientId() { return discordClientId; }
   public HudCorner getBadgerHudCorner() { return badgerHudCorner; }
