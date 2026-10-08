@@ -438,6 +438,26 @@ public final class HelmetCosmeticTracker {
             .encodeStart(ops, realHelmet).getOrThrow();
         root.add("stack", el);
       }
+      if (seenDirty) {
+        try {
+          net.minecraft.client.Minecraft mc2 = net.minecraft.client.Minecraft.getInstance();
+          if (mc2 != null && mc2.level != null) {
+            var ops2 = net.minecraft.resources.RegistryOps.create(
+                com.mojang.serialization.JsonOps.INSTANCE, mc2.level.registryAccess());
+            com.google.gson.JsonObject seen = new com.google.gson.JsonObject();
+            for (java.util.Map.Entry<String, ItemStack> e : SEEN_HEADS.entrySet()) {
+              if (e.getValue() == null || e.getValue().isEmpty()) {
+                continue;
+              }
+              seen.add(e.getKey(), net.minecraft.world.item.ItemStack.OPTIONAL_CODEC
+                  .encodeStart(ops2, e.getValue()).getOrThrow());
+            }
+            root.add("seen", seen);
+            seenDirty = false;
+          }
+        } catch (Throwable ignored) {
+        }
+      }
       java.nio.file.Files.writeString(helmetFile(), root.toString(),
           java.nio.charset.StandardCharsets.UTF_8);
     } catch (Throwable ignored) {
@@ -456,6 +476,10 @@ public final class HelmetCosmeticTracker {
           .getAsJsonObject();
       if (root.has("stack")) {
         rawSaved = root.get("stack");
+      }
+      if (root.has("seen")) {
+        rawSeen = root.get("seen");
+        seenDecoded = false;
       }
     } catch (Throwable ignored) {
     }
@@ -546,6 +570,7 @@ public final class HelmetCosmeticTracker {
     if (wants.isEmpty()) {
       return ItemStack.EMPTY;
     }
+    ensureSeenDecoded();
     try {
       net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
       if (mc == null || mc.player == null) {
@@ -615,6 +640,39 @@ public final class HelmetCosmeticTracker {
    *  (truly merged on the server side). */
   private static final java.util.Map<String, ItemStack> SEEN_HEADS =
       new java.util.concurrent.ConcurrentHashMap<>();
+  private static volatile boolean seenDirty;
+  private static volatile com.google.gson.JsonElement rawSeen;
+  private static volatile boolean seenDecoded;
+
+  /** Decodes the persisted seen-heads map once a level exists. */
+  private static void ensureSeenDecoded() {
+    if (seenDecoded || rawSeen == null) {
+      return;
+    }
+    try {
+      net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
+      if (mc == null || mc.level == null || !rawSeen.isJsonObject()) {
+        return;
+      }
+      var ops = net.minecraft.resources.RegistryOps.create(
+          com.mojang.serialization.JsonOps.INSTANCE, mc.level.registryAccess());
+      for (java.util.Map.Entry<String, com.google.gson.JsonElement> e
+          : rawSeen.getAsJsonObject().entrySet()) {
+        try {
+          ItemStack decoded = net.minecraft.world.item.ItemStack.OPTIONAL_CODEC
+              .parse(ops, e.getValue()).getOrThrow();
+          if (!decoded.isEmpty() && !SEEN_HEADS.containsKey(e.getKey())) {
+            SEEN_HEADS.put(e.getKey(), decoded);
+          }
+        } catch (Throwable ignored) {
+        }
+      }
+    } catch (Throwable ignored) {
+    } finally {
+      seenDecoded = true;
+      rawSeen = null;
+    }
+  }
 
   private static void noteSeen(ItemStack stack) {
     if (stack == null || stack.isEmpty() || isCosmetic(stack)) {
@@ -645,6 +703,7 @@ public final class HelmetCosmeticTracker {
           SEEN_HEADS.clear();
         }
         SEEN_HEADS.put(key, stack.copy());
+        seenDirty = true;
       }
     } catch (Throwable ignored) {
     }
