@@ -15,6 +15,13 @@ public final class OpenOriginsConfig {
     TOP_LEFT, TOP_RIGHT, BOTTOM_LEFT, BOTTOM_RIGHT
   }
 
+  private static final java.util.List<String> DEFAULT_SERVERS = java.util.List.of(
+      "play.originrealms.com",
+      "tcpshield.originrealms.com",
+      "tcpshield-iad.originrealms.com",
+      "spectrum-tcpshield.originrealms.com",
+      "bhs.originrealms.com");
+
   private static final OpenOriginsConfig INSTANCE = new OpenOriginsConfig();
   private final Map<OriginFeature, Boolean> enabled = new EnumMap<>(OriginFeature.class);
   private String discordClientId = "";
@@ -24,13 +31,6 @@ public final class OpenOriginsConfig {
   private float allayArmsShiftTexels = 12.0f;
   private int scanKeyType = 0;
   private int scanKeyValue = -1;
-  private static final java.util.List<String> DEFAULT_SERVERS = java.util.List.of(
-      "play.originrealms.com",
-      "tcpshield.originrealms.com",
-      "tcpshield-iad.originrealms.com",
-      "spectrum-tcpshield.originrealms.com",
-      "bhs.originrealms.com");
-
   private final java.util.Set<String> servers =
       new java.util.LinkedHashSet<>(DEFAULT_SERVERS);
 
