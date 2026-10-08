@@ -18,7 +18,7 @@ public final class ConnectionUtil {
     if (mc == null || mc.getConnection() == null) return false;
     if (mc.isLocalServer()) return false;
     if (HandshakeState.isHandshakeComplete()
-        && OpenOriginsConfig.getInstance().isHandshakeBypass()) return true;
+        && OpenOriginsConfig.getInstance().isUseHandshake()) return true;
     java.util.Set<String> allowed = OpenOriginsConfig.getInstance().getServers();
     if (allowed.isEmpty()) return true;
     net.minecraft.client.multiplayer.ServerData server = mc.getCurrentServer();

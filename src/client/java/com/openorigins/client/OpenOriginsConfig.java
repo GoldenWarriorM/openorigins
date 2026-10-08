@@ -31,7 +31,7 @@ public final class OpenOriginsConfig {
   private float allayArmsShiftTexels = 12.0f;
   private int scanKeyType = 0;
   private int scanKeyValue = -1;
-  private boolean handshakeBypass = true;
+  private boolean useHandshake = true;
   private final java.util.Set<String> servers =
       new java.util.LinkedHashSet<>(DEFAULT_SERVERS);
 
@@ -110,9 +110,9 @@ public final class OpenOriginsConfig {
       if (servers != null) {
         setServersText(servers);
       }
-      String bypass = props.getProperty("handshake.bypass");
+      String bypass = props.getProperty("use.handshake");
       if (bypass != null) {
-        handshakeBypass = Boolean.parseBoolean(bypass.trim());
+        useHandshake = Boolean.parseBoolean(bypass.trim());
       }
     } catch (IOException ignored) {
     }
@@ -130,7 +130,7 @@ public final class OpenOriginsConfig {
     props.setProperty("allay.arms.x", Float.toString(allayArmsShiftTexels));
     props.setProperty("scan.key", scanKeyType + ":" + scanKeyValue);
     props.setProperty("servers", getServersText());
-    props.setProperty("handshake.bypass", Boolean.toString(handshakeBypass));
+    props.setProperty("use.handshake", Boolean.toString(useHandshake));
     try {
       Files.createDirectories(configPath().getParent());
       try (OutputStream out = Files.newOutputStream(configPath())) {
@@ -175,12 +175,12 @@ public final class OpenOriginsConfig {
     return true;
   }
 
-  public synchronized boolean isHandshakeBypass() {
-    return handshakeBypass;
+  public synchronized boolean isUseHandshake() {
+    return useHandshake;
   }
 
-  public synchronized void setHandshakeBypass(boolean v) {
-    handshakeBypass = v;
+  public synchronized void setUseHandshake(boolean v) {
+    useHandshake = v;
     save();
   }
 
@@ -259,7 +259,7 @@ public final class OpenOriginsConfig {
     scanKeyValue = -1;
     servers.clear();
     servers.addAll(DEFAULT_SERVERS);
-    handshakeBypass = true;
+    useHandshake = true;
     save();
   }
 }

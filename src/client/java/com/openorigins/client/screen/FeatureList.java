@@ -57,17 +57,20 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
 
   private void addServerRows() {
     this.addEntry(new ServerInfoRow(this));
-    this.addEntry(new CycleRow(this, "config.openorigins.handshake_bypass",
-        "config.openorigins.handshake_bypass_hint",
-        () -> Component.translatable(OpenOriginsConfig.getInstance().isHandshakeBypass()
-            ? "options.on" : "options.off").getString(),
-        () -> OpenOriginsConfig.getInstance().setHandshakeBypass(
-            !OpenOriginsConfig.getInstance().isHandshakeBypass()),
-        false));
-    for (String s : OpenOriginsConfig.getInstance().getServers()) {
-      this.addEntry(new ServerRow(this, s));
+    this.addEntry(new ToggleRow(this, "config.openorigins.use_handshake",
+        "config.openorigins.use_handshake_hint",
+        () -> OpenOriginsConfig.getInstance().isUseHandshake(),
+        () -> {
+          OpenOriginsConfig.getInstance().setUseHandshake(
+              !OpenOriginsConfig.getInstance().isUseHandshake());
+          this.rebuildServerEntries();
+        }));
+    if (!OpenOriginsConfig.getInstance().isUseHandshake()) {
+      for (String s : OpenOriginsConfig.getInstance().getServers()) {
+        this.addEntry(new ServerRow(this, s));
+      }
+      this.addEntry(new ServerAddRow(this));
     }
-    this.addEntry(new ServerAddRow(this));
   }
 
   private static String cornerName() {
@@ -191,6 +194,60 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
     @Override
     public List<? extends NarratableEntry> narratables() {
       return List.of(this.toggleButton);
+    }
+  }
+
+  /** Label left, green/red ON/OFF toggle right. */
+  public static class ToggleRow extends Entry {
+    private final FeatureList list;
+    private final String labelKey;
+    private final String tooltipKey;
+    private final java.util.function.BooleanSupplier get;
+    private final Runnable onPress;
+    private final Button button;
+
+    public ToggleRow(FeatureList list, String labelKey, String tooltipKey,
+        java.util.function.BooleanSupplier get, Runnable onPress) {
+      this.list = list;
+      this.labelKey = labelKey;
+      this.tooltipKey = tooltipKey;
+      this.get = get;
+      this.onPress = onPress;
+      this.button = Button.builder(Component.empty(), b -> {
+        this.onPress.run();
+        this.list.refreshEntries();
+      }).bounds(0, 0, 100, 20)
+          .tooltip(net.minecraft.client.gui.components.Tooltip.create(
+              Component.translatable(this.tooltipKey)))
+          .build();
+      this.refreshEntry();
+    }
+
+    public void refreshEntry() {
+      boolean on = this.get.getAsBoolean();
+      this.button.setMessage(Component.translatable(on ? "options.on" : "options.off")
+          .withStyle(on ? net.minecraft.ChatFormatting.GREEN : net.minecraft.ChatFormatting.RED));
+    }
+
+    @Override
+    public void extractContent(GuiGraphicsExtractor graphics, int mouseX, int mouseY, boolean hovered,
+        float partialTick) {
+      this.button.setX(this.list.getRowRight() - this.button.getWidth());
+      this.button.setY(this.getContentY() + 2);
+      this.button.extractRenderState(graphics, mouseX, mouseY, partialTick);
+      net.minecraft.client.gui.Font font = net.minecraft.client.Minecraft.getInstance().font;
+      graphics.text(font, Component.translatable(this.labelKey), this.getContentX(),
+          this.getContentYMiddle() - 4, 0xFFFFFFFF);
+    }
+
+    @Override
+    public List<? extends GuiEventListener> children() {
+      return List.of(this.button);
+    }
+
+    @Override
+    public List<? extends NarratableEntry> narratables() {
+      return List.of(this.button);
     }
   }
 
