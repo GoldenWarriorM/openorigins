@@ -1051,10 +1051,13 @@ public final class HelmetCosmeticTracker {
           if (!decoded.isEmpty()) {
             realHelmet = decoded;
             setTip(decoded);
+            com.openorigins.client.util.DebugLog.info("[helmet] restored snapshot from disk {}",
+                describe(decoded));
             return decoded;
           }
         }
-      } catch (Throwable ignored) {
+      } catch (Throwable t) {
+        com.openorigins.client.util.DebugLog.warn("[helmet] saved snapshot decode failed", t);
         rawSaved = null;
       }
     }
