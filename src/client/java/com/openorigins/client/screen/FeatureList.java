@@ -439,7 +439,8 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
           this.getContentX(), this.getContentYMiddle() - 4, 0xFFFFFFFF);
       int w = font.width(this.value);
       graphics.text(font, Component.literal(this.value),
-          this.list.getRowRight() - w, this.getContentYMiddle() - 4, 0xFFAAAAAA);
+          this.list.getRowRight() - w, this.getContentYMiddle() - 4,
+          ConnectionUtil.isConnected() ? 0xFF55FF55 : 0xFFFF5555);
     }
 
     @Override
