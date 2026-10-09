@@ -57,6 +57,11 @@ public abstract class MoaFacingFixMixin {
     // offset alone is a no-op. Pin the parts as a rigid body (FIXED) facing travel
     // direction instead: the model is built backwards (visual front is local -Z).
     Display.RenderState rs = state.renderState;
+    // Freshly spawned displays have no render state until their first tick;
+    // vanilla skips rendering them, so there is nothing to fix yet.
+    if (rs == null) {
+      return;
+    }
     if (rs.billboardConstraints() != Display.BillboardConstraints.FIXED) {
       state.renderState = new Display.RenderState(rs.transformation(),
           Display.BillboardConstraints.FIXED, rs.brightnessOverride(),
