@@ -143,6 +143,35 @@ public abstract class EntityNameTagMixin {
     // TEMP EXP: no cancel (see above).
   }
 
+  // TEMP EXP: hook the main submit instead: is THIS context alive?
+  @Inject(method = "submit(Lnet/minecraft/client/renderer/entity/state/EntityRenderState;Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/SubmitNodeCollector;Lnet/minecraft/client/renderer/state/level/CameraRenderState;)V",
+      at = @At("HEAD"))
+  private void openorigins$probeMainSubmit(EntityRenderState state, PoseStack poseStack,
+      SubmitNodeCollector collector, CameraRenderState camera, CallbackInfo ci) {
+    try {
+      EntityData.NameTag tag = ((TagHolder) state).openorigins$getTag();
+      if (tag == null) {
+        return;
+      }
+      net.minecraft.client.Camera cam = net.minecraft.client.Minecraft.getInstance()
+          .gameRenderer.mainCamera();
+      net.minecraft.world.phys.Vec3 cp = cam.position();
+      float yaw = cam.yRot() * (float) Math.PI / 180.0f;
+      float pitch = cam.xRot() * (float) Math.PI / 180.0f;
+      collector.submitNameTag(poseStack,
+          new Vec3(cp.x - Math.sin(yaw) * Math.cos(pitch) * 3.0,
+              cp.y - Math.sin(pitch) * 3.0, cp.z + Math.cos(yaw) * Math.cos(pitch) * 3.0),
+          0, net.minecraft.network.chat.Component.literal("MAINSUBMIT"), true,
+          15728880, camera);
+      String sig = "M-probe";
+      if (!sig.equals(loggedSubmitSig)) {
+        loggedSubmitSig = sig;
+        com.openorigins.client.util.DebugLog.info("[nametag-mainsubmit] probed");
+      }
+    } catch (Throwable ignored) {
+    }
+  }
+
   private static boolean isHudHidden() {
     Minecraft mc = Minecraft.getInstance();
     return mc.gui != null && mc.gui.hud != null && mc.gui.hud.isHidden();
