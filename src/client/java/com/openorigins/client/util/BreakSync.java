@@ -27,6 +27,8 @@ public final class BreakSync {
 
   private static final Map<String, Double> learned = new ConcurrentHashMap<>();
   private static volatile long lastSaveMs;
+  private static final java.util.Set<String> loggedAgg =
+      java.util.Collections.synchronizedSet(new java.util.HashSet<>());
 
   private static volatile BlockPos target;
   private static volatile long t0;
@@ -164,6 +166,35 @@ public final class BreakSync {
       if (!wasDriven && (doneAt < 0 || now - doneAt < 150)) {
         return;
       }
+      learn(k, dur);
+      // Two-tier keys: exact state first, block+tool aggregate as fallback
+      // (noteblock customs cycle states; the aggregate paces unseen states).
+      String agg = aggKey(state, k);
+      if (agg != null && !agg.equals(k)) {
+        learn(agg, dur);
+      }
+      if (learned.size() > 2048) {
+        learned.clear();
+      }
+      save();
+    } catch (Throwable ignored) {
+    }
+  }
+
+  private static String aggKey(BlockState state, String exactKey) {
+    try {
+      int sep = exactKey.lastIndexOf('|');
+      String tool = sep < 0 ? "?" : exactKey.substring(sep + 1);
+      String block = net.minecraft.core.registries.BuiltInRegistries.BLOCK
+          .getKey(state.getBlock()).toString();
+      return block + "|" + tool;
+    } catch (Throwable t) {
+      return null;
+    }
+  }
+
+  private static void learn(String k, long dur) {
+    try {
       Double old = learned.get(k);
       double w = (old != null && dur < old) ? 0.5 : 0.3;
       if (old == null) {
@@ -171,10 +202,6 @@ public final class BreakSync {
       } else {
         learned.put(k, old * (1.0 - w) + dur * w);
       }
-      if (learned.size() > 2048) {
-        learned.clear();
-      }
-      save();
     } catch (Throwable ignored) {
     }
   }
@@ -219,7 +246,19 @@ public final class BreakSync {
         // Unknown combo: freeze only while the server drives, vanilla otherwise.
         // (Fast tools finish before any correction can land; the mismatch
         // sample on air-ack teaches the combo for next time.)
-        return serverDriven ? 0.0f : vanilla;
+        if (!serverDriven) {
+          return vanilla;
+        }
+        // Aggregate fallback: unseen noteblock states share block+tool timing.
+        String agg = aggKey(state, key);
+        total = agg == null ? null : learned.get(agg);
+        if (total == null) {
+          return 0.0f;
+        }
+        if (loggedAgg.add(agg)) {
+          com.openorigins.client.util.DebugLog.info("[breaksync] pacing {} from aggregate {}ms",
+              key, Math.round(total));
+        }
       }
       // Known combo: pace toward the learned server duration from tick 0,
       // with or without a live correction signal.
