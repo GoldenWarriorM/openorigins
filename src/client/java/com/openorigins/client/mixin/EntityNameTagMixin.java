@@ -116,21 +116,21 @@ public abstract class EntityNameTagMixin {
       Vec3 pos = base.add(0.0, tag.offset() + LINE_SPACING * i, 0.0);
       collector.submitNameTag(poseStack, pos, order, lines.get(i), !state.isDiscrete, state.lightCoords, camera);
     }
-    // TEMP DIAG: marker to split "nodes not drawn" from "text draws empty".
-    collector.submitNameTag(poseStack, base.add(0.0, tag.offset() + LINE_SPACING * lines.size(), 0.0),
-        order, net.minecraft.network.chat.Component.literal("TEST"), !state.isDiscrete,
+    // TEMP DIAG: bisection markers.
+    // HIGH: 5 above head (rules out occlusion of the head anchor).
+    collector.submitNameTag(poseStack, base.add(0.0, 5.0, 0.0),
+        order, net.minecraft.network.chat.Component.literal("HIGH"), !state.isDiscrete,
         state.lightCoords, camera);
-    // TEMP DIAG: anchor marker at the local player head (guaranteed on-screen
-    // reference to tell a bad base pos from eaten submits).
+    // CAM: 3 blocks along the camera look vector (guaranteed dead-center).
     try {
-      net.minecraft.client.Minecraft mc2 = net.minecraft.client.Minecraft.getInstance();
-      if (mc2 != null && mc2.player != null) {
-        net.minecraft.world.phys.Vec3 pp = mc2.player.position();
-        collector.submitNameTag(poseStack,
-            new Vec3(pp.x, pp.y + 2.2, pp.z), order,
-            net.minecraft.network.chat.Component.literal("ANCHOR"), !state.isDiscrete,
-            state.lightCoords, camera);
-      }
+      net.minecraft.client.Camera cam = net.minecraft.client.Minecraft.getInstance()
+          .gameRenderer.getMainCamera();
+      net.minecraft.world.phys.Vec3 cp = cam.getPosition();
+      net.minecraft.world.phys.Vec3 look = cam.getLookVector();
+      collector.submitNameTag(poseStack,
+          new Vec3(cp.x + look.x * 3.0, cp.y + look.y * 3.0, cp.z + look.z * 3.0), order,
+          net.minecraft.network.chat.Component.literal("CAM"), true,
+          15728880, camera);
     } catch (Throwable ignored) {
     }
     ci.cancel();
