@@ -55,6 +55,17 @@ public final class CosmeticScanner {
   public static void scanAndReport() {
     Minecraft mc = Minecraft.getInstance();
     if (mc.player == null) return;
+    report(mc, String.format(java.util.Locale.ROOT, "cam=%s playerYaw=%.1f playerPitch=%.1f",
+        mc.options.getCameraType(), mc.player.getYRot(), mc.player.getXRot()));
+    net.minecraft.world.entity.Entity veh = mc.player.getVehicle();
+    int depth = 0;
+    while (veh != null && depth < 3) {
+      report(mc, String.format(java.util.Locale.ROOT, "VEHICLE depth=%d %s#%d yaw=%.1f", depth,
+          net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE.getKey(veh.getType()),
+          veh.getId(), veh.getYRot()));
+      veh = veh.getVehicle();
+      depth++;
+    }
     boolean found = false;
     for (EquipmentSlot slot : SLOTS) {
       ItemStack stack = mc.player.getItemBySlot(slot);
@@ -116,6 +127,7 @@ public final class CosmeticScanner {
       shown++;
       String type = net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE.getKey(e.getType()).toString();
       StringBuilder sb = new StringBuilder(type + "#" + e.getId());
+      sb.append(String.format(java.util.Locale.ROOT, " yaw=%.0f", e.getYRot()));
       double dist = Math.sqrt(mc.player.distanceToSqr(e.getX(), e.getY(), e.getZ()));
       if (dist < 2.5) sb.append(" ON-YOU");
       if (e.hasCustomName() && e.getCustomName() != null) {
@@ -130,6 +142,7 @@ public final class CosmeticScanner {
       }
       if (e instanceof net.minecraft.world.entity.Display display) {
         try {
+          sb.append(" bb=").append(display.renderState().billboardConstraints());
           net.minecraft.world.item.ItemStack ds = display.getSlot(0).get();
           if (ds != null && !ds.isEmpty()) {
             sb.append(" shown=")
