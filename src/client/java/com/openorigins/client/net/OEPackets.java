@@ -93,7 +93,11 @@ public final class OEPackets {
     } else if (op != null) {
       // Entities may not be tracked yet when a tag burst arrives (spawn order):
       // queue instead of dropping, the tick flush applies them on appearance.
-      if (mc.level == null || mc.level.getEntity(entityId) == null) {
+      // While anything is queued for an entity, live ops queue behind it too:
+      // applying live ops first would reorder add/remove sequences and the tag
+      // would accumulate stale/duplicate lines.
+      if (mc.level == null || mc.level.getEntity(entityId) == null
+          || EntityData.hasPendingTagOps(entityId)) {
         EntityData.queueTagOp(entityId, op);
       } else {
         try {

@@ -74,8 +74,11 @@ public final class EntityData {
   private static final ConcurrentMap<Integer, List<Runnable>> PENDING_TAG_OPS =
       new ConcurrentHashMap<>();
 
-  public static void queueTagOp(int entityId, Runnable op) {
-    List<Runnable> ops = PENDING_TAG_OPS.computeIfAbsent(entityId,
+  public static boolean hasPendingTagOps(int entityId) {
+    return PENDING_TAG_OPS.containsKey(entityId);
+  }
+
+  public static void queueTagOp(int entityId, Runnable op) {    List<Runnable> ops = PENDING_TAG_OPS.computeIfAbsent(entityId,
         id -> Collections.synchronizedList(new ArrayList<>()));
     synchronized (ops) {
       if (ops.size() >= 32) {
