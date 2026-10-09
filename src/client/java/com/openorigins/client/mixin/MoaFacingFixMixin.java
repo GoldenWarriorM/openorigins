@@ -53,6 +53,15 @@ public abstract class MoaFacingFixMixin {
     if (!"minecraft:mule".equals(BuiltInRegistries.ENTITY_TYPE.getKey(vehicle.getType()).toString())) {
       return;
     }
+    // VERTICAL billboard takes yaw from the camera and ignores entity yaw, so a yaw
+    // offset alone is a no-op. Pin the parts as a rigid body (FIXED) facing travel
+    // direction instead: the model is built backwards (visual front is local -Z).
+    Display.RenderState rs = state.renderState;
+    if (rs.billboardConstraints() != Display.BillboardConstraints.FIXED) {
+      state.renderState = new Display.RenderState(rs.transformation(),
+          Display.BillboardConstraints.FIXED, rs.brightnessOverride(),
+          rs.shadowRadius(), rs.shadowStrength(), rs.glowColorOverride());
+    }
     state.entityYRot += 180.0f;
     if (loggedMounts.add(vehicle.getId())) {
       LOG.info("[moa] flipping mount #{} parts 180 deg (visual only)", vehicle.getId());
