@@ -187,7 +187,7 @@ public final class BadgerCache {
           high = Integer.parseInt(h.group(1));
         }
       }
-      if (lines.isEmpty() && req.size() < 6) {
+      if ((lines.isEmpty() || CustomItemIds.resolve(stack).isPresent()) && req.size() < 6) {
         String ln = name.toLowerCase(Locale.ROOT);
         boolean ui = ln.contains("quit") || ln.contains("learn more") || ln.contains("go to badger")
             || ln.contains("streak score") || ln.contains("streak resets") || ln.contains("upcoming rewards")
