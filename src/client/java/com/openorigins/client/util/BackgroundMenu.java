@@ -131,6 +131,19 @@ public final class BackgroundMenu {
       disarm();
       return false;
     }
+    // Only server GUI menus (generic chest rows) may be swallowed. Real block
+    // containers (chest, barrel, hopper, ...) must always reach the player:
+    // a chest opened mid-fetch would otherwise be eaten and the awaited menu
+    // would pop up visibly later.
+    net.minecraft.world.inventory.MenuType<?> type = packet.getType();
+    if (type != net.minecraft.world.inventory.MenuType.GENERIC_9x1
+        && type != net.minecraft.world.inventory.MenuType.GENERIC_9x2
+        && type != net.minecraft.world.inventory.MenuType.GENERIC_9x3
+        && type != net.minecraft.world.inventory.MenuType.GENERIC_9x4
+        && type != net.minecraft.world.inventory.MenuType.GENERIC_9x5
+        && type != net.minecraft.world.inventory.MenuType.GENERIC_9x6) {
+      return false;
+    }
     Player player = mc.player;
     try {
       AbstractContainerMenu created =
