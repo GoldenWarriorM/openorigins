@@ -73,10 +73,12 @@ public abstract class EntityNameTagMixin {
     }
   }
 
-  @Inject(method = "submitNameDisplay(Lnet/minecraft/client/renderer/entity/state/EntityRenderState;Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/SubmitNodeCollector;Lnet/minecraft/client/renderer/state/level/CameraRenderState;)V",
+  // NOTE: hooked on the int overload (the funnel every renderer calls, including
+  // AvatarRenderer's override which bypasses the no-int wrapper for players).
+  @Inject(method = "submitNameDisplay(Lnet/minecraft/client/renderer/entity/state/EntityRenderState;Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/SubmitNodeCollector;Lnet/minecraft/client/renderer/state/level/CameraRenderState;I)V",
       at = @At("HEAD"), cancellable = true)
   private void openorigins$renderTag(EntityRenderState state, PoseStack poseStack,
-      SubmitNodeCollector collector, CameraRenderState camera, CallbackInfo ci) {
+      SubmitNodeCollector collector, CameraRenderState camera, int order, CallbackInfo ci) {
     EntityData.NameTag tag = ((TagHolder) state).openorigins$getTag();
     if (tag == null) return;
     if (OpenOriginsConfig.getInstance().isEnabled(OriginFeature.HIDE_NAMES)
@@ -93,7 +95,7 @@ public abstract class EntityNameTagMixin {
         : new Vec3(state.x, state.y + state.boundingBoxHeight + 0.5, state.z);
     for (int i = 0; i < lines.size(); i++) {
       Vec3 pos = base.add(0.0, tag.offset() + LINE_SPACING * i, 0.0);
-      collector.submitNameTag(poseStack, pos, 0, lines.get(i), !state.isDiscrete, state.lightCoords, camera);
+      collector.submitNameTag(poseStack, pos, order, lines.get(i), !state.isDiscrete, state.lightCoords, camera);
     }
     ci.cancel();
   }
