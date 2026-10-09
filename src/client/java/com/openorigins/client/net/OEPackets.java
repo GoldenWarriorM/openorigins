@@ -59,6 +59,8 @@ public final class OEPackets {
   private static void onNametag(OEBuffer buf) {
     int entityId = buf.readVarInt();
     int action = buf.readByte();
+    // TEMP DIAG: raw packet composition.
+    com.openorigins.client.util.DebugLog.info("[oe-nametag] id={} action={}", entityId, action);
     RegistryFriendlyByteBuf regBuf = buf.registryBuf();
     Runnable op = null;
     boolean clear = false;
