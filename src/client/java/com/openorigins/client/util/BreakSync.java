@@ -32,6 +32,7 @@ public final class BreakSync {
   private static volatile long t0;
   private static volatile String key = "";
   private static volatile boolean driven;
+  private static volatile long clientDoneMs = -1;
 
   static {
     load();
@@ -114,14 +115,29 @@ public final class BreakSync {
       t0 = System.currentTimeMillis();
       key = stateKey(state) + "|" + toolKey(player);
       driven = false;
+      clientDoneMs = -1;
     } catch (Throwable ignored) {
     }
   }
 
   public static void onAbort() {
+    // After client-done the target must survive until the server air-ack
+    // (the sample!); stop fires on success too. Staleness is swept in increment().
+    if (clientDoneMs >= 0) {
+      return;
+    }
     target = null;
     key = "";
     driven = false;
+  }
+
+  public static void onClientDone() {
+    try {
+      if (target != null && clientDoneMs < 0) {
+        clientDoneMs = System.currentTimeMillis();
+      }
+    } catch (Throwable ignored) {
+    }
   }
 
   public static void onServerAir(BlockPos pos, BlockState state) {
@@ -130,17 +146,34 @@ public final class BreakSync {
       if (t == null || !t.equals(pos) || !state.isAir()) {
         return;
       }
-      long dur = System.currentTimeMillis() - t0;
+      long now = System.currentTimeMillis();
+      long dur = now - t0;
       String k = key;
       boolean wasDriven = driven;
+      long doneAt = clientDoneMs;
       target = null;
       key = "";
       driven = false;
-      if (!wasDriven || k.isEmpty() || dur < MIN_SAMPLE_MS || dur > MAX_SAMPLE_MS) {
+      clientDoneMs = -1;
+      if (k.isEmpty() || dur < MIN_SAMPLE_MS || dur > MAX_SAMPLE_MS) {
+        return;
+      }
+      // Learn server-driven customs always; otherwise only on real mismatch
+      // (client finished far earlier than the server ack: fast-tool rejects).
+      // Vanilla-exact breaks (diff ~0) stay out of the map.
+      if (!wasDriven && (doneAt < 0 || now - doneAt < 150)) {
         return;
       }
       Double old = learned.get(k);
-      learned.put(k, old == null ? (double) dur : old * 0.6 + dur * 0.4);
+      double w = (old != null && dur < old) ? 0.5 : 0.3;
+      if (old == null) {
+        learned.put(k, (double) dur);
+      } else {
+        learned.put(k, old * (1.0 - w) + dur * w);
+      }
+      if (learned.size() > 2048) {
+        learned.clear();
+      }
       save();
     } catch (Throwable ignored) {
     }
@@ -169,17 +202,27 @@ public final class BreakSync {
         return vanilla;
       }
       boolean serverDriven = Math.abs(attr - 1.0) > 0.001;
-      if (!serverDriven) {
-        return vanilla;
-      }
       if (target == null || !pos.equals(target)) {
         onStart(pos, state, player);
+      } else if (System.currentTimeMillis() - t0 > 15000) {
+        // Stale target (air-ack never came): reset instead of pacing forever.
+        t0 = System.currentTimeMillis();
+        key = stateKey(state) + "|" + toolKey(player);
+        driven = serverDriven;
+        clientDoneMs = -1;
       }
-      driven = true;
+      if (serverDriven) {
+        driven = true;
+      }
       Double total = learned.get(key);
       if (total == null) {
-        return 0.0f;
+        // Unknown combo: freeze only while the server drives, vanilla otherwise.
+        // (Fast tools finish before any correction can land; the mismatch
+        // sample on air-ack teaches the combo for next time.)
+        return serverDriven ? 0.0f : vanilla;
       }
+      // Known combo: pace toward the learned server duration from tick 0,
+      // with or without a live correction signal.
       float current;
       try {
         current = ((com.openorigins.client.mixin.BreakSyncAccessor) mode)

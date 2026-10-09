@@ -53,4 +53,12 @@ public abstract class BreakSyncMixin {
     } catch (Throwable ignored) {
     }
   }
+
+  @Inject(method = "destroyBlock", at = @At("HEAD"))
+  private void openorigins$breakClientDone(BlockPos pos, CallbackInfoReturnable<Boolean> cir) {
+    try {
+      com.openorigins.client.util.BreakSync.onClientDone();
+    } catch (Throwable ignored) {
+    }
+  }
 }
