@@ -33,6 +33,7 @@ public final class BreakSync {
   private static volatile BlockPos target;
   private static volatile long t0;
   private static volatile String key = "";
+  private static volatile String blockId = "";
   private static volatile boolean driven;
   private static volatile long clientDoneMs = -1;
 
@@ -59,6 +60,10 @@ public final class BreakSync {
           java.nio.file.Files.readString(f, StandardCharsets.UTF_8)).getAsJsonObject();
       for (Map.Entry<String, com.google.gson.JsonElement> e : root.entrySet()) {
         try {
+          // Drop poisoned air-block entries from the buggy aggregate era.
+          if (e.getKey().startsWith("minecraft:air|")) {
+            continue;
+          }
           double ms = e.getValue().getAsDouble();
           if (ms >= MIN_SAMPLE_MS && ms <= MAX_SAMPLE_MS) {
             learned.put(e.getKey(), ms);
@@ -113,9 +118,18 @@ public final class BreakSync {
       if (pos.equals(target)) {
         return;
       }
+      if (state.isAir()) {
+        return;
+      }
       target = pos.immutable();
       t0 = System.currentTimeMillis();
       key = stateKey(state) + "|" + toolKey(player);
+      try {
+        blockId = net.minecraft.core.registries.BuiltInRegistries.BLOCK
+            .getKey(state.getBlock()).toString();
+      } catch (Throwable ignored) {
+        blockId = "";
+      }
       driven = false;
       clientDoneMs = -1;
     } catch (Throwable ignored) {
@@ -130,6 +144,7 @@ public final class BreakSync {
     }
     target = null;
     key = "";
+    blockId = "";
     driven = false;
   }
 
@@ -153,8 +168,10 @@ public final class BreakSync {
       String k = key;
       boolean wasDriven = driven;
       long doneAt = clientDoneMs;
+      String bid = blockId;
       target = null;
       key = "";
+      blockId = "";
       driven = false;
       clientDoneMs = -1;
       if (k.isEmpty() || dur < MIN_SAMPLE_MS || dur > MAX_SAMPLE_MS) {
@@ -169,9 +186,14 @@ public final class BreakSync {
       learn(k, dur);
       // Two-tier keys: exact state first, block+tool aggregate as fallback
       // (noteblock customs cycle states; the aggregate paces unseen states).
-      String agg = aggKey(state, k);
-      if (agg != null && !agg.equals(k)) {
-        learn(agg, dur);
+      // NOTE: aggregate uses the block captured at break start, NOT the air
+      // state seen at ack time.
+      if (!bid.isEmpty()) {
+        int sep = k.lastIndexOf('|');
+        String agg = bid + "|" + (sep < 0 ? "?" : k.substring(sep + 1));
+        if (!agg.equals(k)) {
+          learn(agg, dur);
+        }
       }
       if (learned.size() > 2048) {
         learned.clear();
@@ -221,6 +243,9 @@ public final class BreakSync {
       if (player.getAbilities().instabuild) {
         return vanilla;
       }
+      if (state.isAir()) {
+        return vanilla;
+      }
       double attr;
       try {
         attr = player.getAttributeValue(
@@ -242,23 +267,24 @@ public final class BreakSync {
         driven = true;
       }
       Double total = learned.get(key);
+      boolean fromAgg = false;
+      if (total == null) {
+        // Aggregate fallback: unseen noteblock states share block+tool timing.
+        // Consulted regardless of the live correction signal, so fast tools
+        // pace from tick 0 even before any attribute packet can land.
+        String agg = aggKey(state, key);
+        total = agg == null ? null : learned.get(agg);
+        fromAgg = total != null;
+        if (fromAgg && loggedAgg.add(agg)) {
+          com.openorigins.client.util.DebugLog.info("[breaksync] pacing {} from aggregate {}ms",
+              key, Math.round(total));
+        }
+      }
       if (total == null) {
         // Unknown combo: freeze only while the server drives, vanilla otherwise.
         // (Fast tools finish before any correction can land; the mismatch
         // sample on air-ack teaches the combo for next time.)
-        if (!serverDriven) {
-          return vanilla;
-        }
-        // Aggregate fallback: unseen noteblock states share block+tool timing.
-        String agg = aggKey(state, key);
-        total = agg == null ? null : learned.get(agg);
-        if (total == null) {
-          return 0.0f;
-        }
-        if (loggedAgg.add(agg)) {
-          com.openorigins.client.util.DebugLog.info("[breaksync] pacing {} from aggregate {}ms",
-              key, Math.round(total));
-        }
+        return serverDriven ? 0.0f : vanilla;
       }
       // Known combo: pace toward the learned server duration from tick 0,
       // with or without a live correction signal.
