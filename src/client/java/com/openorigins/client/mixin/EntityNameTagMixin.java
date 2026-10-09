@@ -37,6 +37,14 @@ public abstract class EntityNameTagMixin {
     if (tag != null && !tag.lines().isEmpty()) {
       holder.openorigins$setTag(tag);
       // TEMP EXP: no vanilla suppression (vanilla draws nothing here anyway).
+      // Anchor like vanilla does: straight from the entity, independent of
+      // team-hidden render state attachments.
+      try {
+        holder.openorigins$setBase(entity.getAttachments().getNullable(
+            net.minecraft.world.entity.EntityAttachment.NAME_TAG, 0, entity.getYRot(partialTick)));
+      } catch (Throwable ignored) {
+        holder.openorigins$setBase(null);
+      }
       openorigins$logTagOnce(entity, state, tag);
     } else {
       holder.openorigins$setTag(null);
@@ -113,8 +121,11 @@ public abstract class EntityNameTagMixin {
       ci.cancel();
       return;
     }
-    Vec3 base = state.nameTagAttachment != null ? state.nameTagAttachment
-        : new Vec3(state.x, state.y + state.boundingBoxHeight + 0.5, state.z);
+    Vec3 base = ((TagHolder) state).openorigins$getBase();
+    if (base == null) {
+      base = state.nameTagAttachment != null ? state.nameTagAttachment
+          : new Vec3(state.x, state.y + state.boundingBoxHeight + 0.5, state.z);
+    }
     for (int i = 0; i < lines.size(); i++) {
       Vec3 pos = base.add(0.0, tag.offset() + LINE_SPACING * i, 0.0);
       collector.submitNameTag(poseStack, pos, order, lines.get(i), !state.isDiscrete, state.lightCoords, camera);

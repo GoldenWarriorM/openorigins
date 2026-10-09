@@ -10,6 +10,7 @@ import org.spongepowered.asm.mixin.Unique;
 @Mixin(EntityRenderState.class)
 public abstract class RenderStateTagMixin implements TagHolder {
   @Unique private EntityData.NameTag openorigins$tag;
+  @Unique private net.minecraft.world.phys.Vec3 openorigins$base;
 
   @Override
   public void openorigins$setTag(@Nullable EntityData.NameTag tag) {
@@ -19,5 +20,15 @@ public abstract class RenderStateTagMixin implements TagHolder {
   @Override
   public @Nullable EntityData.NameTag openorigins$getTag() {
     return this.openorigins$tag;
+  }
+
+  @Override
+  public void openorigins$setBase(@Nullable net.minecraft.world.phys.Vec3 base) {
+    this.openorigins$base = base;
+  }
+
+  @Override
+  public @Nullable net.minecraft.world.phys.Vec3 openorigins$getBase() {
+    return this.openorigins$base;
   }
 }
