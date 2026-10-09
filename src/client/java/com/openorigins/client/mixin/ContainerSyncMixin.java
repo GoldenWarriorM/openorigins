@@ -131,66 +131,12 @@ public abstract class ContainerSyncMixin {
     com.openorigins.client.util.HelmetCosmeticTracker.noteCursor(packet.contents());
   }
 
-  /** Temporary break-sync lab: server air-ack for the tracked break target. */
+  /** Break-sync: server air-ack completes a predicted custom break. */
   @Inject(method = "handleBlockUpdate", at = @At("TAIL"))
   private void openorigins$onBlockUpdate(
       net.minecraft.network.protocol.game.ClientboundBlockUpdatePacket packet, CallbackInfo ci) {
     try {
-      com.openorigins.client.util.BreakProbe.onBlockUpdate(packet.getPos(), packet.getBlockState());
-    } catch (Throwable ignored) {
-    }
-  }
-
-  /** Temporary break-sync lab: effect corrections landing mid-break. */
-  @Inject(method = "handleUpdateMobEffect", at = @At("TAIL"))
-  private void openorigins$onEffect(
-      net.minecraft.network.protocol.game.ClientboundUpdateMobEffectPacket packet, CallbackInfo ci) {
-    try {
-      net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
-      boolean local = mc != null && mc.player != null && packet.getEntityId() == mc.player.getId();
-      String id = net.minecraft.core.registries.BuiltInRegistries.MOB_EFFECT
-          .getKey(packet.getEffect().value()).toString();
-      com.openorigins.client.util.BreakProbe.onEffect(local, id + " x" + packet.getEffectAmplifier()
-          + " for " + packet.getEffectDurationTicks() + "t"
-          + (packet.effectShowsIcon() ? "" : " noicon")
-          + (packet.isEffectVisible() ? "" : " nopart"));
-    } catch (Throwable ignored) {
-    }
-  }
-
-  /** Temporary break-sync lab: effect removal mid-break. */
-  @Inject(method = "handleRemoveMobEffect", at = @At("TAIL"))
-  private void openorigins$onEffectRemove(
-      net.minecraft.network.protocol.game.ClientboundRemoveMobEffectPacket packet, CallbackInfo ci) {
-    try {
-      net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
-      boolean local = mc != null && mc.player != null && packet.entityId() == mc.player.getId();
-      String id = net.minecraft.core.registries.BuiltInRegistries.MOB_EFFECT
-          .getKey(packet.effect().value()).toString();
-      com.openorigins.client.util.BreakProbe.onEffect(local, id + " REMOVED");
-    } catch (Throwable ignored) {
-    }
-  }
-
-  /** Temporary break-sync lab: attribute corrections landing mid-break. */
-  @Inject(method = "handleUpdateAttributes", at = @At("TAIL"))
-  private void openorigins$onAttributes(
-      net.minecraft.network.protocol.game.ClientboundUpdateAttributesPacket packet, CallbackInfo ci) {
-    try {
-      net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
-      boolean local = mc != null && mc.player != null && packet.getEntityId() == mc.player.getId();
-      if (!local) {
-        return;
-      }
-      StringBuilder sb = new StringBuilder();
-      for (var snap : packet.getValues()) {
-        if (sb.length() > 0) {
-          sb.append(", ");
-        }
-        sb.append(net.minecraft.core.registries.BuiltInRegistries.ATTRIBUTE
-            .getKey(snap.attribute().value())).append('=').append(snap.base());
-      }
-      com.openorigins.client.util.BreakProbe.onAttributes(true, sb.toString());
+      com.openorigins.client.util.BreakSync.onServerAir(packet.getPos(), packet.getBlockState());
     } catch (Throwable ignored) {
     }
   }
