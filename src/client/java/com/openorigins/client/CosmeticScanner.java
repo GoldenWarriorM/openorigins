@@ -69,9 +69,25 @@ public final class CosmeticScanner {
         if (p == mc.player) {
           continue;
         }
-        report(mc, String.format(java.util.Locale.ROOT, "CO-RIDER %s#%d",
+        StringBuilder csb = new StringBuilder(String.format(java.util.Locale.ROOT,
+            "CO-RIDER %s#%d yaw=%.0f",
             net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE.getKey(p.getType()),
-            p.getId()));
+            p.getId(), p.getYRot()));
+        if (p.isInvisible()) {
+          csb.append(" invisible");
+        }
+        if (p instanceof net.minecraft.world.entity.Display display) {
+          try {
+            csb.append(" bb=").append(display.renderState().billboardConstraints());
+            net.minecraft.world.item.ItemStack ds = display.getSlot(0).get();
+            if (ds != null && !ds.isEmpty()) {
+              csb.append(" shown=")
+                  .append(net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(ds.getItem()));
+            }
+          } catch (Throwable ignored) {
+          }
+        }
+        report(mc, csb.toString());
       }
       veh = veh.getVehicle();
       depth++;
