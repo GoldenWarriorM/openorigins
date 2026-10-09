@@ -68,15 +68,18 @@ public abstract class MoaFacingFixMixin {
           rs.shadowRadius(), rs.shadowStrength(), rs.glowColorOverride());
     }
     // Passenger displays get yaw updates from the server rarely (they never move
-    // on their own), so their own yaw lags turns by seconds. The vehicle yaw is
-    // fresh and interpolated every frame: follow that instead.
-    float vehicleYaw;
+    // on their own), and the mule yaw fights server corrections (micro-snaps).
+    // The local player yaw is fully client-side, smooth, and drives the camera
+    // and the rider model, so following it keeps the whole assembly coherent.
+    // Scans show the mule tracks player yaw within ~1.5 deg, so the offset is
+    // invisible.
+    float baseYaw;
     try {
-      vehicleYaw = vehicle.getYRot(partialTick);
+      baseYaw = mc.player.getYRot(partialTick);
     } catch (Throwable ignored) {
-      vehicleYaw = vehicle.getYRot();
+      baseYaw = mc.player.getYRot();
     }
-    state.entityYRot = vehicleYaw + 180.0f;
+    state.entityYRot = baseYaw + 180.0f;
     if (loggedMounts.add(vehicle.getId())) {
       LOG.info("[moa] flipping mount #{} parts 180 deg (visual only)", vehicle.getId());
     }
