@@ -94,11 +94,13 @@ public abstract class EntityNameTagMixin {
             ? net.minecraft.network.chat.Style.EMPTY
             : lines.get(0).getStyle();
         com.openorigins.client.util.DebugLog.info(
-            "[nametag-submit] order={} discrete={} light={} lines={} offset={} dist={} attach={} color={} font={} obf={}",
+            "[nametag-submit] order={} discrete={} light={} lines={} offset={} dist={} attach={} color={} font={} obf={} pos={}",
             order, state.isDiscrete, state.lightCoords, lines.size(), tag.offset(),
             String.format("%.1f", Math.sqrt(state.distanceToCameraSq)),
             state.nameTagAttachment != null, st.getColor(), st.getFont(),
-            st.isObfuscated());
+            st.isObfuscated(),
+            (state.nameTagAttachment != null ? state.nameTagAttachment
+                : new Vec3(state.x, state.y + state.boundingBoxHeight + 0.5, state.z)).toString());
       }
     } catch (Throwable ignored) {
     }
@@ -118,6 +120,19 @@ public abstract class EntityNameTagMixin {
     collector.submitNameTag(poseStack, base.add(0.0, tag.offset() + LINE_SPACING * lines.size(), 0.0),
         order, net.minecraft.network.chat.Component.literal("TEST"), !state.isDiscrete,
         state.lightCoords, camera);
+    // TEMP DIAG: anchor marker at the local player head (guaranteed on-screen
+    // reference to tell a bad base pos from eaten submits).
+    try {
+      net.minecraft.client.Minecraft mc2 = net.minecraft.client.Minecraft.getInstance();
+      if (mc2 != null && mc2.player != null) {
+        net.minecraft.world.phys.Vec3 pp = mc2.player.position();
+        collector.submitNameTag(poseStack,
+            new Vec3(pp.x, pp.y + 2.2, pp.z), order,
+            net.minecraft.network.chat.Component.literal("ANCHOR"), !state.isDiscrete,
+            state.lightCoords, camera);
+      }
+    } catch (Throwable ignored) {
+    }
     ci.cancel();
   }
 
