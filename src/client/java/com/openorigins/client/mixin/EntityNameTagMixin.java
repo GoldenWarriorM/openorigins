@@ -124,11 +124,15 @@ public abstract class EntityNameTagMixin {
     // CAM: 3 blocks along the camera look vector (guaranteed dead-center).
     try {
       net.minecraft.client.Camera cam = net.minecraft.client.Minecraft.getInstance()
-          .gameRenderer.getMainCamera();
-      net.minecraft.world.phys.Vec3 cp = cam.getPosition();
-      net.minecraft.world.phys.Vec3 look = cam.getLookVector();
+          .gameRenderer.mainCamera();
+      net.minecraft.world.phys.Vec3 cp = cam.position();
+      float yaw = cam.yRot() * (float) Math.PI / 180.0f;
+      float pitch = cam.xRot() * (float) Math.PI / 180.0f;
+      double lx = -Math.sin(yaw) * Math.cos(pitch);
+      double ly = -Math.sin(pitch);
+      double lz = Math.cos(yaw) * Math.cos(pitch);
       collector.submitNameTag(poseStack,
-          new Vec3(cp.x + look.x * 3.0, cp.y + look.y * 3.0, cp.z + look.z * 3.0), order,
+          new Vec3(cp.x + lx * 3.0, cp.y + ly * 3.0, cp.z + lz * 3.0), order,
           net.minecraft.network.chat.Component.literal("CAM"), true,
           15728880, camera);
     } catch (Throwable ignored) {
