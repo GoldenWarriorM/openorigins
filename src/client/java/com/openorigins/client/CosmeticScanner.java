@@ -60,9 +60,19 @@ public final class CosmeticScanner {
     net.minecraft.world.entity.Entity veh = mc.player.getVehicle();
     int depth = 0;
     while (veh != null && depth < 3) {
-      report(mc, String.format(java.util.Locale.ROOT, "VEHICLE depth=%d %s#%d yaw=%.1f", depth,
+      report(mc, String.format(java.util.Locale.ROOT, "VEHICLE depth=%d %s#%d yaw=%.1f%s carries%d",
+          depth,
           net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE.getKey(veh.getType()),
-          veh.getId(), veh.getYRot()));
+          veh.getId(), veh.getYRot(), veh.isInvisible() ? " invisible" : "",
+          veh.getPassengers().size()));
+      for (net.minecraft.world.entity.Entity p : veh.getPassengers()) {
+        if (p == mc.player) {
+          continue;
+        }
+        report(mc, String.format(java.util.Locale.ROOT, "CO-RIDER %s#%d",
+            net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE.getKey(p.getType()),
+            p.getId()));
+      }
       veh = veh.getVehicle();
       depth++;
     }
