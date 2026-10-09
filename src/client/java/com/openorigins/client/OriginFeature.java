@@ -17,6 +17,7 @@ public enum OriginFeature {
   REGISTRY_DESYNC_FIX(FeatureCategory.FIXES, "Registry Desync Fix"),
   BADGER_TASK_HUD(FeatureCategory.UI, "Badger Task HUD"),
   ALLAY_ARMS_FIX(FeatureCategory.FIXES, "Allay Arms Fix"),
+  MOA_FACING_FIX(FeatureCategory.FIXES, "Moa Facing Fix"),
   STRICT_RECIPE_MATCH(FeatureCategory.FIXES, false, "Strict Recipe Match");
 
   private final FeatureCategory category;

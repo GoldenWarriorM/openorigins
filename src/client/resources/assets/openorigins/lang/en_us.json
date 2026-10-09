@@ -82,6 +82,7 @@
   "feature.openorigins.helmet_cosmetic_slot.hint": "If the helmet is missing or wrong, take the item off and put it back on.",
   "feature.openorigins.strict_recipe_match.desc": "Strict recipe-book matching for custom items.",
   "feature.openorigins.strict_recipe_match.hint": "Custom items only satisfy matching custom inputs (by polymer id). Removes false positives (banana box as paper) but may hide crafts the server would accept.",
+  "feature.openorigins.moa_facing_fix.desc": "Turns the Moa mount body to face the direction of travel. The server assembled it backwards (visual only).",
   "hud.openorigins.badger_task": "Badger Task (streak %s)",
   "hud.openorigins.badger_timeleft": "Time left: %s",
   "hud.openorigins.badger_reset": "Streak resets in %sd"

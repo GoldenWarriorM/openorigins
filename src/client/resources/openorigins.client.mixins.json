@@ -32,6 +32,7 @@
     "PauseScreenMixin",
     "ItemDisplayArmsFixMixin",
     "ItemInHandArmsFixMixin",
+    "MoaFacingFixMixin",
     "EquipSwapMixin",
     "StrictRecipeMatchMixin",
   ],
