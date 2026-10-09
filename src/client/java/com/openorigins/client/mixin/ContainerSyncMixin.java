@@ -93,6 +93,7 @@ public abstract class ContainerSyncMixin {
   private void openorigins$onServerClose(
       net.minecraft.network.protocol.game.ClientboundContainerClosePacket packet, CallbackInfo ci) {
     com.openorigins.client.util.BadgerCache.noteServerClose(packet.getContainerId());
+    com.openorigins.client.util.BackgroundMenu.noteServerClose(packet.getContainerId());
   }
 
   @Inject(method = "handleContainerSetSlot", at = @At("TAIL"))

@@ -103,6 +103,20 @@ public final class BackgroundMenu {
     disarm();
   }
 
+  /**
+   * Server closed a window on its own (menu timeout). If it was ours, drop the
+   * stale handle WITHOUT sending close back: the id will be recycled (the
+   * server reuses 1-2-3), and our finish() must never close the window that
+   * reuses it (e.g. the player's chest) nor route its content into our menu.
+   */
+  public static synchronized void noteServerClose(int containerId) {
+    if (armed && menu != null && containerId == windowId) {
+      com.openorigins.client.util.DebugLog.info("[bgmenu] server closed window {}, dropping",
+          containerId);
+      disarm();
+    }
+  }
+
   private static synchronized void disarm() {
     armed = false;
     menu = null;
