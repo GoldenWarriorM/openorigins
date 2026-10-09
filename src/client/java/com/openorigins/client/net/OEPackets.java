@@ -59,29 +59,49 @@ public final class OEPackets {
   private static void onNametag(OEBuffer buf) {
     int entityId = buf.readVarInt();
     int action = buf.readByte();
-    Minecraft mc = Minecraft.getInstance();
-    if (mc.level == null || mc.level.getEntity(entityId) == null) {
-      return;
-    }
     RegistryFriendlyByteBuf regBuf = buf.registryBuf();
+    Runnable op = null;
+    boolean clear = false;
     try {
       switch (action) {
         case 0 -> {
           Component line = ComponentSerialization.STREAM_CODEC.decode(regBuf);
-          EntityData.addTagLine(entityId, line);
+          op = () -> EntityData.addTagLine(entityId, line);
         }
         case 1 -> {
           int index = buf.readVarInt();
           Component line = ComponentSerialization.STREAM_CODEC.decode(regBuf);
-          EntityData.setTagLine(entityId, index, line);
+          op = () -> EntityData.setTagLine(entityId, index, line);
         }
-        case 2 -> EntityData.removeTagLine(entityId, buf.readVarInt());
-        case 3 -> EntityData.setTagOffset(entityId, (float) buf.readDouble());
+        case 2 -> {
+          int index = buf.readVarInt();
+          op = () -> EntityData.removeTagLine(entityId, index);
+        }
+        case 3 -> {
+          float offset = (float) buf.readDouble();
+          op = () -> EntityData.setTagOffset(entityId, offset);
+        }
         default -> {
         }
       }
     } catch (Throwable t) {
+      clear = true;
+    }
+    Minecraft mc = Minecraft.getInstance();
+    if (clear) {
       EntityData.clearTag(entityId);
+    } else if (op != null) {
+      // Entities may not be tracked yet when a tag burst arrives (spawn order):
+      // queue instead of dropping, the tick flush applies them on appearance.
+      if (mc.level == null || mc.level.getEntity(entityId) == null) {
+        EntityData.queueTagOp(entityId, op);
+      } else {
+        try {
+          op.run();
+        } catch (Throwable t) {
+          EntityData.clearTag(entityId);
+        }
+      }
     }
     if (!loggedTag) {
       loggedTag = true;

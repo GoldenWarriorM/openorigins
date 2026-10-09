@@ -58,11 +58,62 @@ public final class EntityData {
 
   public static void clearTag(int entityId) {
     TAGS.remove(entityId);
+    PENDING_TAG_OPS.remove(entityId);
   }
 
   public static void clearAll() {
     TAGS.clear();
     BACK_ITEMS.clear();
+    PENDING_TAG_OPS.clear();
+  }
+
+  /**
+   * Tag ops that arrived before the entity was tracked client-side (spawn
+   * order). Queued instead of dropped; flushed once the entity appears.
+   */
+  private static final ConcurrentMap<Integer, List<Runnable>> PENDING_TAG_OPS =
+      new ConcurrentHashMap<>();
+
+  public static void queueTagOp(int entityId, Runnable op) {
+    List<Runnable> ops = PENDING_TAG_OPS.computeIfAbsent(entityId,
+        id -> Collections.synchronizedList(new ArrayList<>()));
+    synchronized (ops) {
+      if (ops.size() >= 32) {
+        ops.remove(0);
+      }
+      ops.add(op);
+    }
+    if (PENDING_TAG_OPS.size() > 512) {
+      PENDING_TAG_OPS.clear();
+    }
+  }
+
+  /** Applies queued tag ops for entities that are tracked now. Call on tick. */
+  public static void flushPendingTags() {
+    if (PENDING_TAG_OPS.isEmpty()) {
+      return;
+    }
+    net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
+    if (mc == null || mc.level == null) {
+      return;
+    }
+    for (Integer id : new ArrayList<>(PENDING_TAG_OPS.keySet())) {
+      if (mc.level.getEntity(id) == null) {
+        continue;
+      }
+      List<Runnable> ops = PENDING_TAG_OPS.remove(id);
+      if (ops == null) {
+        continue;
+      }
+      synchronized (ops) {
+        for (Runnable op : ops) {
+          try {
+            op.run();
+          } catch (Throwable ignored) {
+          }
+        }
+      }
+    }
   }
 
   public static ItemStack getBackItem(int entityId) {
