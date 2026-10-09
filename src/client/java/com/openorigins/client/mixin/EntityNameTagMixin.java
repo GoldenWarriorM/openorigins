@@ -37,8 +37,39 @@ public abstract class EntityNameTagMixin {
     if (tag != null && !tag.lines().isEmpty()) {
       holder.openorigins$setTag(tag);
       state.nameTag = null;
+      openorigins$logTagOnce(entity, state, tag);
     } else {
       holder.openorigins$setTag(null);
+    }
+  }
+
+  private static final java.util.Map<Integer, String> loggedTagState =
+      java.util.Collections.synchronizedMap(new java.util.HashMap<>());
+
+  private static void openorigins$logTagOnce(Entity entity, EntityRenderState state,
+      EntityData.NameTag tag) {
+    try {
+      List<Component> lines;
+      synchronized (tag.lines()) {
+        lines = new ArrayList<>(tag.lines());
+      }
+      String first = lines.isEmpty() ? "-" : lines.get(0).getString();
+      if (first.length() > 40) {
+        first = first.substring(0, 40);
+      }
+      String sig = lines.size() + "|" + tag.offset() + "|" + first.hashCode();
+      if (sig.equals(loggedTagState.get(entity.getId()))) {
+        return;
+      }
+      loggedTagState.put(entity.getId(), sig);
+      Vec3 base = state.nameTagAttachment != null ? state.nameTagAttachment
+          : new Vec3(state.x, state.y + state.boundingBoxHeight + 0.5, state.z);
+      com.openorigins.client.util.DebugLog.info(
+          "[nametag] {}#{} lines={} offset={} attach={} baseY={} first='{}'",
+          net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType()),
+          entity.getId(), lines.size(), tag.offset(),
+          state.nameTagAttachment != null, String.format("%.1f", base.y), first);
+    } catch (Throwable ignored) {
     }
   }
 
