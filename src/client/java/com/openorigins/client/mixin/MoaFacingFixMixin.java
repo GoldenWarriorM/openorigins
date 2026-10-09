@@ -67,7 +67,16 @@ public abstract class MoaFacingFixMixin {
           Display.BillboardConstraints.FIXED, rs.brightnessOverride(),
           rs.shadowRadius(), rs.shadowStrength(), rs.glowColorOverride());
     }
-    state.entityYRot += 180.0f;
+    // Passenger displays get yaw updates from the server rarely (they never move
+    // on their own), so their own yaw lags turns by seconds. The vehicle yaw is
+    // fresh and interpolated every frame: follow that instead.
+    float vehicleYaw;
+    try {
+      vehicleYaw = vehicle.getYRot(partialTick);
+    } catch (Throwable ignored) {
+      vehicleYaw = vehicle.getYRot();
+    }
+    state.entityYRot = vehicleYaw + 180.0f;
     if (loggedMounts.add(vehicle.getId())) {
       LOG.info("[moa] flipping mount #{} parts 180 deg (visual only)", vehicle.getId());
     }
