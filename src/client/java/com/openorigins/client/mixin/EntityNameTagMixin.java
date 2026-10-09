@@ -36,7 +36,7 @@ public abstract class EntityNameTagMixin {
     TagHolder holder = (TagHolder) state;
     if (tag != null && !tag.lines().isEmpty()) {
       holder.openorigins$setTag(tag);
-      state.nameTag = null;
+      // TEMP EXP: no vanilla suppression (vanilla draws nothing here anyway).
       openorigins$logTagOnce(entity, state, tag);
     } else {
       holder.openorigins$setTag(null);
@@ -82,6 +82,8 @@ public abstract class EntityNameTagMixin {
       SubmitNodeCollector collector, CameraRenderState camera, int order, CallbackInfo ci) {
     EntityData.NameTag tag = ((TagHolder) state).openorigins$getTag();
     if (tag == null) return;
+    // TEMP EXP: pure addition, no cancel and no vanilla suppression. Vanilla has
+    // nothing to draw here anyway (its nameTag stays null: teams hide names).
     List<Component> lines;
     synchronized (tag.lines()) {
       lines = new ArrayList<>(tag.lines());
@@ -104,7 +106,8 @@ public abstract class EntityNameTagMixin {
       }
     } catch (Throwable ignored) {
     }
-    if (OpenOriginsConfig.getInstance().isEnabled(OriginFeature.HIDE_NAMES)
+    // TEMP EXP: do not cancel here; vanilla submits nothing (nameTag null).
+    if (false && OpenOriginsConfig.getInstance().isEnabled(OriginFeature.HIDE_NAMES)
         && ConnectionUtil.isConnected()
         && isHudHidden()) {
       ci.cancel();
@@ -137,7 +140,7 @@ public abstract class EntityNameTagMixin {
           15728880, camera);
     } catch (Throwable ignored) {
     }
-    ci.cancel();
+    // TEMP EXP: no cancel (see above).
   }
 
   private static boolean isHudHidden() {
