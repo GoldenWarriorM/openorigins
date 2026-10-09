@@ -90,10 +90,15 @@ public abstract class EntityNameTagMixin {
       String sig = "S" + lines.size() + "|" + tag.offset() + "|" + order + "|" + state.isDiscrete;
       if (!sig.equals(loggedSubmitSig)) {
         loggedSubmitSig = sig;
+        net.minecraft.network.chat.Style st = lines.isEmpty()
+            ? net.minecraft.network.chat.Style.EMPTY
+            : lines.get(0).getStyle();
         com.openorigins.client.util.DebugLog.info(
-            "[nametag-submit] order={} discrete={} light={} lines={} offset={} dist={}",
+            "[nametag-submit] order={} discrete={} light={} lines={} offset={} dist={} attach={} color={} font={} obf={}",
             order, state.isDiscrete, state.lightCoords, lines.size(), tag.offset(),
-            String.format("%.1f", Math.sqrt(state.distanceToCameraSq)));
+            String.format("%.1f", Math.sqrt(state.distanceToCameraSq)),
+            state.nameTagAttachment != null, st.getColor(), st.getFont(),
+            st.isObfuscated());
       }
     } catch (Throwable ignored) {
     }
@@ -109,6 +114,10 @@ public abstract class EntityNameTagMixin {
       Vec3 pos = base.add(0.0, tag.offset() + LINE_SPACING * i, 0.0);
       collector.submitNameTag(poseStack, pos, order, lines.get(i), !state.isDiscrete, state.lightCoords, camera);
     }
+    // TEMP DIAG: marker to split "nodes not drawn" from "text draws empty".
+    collector.submitNameTag(poseStack, base.add(0.0, tag.offset() + LINE_SPACING * lines.size(), 0.0),
+        order, net.minecraft.network.chat.Component.literal("TEST"), !state.isDiscrete,
+        state.lightCoords, camera);
     ci.cancel();
   }
 
