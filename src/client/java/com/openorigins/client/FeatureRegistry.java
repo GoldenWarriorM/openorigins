@@ -16,6 +16,13 @@ public final class FeatureRegistry {
         EntityData.flushPendingTags();
       }
     });
+    // Entity-bound server data (nametags) must die with the entity object:
+    // the server re-sends full tag state on every re-track, and a global
+    // id-keyed map would accumulate stale lines across re-tracks.
+    net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientEntityEvents.ENTITY_UNLOAD
+        .register((entity, level) -> EntityData.clearTag(entity.getId()));
+    net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientEntityEvents.ENTITY_LOAD
+        .register((entity, level) -> EntityData.flushPendingTags());
     net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry.attachElementAfter(
         net.fabricmc.fabric.api.client.rendering.v1.hud.VanillaHudElements.MISC_OVERLAYS,
         BadgerHud.ID, new BadgerHud());
