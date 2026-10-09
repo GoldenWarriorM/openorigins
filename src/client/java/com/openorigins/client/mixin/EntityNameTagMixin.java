@@ -45,6 +45,7 @@ public abstract class EntityNameTagMixin {
 
   private static final java.util.Map<Integer, String> loggedTagState =
       java.util.Collections.synchronizedMap(new java.util.HashMap<>());
+  private static volatile String loggedSubmitSig;
 
   private static void openorigins$logTagOnce(Entity entity, EntityRenderState state,
       EntityData.NameTag tag) {
@@ -81,15 +82,26 @@ public abstract class EntityNameTagMixin {
       SubmitNodeCollector collector, CameraRenderState camera, int order, CallbackInfo ci) {
     EntityData.NameTag tag = ((TagHolder) state).openorigins$getTag();
     if (tag == null) return;
+    List<Component> lines;
+    synchronized (tag.lines()) {
+      lines = new ArrayList<>(tag.lines());
+    }
+    try {
+      String sig = "S" + lines.size() + "|" + tag.offset() + "|" + order + "|" + state.isDiscrete;
+      if (!sig.equals(loggedSubmitSig)) {
+        loggedSubmitSig = sig;
+        com.openorigins.client.util.DebugLog.info(
+            "[nametag-submit] order={} discrete={} light={} lines={} offset={} dist={}",
+            order, state.isDiscrete, state.lightCoords, lines.size(), tag.offset(),
+            String.format("%.1f", Math.sqrt(state.distanceToCameraSq)));
+      }
+    } catch (Throwable ignored) {
+    }
     if (OpenOriginsConfig.getInstance().isEnabled(OriginFeature.HIDE_NAMES)
         && ConnectionUtil.isConnected()
         && isHudHidden()) {
       ci.cancel();
       return;
-    }
-    List<Component> lines;
-    synchronized (tag.lines()) {
-      lines = new ArrayList<>(tag.lines());
     }
     Vec3 base = state.nameTagAttachment != null ? state.nameTagAttachment
         : new Vec3(state.x, state.y + state.boundingBoxHeight + 0.5, state.z);
