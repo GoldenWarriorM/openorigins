@@ -47,8 +47,39 @@ public abstract class EntityNameTagMixin {
       } catch (Throwable ignored) {
         holder.openorigins$setBase(null);
       }
+      openorigins$logTagOnce(entity, tag);
     } else {
       holder.openorigins$setTag(null);
+    }
+  }
+
+  private static final java.util.Map<Integer, String> loggedTagState =
+      java.util.Collections.synchronizedMap(new java.util.HashMap<>());
+
+  /** One-time tag content log (debug toggle). */
+  private static void openorigins$logTagOnce(Entity entity, EntityData.NameTag tag) {
+    try {
+      List<Component> lines;
+      synchronized (tag.lines()) {
+        lines = new ArrayList<>(tag.lines());
+      }
+      StringBuilder sb = new StringBuilder();
+      for (Component c : lines) {
+        if (sb.length() > 0) {
+          sb.append(" // ");
+        }
+        String s = c.getString();
+        sb.append(s.length() > 30 ? s.substring(0, 30) : s);
+      }
+      String sig = lines.size() + "|" + sb.toString().hashCode();
+      if (sig.equals(loggedTagState.get(entity.getId()))) {
+        return;
+      }
+      loggedTagState.put(entity.getId(), sig);
+      com.openorigins.client.util.DebugLog.info("[nametag] {}#{} lines={} [{}]",
+          net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType()),
+          entity.getId(), lines.size(), sb);
+    } catch (Throwable ignored) {
     }
   }
 
