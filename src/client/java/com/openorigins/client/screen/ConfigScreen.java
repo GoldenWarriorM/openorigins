@@ -74,8 +74,13 @@ public class ConfigScreen extends Screen {
 
   @Override
   public boolean keyPressed(net.minecraft.client.input.KeyEvent event) {
-    if (com.openorigins.client.HotkeyFeatures.isScanCaptureArmed()) {
-      com.openorigins.client.HotkeyFeatures.confirmScanCapture(event.key(), event.scancode());
+    if (com.openorigins.client.HotkeyFeatures.isScanCaptureArmed()
+        || com.openorigins.client.HotkeyFeatures.isCapturingAny()) {
+      if (com.openorigins.client.HotkeyFeatures.isScanCaptureArmed()) {
+        com.openorigins.client.HotkeyFeatures.confirmScanCapture(event.key(), event.scancode());
+      } else {
+        com.openorigins.client.HotkeyFeatures.confirmCapture(event.key(), event.scancode());
+      }
       net.minecraft.client.gui.components.tabs.Tab t = this.tabManager.getCurrentTab();
       if (t instanceof ConfigTabPage page) {
         page.list().refreshEntries();

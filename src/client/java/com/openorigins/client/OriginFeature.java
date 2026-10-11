@@ -6,8 +6,8 @@ public enum OriginFeature {
   SMOOTH_ANIMATIONS(FeatureCategory.GENERAL, "Smooth Animations"),
   BLOCK_ENHANCEMENTS(FeatureCategory.FIXES, "Block Enhancements"),
   BACK_SWAG_SLOT(FeatureCategory.UI, "Back Swag Slot"),
-  HELMET_COSMETIC_SLOT(FeatureCategory.UI, false, "Helmet Cosmetic Slot"),
-  EXPAND_MODEL_BOUNDING_BOX(FeatureCategory.GENERAL, "Expand Model Bounding Box"),
+  HELMET_COSMETIC_SLOT(FeatureCategory.EXPERIMENTAL, false, "Helmet Cosmetic Slot"),
+  EXPAND_MODEL_BOUNDING_BOX(FeatureCategory.FIXES, "Expand Model Bounding Box"),
   HIDE_NAMES(FeatureCategory.GENERAL, "Hide Names"),
   AUCTION_PING(FeatureCategory.UI, "Auction Ping"),
   CUTSCENE_ENHANCEMENTS(FeatureCategory.GENERAL, "Cutscene Enhancements"),
@@ -18,10 +18,10 @@ public enum OriginFeature {
   REGISTRY_DESYNC_FIX(FeatureCategory.FIXES, "Registry Desync Fix"),
   BADGER_TASK_HUD(FeatureCategory.UI, "Badger Task HUD"),
   ALLAY_ARMS_FIX(FeatureCategory.FIXES, "Allay Arms Fix"),
-  ENTITY_EXTRAPOLATION(FeatureCategory.FIXES, false, "Entity Extrapolation"),
+  ENTITY_EXTRAPOLATION(FeatureCategory.EXPERIMENTAL, false, "Entity Extrapolation"),
   MOA_FACING_FIX(FeatureCategory.FIXES, "Moa Facing Fix"),
-  BREAK_SYNC(FeatureCategory.FIXES, false, "Break Sync", true),
-  STRICT_RECIPE_MATCH(FeatureCategory.FIXES, false, "Strict Recipe Match");
+  BREAK_SYNC(FeatureCategory.EXPERIMENTAL, false, "Break Sync", true),
+  STRICT_RECIPE_MATCH(FeatureCategory.EXPERIMENTAL, false, "Strict Recipe Match");
 
   private final FeatureCategory category;
   private final boolean defaultValue;

@@ -49,7 +49,73 @@ public final class HotkeyFeatures {
   }
 
   public static boolean isScanCaptureArmed() { return scanCaptureArmed; }
-  public static void beginScanCapture() { scanCaptureArmed = true; }
+  public static void beginScanCapture() {
+    scanCaptureArmed = true;
+    captureTarget = null;
+  }
+
+  /** Rebindable hotkeys in display order (scan key is special-cased separately). */
+  public record Hotkey(String labelKey, KeyMapping mapping) {}
+
+  public static java.util.List<Hotkey> hotkeys() {
+    java.util.ArrayList<Hotkey> out = new java.util.ArrayList<>();
+    out.add(new Hotkey("key.openorigins.teleport_menu", teleportMenuKey));
+    out.add(new Hotkey("key.openorigins.navigator", navigatorKey));
+    out.add(new Hotkey("key.openorigins.gesture_menu", gestureKey));
+    out.add(new Hotkey("key.openorigins.spawn", spawnKey));
+    out.add(new Hotkey("key.openorigins.realm", realmKey));
+    out.add(new Hotkey("key.openorigins.badger_hud", badgerHudKey));
+    out.add(new Hotkey("key.openorigins.extrapolation", extrapolationKey));
+    out.add(new Hotkey("key.openorigins.balloon_blue", blueBalloonKey));
+    out.add(new Hotkey("key.openorigins.balloon_green", greenBalloonKey));
+    out.add(new Hotkey("key.openorigins.balloon_yellow", yellowBalloonKey));
+    out.add(new Hotkey("key.openorigins.balloon_red", redBalloonKey));
+    out.add(new Hotkey("key.openorigins.config", configKey));
+    return out;
+  }
+
+  private static KeyMapping captureTarget;
+
+  public static String keyName(KeyMapping mapping) {
+    try {
+      return mapping == null ? "?" : mapping.getTranslatedKeyMessage().getString();
+    } catch (Throwable t) {
+      return "?";
+    }
+  }
+
+  public static boolean isCapturing(KeyMapping mapping) {
+    return captureTarget != null && captureTarget == mapping;
+  }
+
+  public static boolean isCapturingAny() {
+    return captureTarget != null;
+  }
+
+  public static void beginCapture(KeyMapping mapping) {
+    scanCaptureArmed = false;
+    captureTarget = mapping;
+  }
+
+  /** Rebinds the captured mapping. ESC cancels. */
+  public static void confirmCapture(int keyCode, int scanCode) {
+    KeyMapping target = captureTarget;
+    captureTarget = null;
+    if (target == null) {
+      return;
+    }
+    if (keyCode == org.lwjgl.glfw.GLFW.GLFW_KEY_ESCAPE) {
+      return;
+    }
+    try {
+      com.mojang.blaze3d.platform.InputConstants.Key key =
+          keyCode != com.mojang.blaze3d.platform.InputConstants.UNKNOWN.getValue()
+              ? com.mojang.blaze3d.platform.InputConstants.Type.KEYSYM.getOrCreate(keyCode)
+              : com.mojang.blaze3d.platform.InputConstants.Type.SCANCODE.getOrCreate(scanCode);
+      target.setKey(key);
+    } catch (Throwable ignored) {
+    }
+  }
 
   /** Rebinds the hidden scan key. ESC cancels. */
   public static void confirmScanCapture(int keyCode, int scanCode) {

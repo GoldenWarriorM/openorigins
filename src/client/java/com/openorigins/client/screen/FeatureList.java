@@ -37,18 +37,25 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
           }
         }
       }
-      if (category == com.openorigins.client.FeatureCategory.MISC) {
-        this.addEntry(new CycleRow(this, "config.openorigins.scan_key",
-            "config.openorigins.scan_key_hint",
-            () -> com.openorigins.client.HotkeyFeatures.isScanCaptureArmed() ? "..."
-                : com.openorigins.client.HotkeyFeatures.scanKeyName(),
-            () -> com.openorigins.client.HotkeyFeatures.beginScanCapture(), false));
-      }
       if (category == com.openorigins.client.FeatureCategory.UI) {
         this.addEntry(new StepperRow(this, "config.openorigins.max_slots",
             "config.openorigins.capacity_hint", 0, 15,
             () -> OpenOriginsConfig.getInstance().getHomeCapacity(),
             v -> OpenOriginsConfig.getInstance().setHomeCapacity(v)));
+      }
+      if (category == com.openorigins.client.FeatureCategory.HOTKEYS) {
+        this.addEntry(new CycleRow(this, "config.openorigins.scan_key",
+            "config.openorigins.scan_key_hint",
+            () -> com.openorigins.client.HotkeyFeatures.isScanCaptureArmed() ? "..."
+                : com.openorigins.client.HotkeyFeatures.scanKeyName(),
+            () -> com.openorigins.client.HotkeyFeatures.beginScanCapture(), false));
+        for (com.openorigins.client.HotkeyFeatures.Hotkey h
+            : com.openorigins.client.HotkeyFeatures.hotkeys()) {
+          this.addEntry(new CycleRow(this, h.labelKey(), h.labelKey(),
+              () -> com.openorigins.client.HotkeyFeatures.isCapturing(h.mapping()) ? "..."
+                  : com.openorigins.client.HotkeyFeatures.keyName(h.mapping()),
+              () -> com.openorigins.client.HotkeyFeatures.beginCapture(h.mapping()), false));
+        }
       }
     }
     if (tab == ConfigTab.SERVERS) {
@@ -121,7 +128,8 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
         float partialTick) {
       net.minecraft.client.gui.Font font = net.minecraft.client.Minecraft.getInstance().font;
       Component name = Component.translatable(this.category.getTranslationKey())
-          .withStyle(net.minecraft.ChatFormatting.GOLD);
+          .withStyle(this.category == com.openorigins.client.FeatureCategory.EXPERIMENTAL
+              ? net.minecraft.ChatFormatting.RED : net.minecraft.ChatFormatting.GOLD);
       int w = font.width(name);
       int rowW = this.list.getRowRight() - this.getContentX();
       graphics.text(font, name, this.getContentX() + (rowW - w) / 2,
