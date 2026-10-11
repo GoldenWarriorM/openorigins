@@ -43,6 +43,14 @@ public abstract class ChatConfirmMixin {
       return;
     }
     if (!com.openorigins.client.util.BackgroundMenu.isServerErrorOurs()) {
+      // Brigadier error context ("cmd<--[HERE]") arrives as its own packet
+      // right after the main line: swallow it too, but only as the tail of
+      // an error we already attributed to ourselves.
+      String stripped = text.strip();
+      if (stripped.endsWith("<--[HERE]")
+          && com.openorigins.client.util.BackgroundMenu.isAfterSuppressedError()) {
+        ci.cancel();
+      }
       return;
     }
     com.openorigins.client.util.BackgroundMenu.noteCommandError();

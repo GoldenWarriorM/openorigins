@@ -74,6 +74,7 @@ public final class BackgroundMenu {
 
   private static volatile String deadZoneLocation;
   private static volatile long deadZoneUntil;
+  private static volatile long lastSuppressedErrorMs;
   private static final long DEAD_ZONE_MS = 300000;
 
   /**
@@ -83,6 +84,7 @@ public final class BackgroundMenu {
    * commands there.
    */
   public static synchronized void noteCommandError() {
+    lastSuppressedErrorMs = System.currentTimeMillis();
     if (armed) {
       com.openorigins.client.util.DebugLog.info("[bgmenu] command failed in this area, disarming '{}'",
           pendingCommand);
@@ -96,6 +98,11 @@ public final class BackgroundMenu {
           DEAD_ZONE_MS / 1000);
     } catch (Throwable ignored) {
     }
+  }
+
+  /** True right after we suppressed a command error (its context line follows). */
+  public static boolean isAfterSuppressedError() {
+    return System.currentTimeMillis() - lastSuppressedErrorMs < 1500;
   }
 
   /** True when a vanilla command error right now is attributable to our send. */
