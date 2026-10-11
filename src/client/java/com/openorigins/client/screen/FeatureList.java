@@ -101,6 +101,13 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
         for (Entry e : this.children()) {
           if (e instanceof CategoryEntry ce && ce.category == category) {
             this.setScrollAmount(px);
+            try {
+              com.openorigins.client.util.DebugLog.info(
+                  "[config] page={} rows={} sectionPx={} scroll={} maxScroll={}", tab,
+                  this.children().size(), px, (int) this.getScrollAmount(),
+                  this.getMaxScrollAmount());
+            } catch (Throwable ignored) {
+            }
             return;
           }
           try {
