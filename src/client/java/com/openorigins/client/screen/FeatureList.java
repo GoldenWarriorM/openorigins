@@ -537,6 +537,12 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
       if (this.field != null) {
         this.field.setX(right - 20 - 4 - 52);
         this.field.setY(this.getContentY() + 2);
+        try {
+          // Our value is drawn manually centered with invisible field text;
+          // pin the selection to the cursor so its white box never shows.
+          this.field.setHighlightPos(this.field.getCursorPosition());
+        } catch (Throwable ignored) {
+        }
         this.field.extractRenderState(graphics, mouseX, mouseY, partialTick);
         net.minecraft.client.gui.Font ff = net.minecraft.client.Minecraft.getInstance().font;
         String fv = this.field.getValue();
