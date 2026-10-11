@@ -202,7 +202,13 @@ public final class OpenOriginsConfig {
     }
   }
 
-  public boolean isEnabled(OriginFeature f) { return enabled.getOrDefault(f, true); }
+  public boolean isEnabled(OriginFeature f) {
+    // Parked experiments stay off for everyone until re-enabled in code.
+    if (f == OriginFeature.BREAK_SYNC) {
+      return false;
+    }
+    return enabled.getOrDefault(f, true);
+  }
   public String getDiscordClientId() { return discordClientId; }
   public HudCorner getBadgerHudCorner() { return badgerHudCorner; }
   public boolean isBadgerHudVisible() { return badgerHudVisible; }

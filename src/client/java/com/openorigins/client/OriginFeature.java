@@ -20,26 +20,34 @@ public enum OriginFeature {
   ALLAY_ARMS_FIX(FeatureCategory.FIXES, "Allay Arms Fix"),
   ENTITY_EXTRAPOLATION(FeatureCategory.FIXES, false, "Entity Extrapolation"),
   MOA_FACING_FIX(FeatureCategory.FIXES, "Moa Facing Fix"),
-  BREAK_SYNC(FeatureCategory.FIXES, false, "Break Sync"),
+  BREAK_SYNC(FeatureCategory.FIXES, false, "Break Sync", true),
   STRICT_RECIPE_MATCH(FeatureCategory.FIXES, false, "Strict Recipe Match");
 
   private final FeatureCategory category;
   private final boolean defaultValue;
   private final String name;
+  private final boolean hidden;
 
   OriginFeature(FeatureCategory category, String name) {
-    this(category, true, name);
+    this(category, true, name, false);
   }
 
   OriginFeature(FeatureCategory category, boolean defaultValue, String name) {
+    this(category, defaultValue, name, false);
+  }
+
+  OriginFeature(FeatureCategory category, boolean defaultValue, String name, boolean hidden) {
     this.category = category;
     this.defaultValue = defaultValue;
     this.name = name;
+    this.hidden = hidden;
   }
 
   public FeatureCategory getCategory() { return category; }
   public boolean getDefaultValue() { return defaultValue; }
   public String getName() { return name; }
+  /** Hidden from settings UI but kept in code (parked experiments). */
+  public boolean isHidden() { return hidden; }
 
   public String getDescriptionKey() {
     return "feature.openorigins." + this.name().toLowerCase() + ".desc";

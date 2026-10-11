@@ -20,6 +20,9 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
       this.addEntry(new CategoryEntry(this, category));
       for (OriginFeature feature : OriginFeature.values()) {
         if (feature.getCategory() == category) {
+          if (feature.isHidden()) {
+            continue;
+          }
           this.addEntry(new FeatureEntry(this, feature));
           if (feature == OriginFeature.BADGER_TASK_HUD) {
             this.addEntry(new CycleRow(this, "config.openorigins.position",
