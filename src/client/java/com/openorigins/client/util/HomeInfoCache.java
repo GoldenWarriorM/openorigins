@@ -125,6 +125,20 @@ public final class HomeInfoCache {
         && prev.resetAt() == anchor) {
       return;
     }
+    long now = System.currentTimeMillis();
+    if (prev != null && prev.resetAt() > 0 && prev.resetAt() <= now && anchor > now
+        && !com.openorigins.client.util.HomeCreationConfirm.isFresh(name)) {
+      // Cycle turnover: this entry expired with its old world cycle. A fresh
+      // anchor belongs to the new cycle and must not silently resurrect it
+      // (that paints dead teleports with the active world's timer instead of
+      // expired). Only an explicit re-creation revives (fresh-confirm path).
+      // Lore still updates; the timer stays expired.
+      CACHE.put(k, new Info(copy, color, prev.resetAt()));
+      save();
+      com.openorigins.client.util.DebugLog.info("[homes] kept expired for '{}' (new anchor ignored)",
+          name);
+      return;
+    }
     CACHE.put(k, new Info(copy, color, anchor));
     save();
   }
