@@ -18,6 +18,25 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
       new java.util.EnumMap<>(com.openorigins.client.FeatureCategory.class);
   private int serverStart = -1;
 
+  /** Shared scroll pixels across all feed pages (one feed, many views). */
+  private static double sharedScroll;
+  private static boolean syncing;
+  private static boolean syncEnabled = true;
+  private static final java.util.Set<FeatureList> ALL =
+      java.util.Collections.newSetFromMap(new java.util.WeakHashMap<>());
+  private static volatile ConfigTab spyTab;
+  private static volatile java.util.function.Consumer<ConfigTab> spyListener;
+
+  /** Called by the config screen to follow the visible section with tabs. */
+  public static void setSpyListener(java.util.function.Consumer<ConfigTab> listener) {
+    spyListener = listener;
+    spyTab = null;
+  }
+
+  public static void setSyncEnabled(boolean v) {
+    syncEnabled = v;
+  }
+
   public FeatureList(Minecraft minecraft, int width, int contentHeight, int headerHeight,
       ConfigTab tab) {
     super(minecraft, width, contentHeight, headerHeight, ROW_H);
@@ -74,14 +93,20 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
     this.addServerRows();
   }
 
-  /** Jumps the feed to the section a tab points at. */
+  /** Jumps the feed to the section a tab points at (real row heights, not estimates). */
   public void scrollToSection(ConfigTab tab) {
     try {
       for (com.openorigins.client.FeatureCategory category : tab.getCategories()) {
-        Integer idx = this.sectionIndex.get(category);
-        if (idx != null) {
-          this.setScrollAmount(idx * ROW_H);
-          return;
+        int px = 0;
+        for (Entry e : this.children()) {
+          if (e instanceof CategoryEntry ce && ce.category == category) {
+            this.setScrollAmount(px);
+            return;
+          }
+          try {
+            px += e.getHeight();
+          } catch (Throwable ignored) {
+          }
         }
       }
     } catch (Throwable ignored) {
