@@ -32,6 +32,8 @@
     "PauseScreenMixin",
     "ItemDisplayArmsFixMixin",
     "ItemInHandArmsFixMixin",
+    "DisplayExtrapolationMixin",
+    "StandExtrapolationMixin",
     "BreakSyncMixin",
     "BreakSyncAccessor",
     "MoaFacingFixMixin",

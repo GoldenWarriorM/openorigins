@@ -9,6 +9,7 @@ public final class FeatureRegistry {
     HotkeyFeatures.register();
     AuctionPing.register();
     CosmeticScanner.registerAutoScan();
+    com.openorigins.client.util.MobExtrapolation.register();
     com.openorigins.client.util.OutboxStats.register();
     net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry.attachElementAfter(
         net.fabricmc.fabric.api.client.rendering.v1.hud.VanillaHudElements.MISC_OVERLAYS,

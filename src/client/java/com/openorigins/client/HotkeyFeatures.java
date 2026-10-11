@@ -19,6 +19,7 @@ public final class HotkeyFeatures {
   private static KeyMapping yellowBalloonKey;
   private static KeyMapping redBalloonKey;
   private static KeyMapping badgerHudKey;
+  private static KeyMapping extrapolationKey;
   private static boolean joinFetchDone;
   private static boolean badgerFetchDone;
   private static boolean worldsFetchDone;
@@ -104,9 +105,24 @@ public final class HotkeyFeatures {
         new KeyMapping("key.openorigins.balloon_red", InputConstants.UNKNOWN.getValue(), category));
     badgerHudKey = KeyMappingHelper.registerKeyMapping(
         new KeyMapping("key.openorigins.badger_hud", InputConstants.UNKNOWN.getValue(), category));
+    extrapolationKey = KeyMappingHelper.registerKeyMapping(
+        new KeyMapping("key.openorigins.extrapolation", InputConstants.UNKNOWN.getValue(), category));
 
     ClientTickEvents.END_CLIENT_TICK.register(client -> {
       while (badgerHudKey.consumeClick()) OpenOriginsConfig.getInstance().toggleBadgerHudVisible();
+      while (extrapolationKey.consumeClick()) {
+        com.openorigins.client.OpenOriginsConfig cfg = OpenOriginsConfig.getInstance();
+        boolean v = !cfg.isEnabled(com.openorigins.client.OriginFeature.ENTITY_EXTRAPOLATION);
+        cfg.setEnabled(com.openorigins.client.OriginFeature.ENTITY_EXTRAPOLATION, v);
+        try {
+          net.minecraft.client.gui.components.toasts.SystemToast.add(
+              client.gui.toastManager(),
+              new net.minecraft.client.gui.components.toasts.SystemToast.SystemToastId(),
+              net.minecraft.network.chat.Component.literal("OpenOrigins"),
+              net.minecraft.network.chat.Component.literal("Entity Extrapolation: " + (v ? "ON" : "OFF")));
+        } catch (Throwable ignored) {
+        }
+      }
       if (!com.openorigins.client.ConnectionUtil.isConnected()) {
         joinFetchDone = false;
         badgerFetchDone = false;
