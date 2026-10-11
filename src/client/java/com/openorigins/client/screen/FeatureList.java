@@ -15,6 +15,8 @@ import net.minecraft.network.chat.Component;
 public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry> {
   private static final int ROW_H = 24;
   private int serverStart = -1;
+  private ConfigTab jumpTab;
+  private double jumpScroll;
 
   private static volatile ConfigTab spyTab;
   private static volatile java.util.function.Consumer<ConfigTab> spyListener;
@@ -61,6 +63,20 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
   public void setScrollAmount(double d) {
     super.setScrollAmount(d);
     try {
+      if (this.jumpTab != null) {
+        double now;
+        try {
+          now = this.scrollAmount();
+        } catch (Throwable ignored) {
+          now = d;
+        }
+        // A programmed jump (possibly clamped): hold its highlight until the
+        // user actually scrolls away, otherwise deep sections can never win.
+        if (Math.abs(now - this.jumpScroll) < 8) {
+          return;
+        }
+        this.jumpTab = null;
+      }
       ConfigTab at = tabAtScroll();
       if (at != null && at != spyTab) {
         spyTab = at;
@@ -144,7 +160,18 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
         int px = 0;
         for (Entry e : this.children()) {
           if (e instanceof CategoryEntry ce && ce.category == category) {
+            this.jumpTab = tab;
             this.setScrollAmount(px);
+            try {
+              this.jumpScroll = this.scrollAmount();
+            } catch (Throwable ignored) {
+              this.jumpScroll = px;
+            }
+            spyTab = tab;
+            java.util.function.Consumer<ConfigTab> listener = spyListener;
+            if (listener != null) {
+              listener.accept(tab);
+            }
             return;
           }
           try {
