@@ -113,22 +113,15 @@ public class ConfigScreen extends Screen {
   }
 
   protected void repositionElements() {
-    int panelW = this.panelWidth();
-    int gap = 10, margin = 10;
-    int contentW = Math.max(220, this.width - (margin + panelW + gap) - margin);
-    if (contentW > 1100) {
-      contentW = 1100;
-    }
-    int totalW = panelW + gap + contentW;
-    int startX = Math.max(margin, (this.width - totalW) / 2);
+    int contentX = PANEL_X + this.panelWidth() + 8;
+    int tabW = Math.max(240, Math.min(420, this.width - contentX - 10));
     for (int i = 0; i < this.tabButtons.size(); i++) {
       SideTabButton b = this.tabButtons.get(i);
-      b.setX(startX);
+      b.setX(PANEL_X);
       b.setY(PANEL_TOP + i * ROW_H);
     }
-    int contentX = startX + panelW + gap;
     int tabAreaTop = PANEL_TOP;
-    this.tabManager.setTabArea(new ScreenRectangle(contentX, tabAreaTop, contentW,
+    this.tabManager.setTabArea(new ScreenRectangle(contentX, tabAreaTop, tabW,
         this.height - this.layout.getFooterHeight() - tabAreaTop));
     this.layout.setHeaderHeight(tabAreaTop);
     this.layout.arrangeElements();

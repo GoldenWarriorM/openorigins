@@ -148,7 +148,7 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
   @Override
   public int getRowWidth() {
     try {
-      return Math.max(220, this.getWidth() - 24);
+      return Math.max(220, Math.min(380, this.getWidth() - 24));
     } catch (Throwable t) {
       return 340;
     }
