@@ -160,6 +160,16 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
     this.addServerRows();
   }
 
+  /** Rows fit the list: wide enough for long labels, never wider (scissor). */
+  @Override
+  public int getRowWidth() {
+    try {
+      return Math.max(220, Math.min(460, this.getWidth() - 24));
+    } catch (Throwable t) {
+      return 340;
+    }
+  }
+
   /** One wheel notch = one row. */
   @Override
   protected double scrollRate() {
