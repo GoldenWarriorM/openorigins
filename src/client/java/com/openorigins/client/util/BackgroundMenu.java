@@ -132,6 +132,11 @@ public final class BackgroundMenu {
     }
   }
 
+  /** A quest completed: the user is done touching containers, drop the cooldown. */
+  public static synchronized void clearManualCooldown() {
+    lastManualContainerMs = 0;
+  }
+
   /** True while the given menu is our captured background menu (not the user's). */
   public static synchronized boolean isBackground(AbstractContainerMenu m) {
     return armed && m != null && m == menu;

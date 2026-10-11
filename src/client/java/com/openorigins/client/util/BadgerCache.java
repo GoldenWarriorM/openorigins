@@ -137,6 +137,7 @@ public final class BadgerCache {
   public static void requestRefresh() {
     hadTask = true;
     deliveredRefreshSent = false;
+    com.openorigins.client.util.BackgroundMenu.clearManualCooldown();
     com.openorigins.client.util.DebugLog.info("[badger] refresh requested");
   }
 
