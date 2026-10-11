@@ -8,10 +8,10 @@ import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.resources.Identifier;
 
 /**
- * Debug outbox monitor (bottom-left): recent requests our mod sent to the
+ * Debug outbox monitor (bottom-right): recent requests our mod sent to the
  * server plus 1m / 30m / session rates. Orange = waiting for an answer,
  * red = no answer within timeout, green = answered (+round-trip).
- * Visible briefly after activity, only with Debug Logging on.
+ * Visible briefly after activity, gated by its own toggle.
  */
 public final class ServerOutboxHud implements net.fabricmc.fabric.api.client.rendering.v1.hud.HudElement {
   public static final Identifier ID = Identifier.fromNamespaceAndPath("openorigins", "outbox");
@@ -25,7 +25,7 @@ public final class ServerOutboxHud implements net.fabricmc.fabric.api.client.ren
     if (mc == null || mc.player == null || mc.gui.hud.isHidden()) {
       return;
     }
-    if (!OpenOriginsConfig.getInstance().isEnabled(OriginFeature.DEBUG_LOGGING)) {
+    if (!OpenOriginsConfig.getInstance().isEnabled(OriginFeature.OUTBOX_HUD)) {
       return;
     }
     if (!ConnectionUtil.isConnected()) {
@@ -58,8 +58,9 @@ public final class ServerOutboxHud implements net.fabricmc.fabric.api.client.ren
       maxW = Math.max(maxW, font.width(r.text()));
     }
     int totalH = rows.size() * 10 + 2;
+    int sw = mc.getWindow().getGuiScaledWidth();
     int sh = mc.getWindow().getGuiScaledHeight();
-    int x = 4;
+    int x = sw - 4 - maxW;
     int y = sh - 4 - totalH;
     for (Row r : rows) {
       graphics.text(font, r.text(), x, y + 1, r.color());

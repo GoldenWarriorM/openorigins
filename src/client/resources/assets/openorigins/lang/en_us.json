@@ -25,6 +25,7 @@
   "config.openorigins.use_handshake_hint": "Automatic mode: patches apply on handshake-verified Origin servers. Turning it off is not recommended; the address list below is used only when off.",
   "config.openorigins.servers_current": "Current server",
   "feature.openorigins.debug_logging.desc": "Verbose diagnostic logging (spammy, off by default).",
+  "feature.openorigins.outbox_hud.desc": "Bottom-right monitor of requests sent to the server, with 1m / 30m / session rates (off by default).",
   "feature.openorigins.allay_arms_fix.desc": "Shifts custom allay arm models into place. The server sends arm parts detached, on every client version.",
   "key.openorigins.navigator": "Open Navigator",
   "key.openorigins.gesture_menu": "Open Gesture Menu",

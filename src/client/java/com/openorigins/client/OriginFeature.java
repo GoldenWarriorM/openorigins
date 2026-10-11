@@ -13,6 +13,7 @@ public enum OriginFeature {
   CUTSCENE_ENHANCEMENTS(FeatureCategory.GENERAL, "Cutscene Enhancements"),
   CUSTOM_ITEM_IDS(FeatureCategory.FIXES, "Custom Item IDs"),
   DEBUG_LOGGING(FeatureCategory.MISC, false, "Debug Logging"),
+  OUTBOX_HUD(FeatureCategory.MISC, false, "Outbox Monitor"),
   SCOREBOARD_DESYNC_FIX(FeatureCategory.FIXES, "Scoreboard Desync Fix"),
   REGISTRY_DESYNC_FIX(FeatureCategory.FIXES, "Registry Desync Fix"),
   BADGER_TASK_HUD(FeatureCategory.UI, "Badger Task HUD"),
