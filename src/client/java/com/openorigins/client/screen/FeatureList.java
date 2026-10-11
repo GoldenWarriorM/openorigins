@@ -132,7 +132,7 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
   @Override
   public int getRowWidth() {
     try {
-      return Math.max(220, Math.min(460, this.getWidth() - 24));
+      return Math.max(220, Math.min(380, this.getWidth() - 24));
     } catch (Throwable t) {
       return 340;
     }
@@ -234,8 +234,6 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
       int rowTop = this.getContentYMiddle() - 12;
       graphics.fill(this.getContentX(), rowTop, this.list.getRowRight(), rowTop + 24,
           0x40000000);
-      graphics.fill(this.getContentX(), rowTop, this.list.getRowRight(), rowTop + 1,
-          0x30FFFFFF);
       graphics.text(font, name, this.getContentX() + (rowW - w) / 2,
           this.getContentYMiddle() - 4, 0xFFFFFFFF);
     }
