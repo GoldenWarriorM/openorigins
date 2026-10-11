@@ -64,6 +64,22 @@ public class ConfigScreen extends Screen {
     if (this.tabBar != null) {
       this.tabBar.arrangeElements(this.width);
       this.tabBar.setY(7);
+      // Vanilla lays the row out left-aligned; center it under content widths.
+      try {
+        java.util.List<net.minecraft.client.gui.components.TabButton> buttons =
+            ((com.openorigins.client.mixin.TabBarAccessor) this.tabBar).openorigins$tabButtons();
+        int totalW = 0;
+        for (net.minecraft.client.gui.components.TabButton b : buttons) {
+          totalW += b.getWidth();
+        }
+        totalW += 4 * Math.max(0, buttons.size() - 1);
+        int x = (this.width - totalW) / 2;
+        for (net.minecraft.client.gui.components.TabButton b : buttons) {
+          b.setX(x);
+          x += b.getWidth() + 4;
+        }
+      } catch (Throwable ignored) {
+      }
       int tabAreaTop = this.tabBar.getRectangle().bottom() + 4;
       this.tabManager.setTabArea(new ScreenRectangle(0, tabAreaTop, this.width,
           this.height - this.layout.getFooterHeight() - tabAreaTop));

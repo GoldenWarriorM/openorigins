@@ -33,6 +33,7 @@
     "ItemDisplayArmsFixMixin",
     "ItemInHandArmsFixMixin",
     "MenuTabBarMixin",
+    "TabBarAccessor",
     "DisplayExtrapolationMixin",
     "StandExtrapolationMixin",
     "BreakSyncMixin",
