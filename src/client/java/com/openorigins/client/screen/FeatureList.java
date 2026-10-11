@@ -232,30 +232,6 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
     this.children().forEach(FeatureList.Entry::refreshEntry);
   }
 
-  /** Explicit row geometry (set by the config screen next to the sidebar). */
-  static volatile int rowLeftOv = -1;
-  static volatile int rowWidthOv = -1;
-
-  @Override
-  public int getRowLeft() {
-    if (rowLeftOv >= 0) {
-      return rowLeftOv;
-    }
-    return super.getRowLeft();
-  }
-
-  @Override
-  public int getRowWidth() {
-    if (rowWidthOv > 0) {
-      return rowWidthOv;
-    }
-    try {
-      return Math.max(220, this.getWidth() - 24);
-    } catch (Throwable t) {
-      return 340;
-    }
-  }
-
   public abstract static class Entry extends ContainerObjectSelectionList.Entry<Entry> {
     public abstract void refreshEntry();
   }

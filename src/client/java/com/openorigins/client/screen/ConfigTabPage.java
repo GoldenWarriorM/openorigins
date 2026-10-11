@@ -33,6 +33,11 @@ public class ConfigTabPage extends GridLayoutTab {
   @Override
   public void doLayout(ScreenRectangle rect) {
     super.doLayout(rect);
-    this.list.updateSize(rect.width(), this.layout);
+    try {
+      this.list.updateSizeAndPosition(rect.width(), this.layout.getContentHeight(),
+          rect.left(), this.layout.getHeaderHeight());
+    } catch (Throwable t) {
+      this.list.updateSize(rect.width(), this.layout);
+    }
   }
 }
