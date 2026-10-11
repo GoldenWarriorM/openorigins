@@ -251,9 +251,12 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
     public void extractContent(GuiGraphicsExtractor graphics, int mouseX, int mouseY, boolean hovered,
         float partialTick) {
       net.minecraft.client.gui.Font font = net.minecraft.client.Minecraft.getInstance().font;
+      boolean experimental =
+          this.category == com.openorigins.client.FeatureCategory.EXPERIMENTAL;
       Component name = Component.translatable(this.category.getTranslationKey())
-          .withStyle(this.category == com.openorigins.client.FeatureCategory.EXPERIMENTAL
-              ? net.minecraft.ChatFormatting.RED : net.minecraft.ChatFormatting.GOLD);
+          .withStyle(experimental ? net.minecraft.ChatFormatting.YELLOW
+              : net.minecraft.ChatFormatting.WHITE,
+              net.minecraft.ChatFormatting.BOLD);
       int w = font.width(name);
       int rowW = this.list.getRowRight() - this.getContentX();
       graphics.text(font, name, this.getContentX() + (rowW - w) / 2,
