@@ -153,7 +153,8 @@ public final class CosmeticScanner {
       shown++;
       String type = net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE.getKey(e.getType()).toString();
       StringBuilder sb = new StringBuilder(type + "#" + e.getId());
-      sb.append(String.format(java.util.Locale.ROOT, " yaw=%.0f", e.getYRot()));
+      sb.append(String.format(java.util.Locale.ROOT, " yaw=%.0f @%.1f,%.1f,%.1f",
+          e.getYRot(), e.getX(), e.getY(), e.getZ()));
       double dist = Math.sqrt(mc.player.distanceToSqr(e.getX(), e.getY(), e.getZ()));
       if (dist < 2.5) sb.append(" ON-YOU");
       if (e.hasCustomName() && e.getCustomName() != null) {
