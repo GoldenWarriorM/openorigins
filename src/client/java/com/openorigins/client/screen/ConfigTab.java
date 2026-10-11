@@ -8,7 +8,6 @@ public enum ConfigTab {
   FIXES("category.openorigins.fixes", List.of(FeatureCategory.FIXES)),
   UI("category.openorigins.ui", List.of(FeatureCategory.UI)),
   EXPERIMENTAL("category.openorigins.experimental", List.of(FeatureCategory.EXPERIMENTAL)),
-  HOTKEYS("category.openorigins.hotkeys", List.of(FeatureCategory.HOTKEYS)),
   MISC("category.openorigins.misc", List.of(FeatureCategory.MISC)),
   SERVERS("category.openorigins.servers", List.of(FeatureCategory.SERVERS));
 

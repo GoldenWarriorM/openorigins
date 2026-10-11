@@ -1,6 +1,7 @@
 package com.openorigins.client;
 
 import com.mojang.blaze3d.platform.InputConstants;
+import java.util.List;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
 import net.minecraft.client.KeyMapping;
@@ -57,21 +58,9 @@ public final class HotkeyFeatures {
   /** Rebindable hotkeys in display order (scan key is special-cased separately). */
   public record Hotkey(String labelKey, KeyMapping mapping) {}
 
-  public static java.util.List<Hotkey> hotkeys() {
-    java.util.ArrayList<Hotkey> out = new java.util.ArrayList<>();
-    out.add(new Hotkey("key.openorigins.teleport_menu", teleportMenuKey));
-    out.add(new Hotkey("key.openorigins.navigator", navigatorKey));
-    out.add(new Hotkey("key.openorigins.gesture_menu", gestureKey));
-    out.add(new Hotkey("key.openorigins.spawn", spawnKey));
-    out.add(new Hotkey("key.openorigins.realm", realmKey));
-    out.add(new Hotkey("key.openorigins.badger_hud", badgerHudKey));
-    out.add(new Hotkey("key.openorigins.extrapolation", extrapolationKey));
-    out.add(new Hotkey("key.openorigins.balloon_blue", blueBalloonKey));
-    out.add(new Hotkey("key.openorigins.balloon_green", greenBalloonKey));
-    out.add(new Hotkey("key.openorigins.balloon_yellow", yellowBalloonKey));
-    out.add(new Hotkey("key.openorigins.balloon_red", redBalloonKey));
-    out.add(new Hotkey("key.openorigins.config", configKey));
-    return out;
+  /** Debug-only bindings (hidden vanilla category): rebound from Debug settings. */
+  public static java.util.List<Hotkey> debugHotkeys() {
+    return List.of(new Hotkey("key.openorigins.extrapolation", extrapolationKey));
   }
 
   private static KeyMapping captureTarget;
@@ -172,7 +161,7 @@ public final class HotkeyFeatures {
     badgerHudKey = KeyMappingHelper.registerKeyMapping(
         new KeyMapping("key.openorigins.badger_hud", InputConstants.UNKNOWN.getValue(), category));
     extrapolationKey = KeyMappingHelper.registerKeyMapping(
-        new KeyMapping("key.openorigins.extrapolation", InputConstants.UNKNOWN.getValue(), category));
+        new KeyMapping("key.openorigins.extrapolation", InputConstants.UNKNOWN.getValue(), scanCategory));
 
     ClientTickEvents.END_CLIENT_TICK.register(client -> {
       while (badgerHudKey.consumeClick()) OpenOriginsConfig.getInstance().toggleBadgerHudVisible();

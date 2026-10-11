@@ -27,6 +27,7 @@ public class ConfigScreen extends Screen {
   private ConfigTabPage pageFor(ConfigTab tab) {
     FeatureList list = new FeatureList(this.minecraft, this.width,
         this.layout.getContentHeight(), this.layout.getHeaderHeight(), tab);
+    list.scrollToSection(tab);
     return new ConfigTabPage(Component.translatable(tab.getTitleKey()), list, this.layout);
   }
 

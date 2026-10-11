@@ -20,7 +20,6 @@
   "category.openorigins.ui": "HUD & Slots",
   "category.openorigins.misc": "Debug",
   "category.openorigins.experimental": "Experimental",
-  "category.openorigins.hotkeys": "Hotkeys",
   "category.openorigins.servers": "Servers",
   "config.openorigins.servers": "Server allowlist",
   "config.openorigins.servers_hint": "One server address per row. Empty list = patches apply on every connected server. Handshake-verified Origin servers always apply.",

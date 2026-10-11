@@ -13,11 +13,20 @@ import net.minecraft.client.gui.narration.NarratableEntry;
 import net.minecraft.network.chat.Component;
 
 public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry> {
+  private static final int ROW_H = 24;
+  private final java.util.Map<com.openorigins.client.FeatureCategory, Integer> sectionIndex =
+      new java.util.EnumMap<>(com.openorigins.client.FeatureCategory.class);
+  private int serverStart = -1;
+
   public FeatureList(Minecraft minecraft, int width, int contentHeight, int headerHeight,
       ConfigTab tab) {
-    super(minecraft, width, contentHeight, headerHeight, 24);
-    for (com.openorigins.client.FeatureCategory category : tab.getCategories()) {
-      this.addEntry(new CategoryEntry(this, category));
+    super(minecraft, width, contentHeight, headerHeight, ROW_H);
+    // Single feed: every tab page contains all sections; the opener tab only
+    // decides the initial scroll position (tabs teleport, nothing is hidden).
+    for (ConfigTab t : ConfigTab.values()) {
+      for (com.openorigins.client.FeatureCategory category : t.getCategories()) {
+        this.sectionIndex.put(category, this.children().size());
+        this.addEntry(new CategoryEntry(this, category));
       for (OriginFeature feature : OriginFeature.values()) {
         if (feature.getCategory() == category) {
           if (feature.isHidden()) {
@@ -43,30 +52,53 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
             () -> OpenOriginsConfig.getInstance().getHomeCapacity(),
             v -> OpenOriginsConfig.getInstance().setHomeCapacity(v)));
       }
-      if (category == com.openorigins.client.FeatureCategory.HOTKEYS) {
+      if (category == com.openorigins.client.FeatureCategory.MISC) {
         this.addEntry(new CycleRow(this, "config.openorigins.scan_key",
             "config.openorigins.scan_key_hint",
             () -> com.openorigins.client.HotkeyFeatures.isScanCaptureArmed() ? "..."
                 : com.openorigins.client.HotkeyFeatures.scanKeyName(),
             () -> com.openorigins.client.HotkeyFeatures.beginScanCapture(), false));
         for (com.openorigins.client.HotkeyFeatures.Hotkey h
-            : com.openorigins.client.HotkeyFeatures.hotkeys()) {
+            : com.openorigins.client.HotkeyFeatures.debugHotkeys()) {
           this.addEntry(new CycleRow(this, h.labelKey(), h.labelKey(),
               () -> com.openorigins.client.HotkeyFeatures.isCapturing(h.mapping()) ? "..."
                   : com.openorigins.client.HotkeyFeatures.keyName(h.mapping()),
               () -> com.openorigins.client.HotkeyFeatures.beginCapture(h.mapping()), false));
         }
       }
+      if (category == com.openorigins.client.FeatureCategory.SERVERS) {
+        this.serverStart = this.children().size();
+      }
+      }
     }
-    if (tab == ConfigTab.SERVERS) {
-      this.addServerRows();
+    this.addServerRows();
+  }
+
+  /** Jumps the feed to the section a tab points at. */
+  public void scrollToSection(ConfigTab tab) {
+    try {
+      for (com.openorigins.client.FeatureCategory category : tab.getCategories()) {
+        Integer idx = this.sectionIndex.get(category);
+        if (idx != null) {
+          this.setScrollAmount(idx * ROW_H);
+          return;
+        }
+      }
+    } catch (Throwable ignored) {
     }
   }
 
-  /** Rebuilds the Servers tab contents (info + one row per address + add row). */
+  /** Rebuilds only the Servers section at the end of the feed. */
   public void rebuildServerEntries() {
-    for (Entry e : new java.util.ArrayList<>(this.children())) {
-      this.removeEntry(e);
+    try {
+      if (this.serverStart < 0) {
+        return;
+      }
+      java.util.List<Entry> kids = this.children();
+      while (kids.size() > this.serverStart) {
+        this.removeEntry(kids.get(kids.size() - 1));
+      }
+    } catch (Throwable ignored) {
     }
     this.addServerRows();
   }
