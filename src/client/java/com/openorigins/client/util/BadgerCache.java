@@ -133,6 +133,13 @@ public final class BadgerCache {
     deliveredRefreshSent = true;
   }
 
+  /** External event (e.g. quest-complete chat) invalidated the task list. */
+  public static void requestRefresh() {
+    hadTask = true;
+    deliveredRefreshSent = false;
+    com.openorigins.client.util.DebugLog.info("[badger] refresh requested");
+  }
+
   /** Scans any open container; parses only when it looks like the streaks menu. */
   public static void scan(AbstractContainerScreen<?> screen) {
     if (screen == null || screen.getMenu() == null) return;

@@ -14,7 +14,11 @@ public abstract class ChatConfirmMixin {
   @Inject(method = "handleSystemChat", at = @At("HEAD"))
   private void openorigins$onChat(ClientboundSystemChatPacket packet, CallbackInfo ci) {
     if (!packet.overlay()) {
-      HomeCreationConfirm.onChat(packet.content().getString());
+      String text = packet.content().getString();
+      HomeCreationConfirm.onChat(text);
+      if (text.toLowerCase(java.util.Locale.ROOT).contains("task complete!")) {
+        com.openorigins.client.util.BadgerCache.requestRefresh();
+      }
     }
   }
 
