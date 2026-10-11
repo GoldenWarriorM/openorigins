@@ -14,16 +14,8 @@ import net.minecraft.network.chat.Component;
 
 public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry> {
   private static final int ROW_H = 24;
-  private final java.util.Map<com.openorigins.client.FeatureCategory, Integer> sectionIndex =
-      new java.util.EnumMap<>(com.openorigins.client.FeatureCategory.class);
   private int serverStart = -1;
 
-  /** Shared scroll pixels across all feed pages (one feed, many views). */
-  private static double sharedScroll;
-  private static boolean syncing;
-  private static boolean syncEnabled = true;
-  private static final java.util.Set<FeatureList> ALL =
-      java.util.Collections.newSetFromMap(new java.util.WeakHashMap<>());
   private static volatile ConfigTab spyTab;
   private static volatile java.util.function.Consumer<ConfigTab> spyListener;
 
@@ -31,10 +23,6 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
   public static void setSpyListener(java.util.function.Consumer<ConfigTab> listener) {
     spyListener = listener;
     spyTab = null;
-  }
-
-  public static void setSyncEnabled(boolean v) {
-    syncEnabled = v;
   }
 
   /** Section on screen at the current scroll (accumulates real row heights). */
@@ -72,24 +60,7 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
   @Override
   public void setScrollAmount(double d) {
     super.setScrollAmount(d);
-    if (!syncEnabled || syncing) {
-      return;
-    }
-    syncing = true;
     try {
-      try {
-        sharedScroll = this.scrollAmount();
-      } catch (Throwable ignored) {
-        sharedScroll = d;
-      }
-      for (FeatureList l : new java.util.ArrayList<>(ALL)) {
-        if (l != null && l != this) {
-          try {
-            l.setScrollAmount(sharedScroll);
-          } catch (Throwable ignored) {
-          }
-        }
-      }
       ConfigTab at = tabAtScroll();
       if (at != null && at != spyTab) {
         spyTab = at;
@@ -98,20 +69,17 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
           listener.accept(at);
         }
       }
-    } finally {
-      syncing = false;
+    } catch (Throwable ignored) {
     }
   }
 
   public FeatureList(Minecraft minecraft, int width, int contentHeight, int headerHeight,
       ConfigTab tab) {
     super(minecraft, width, contentHeight, headerHeight, ROW_H);
-    ALL.add(this);
     // Single feed: every tab page contains all sections; the opener tab only
     // decides the initial scroll position (tabs teleport, nothing is hidden).
     for (ConfigTab t : ConfigTab.values()) {
       for (com.openorigins.client.FeatureCategory category : t.getCategories()) {
-        this.sectionIndex.put(category, this.children().size());
         this.addEntry(new CategoryEntry(this, category));
       for (OriginFeature feature : OriginFeature.values()) {
         if (feature.getCategory() == category) {
@@ -167,43 +135,6 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
       return Math.max(220, Math.min(460, this.getWidth() - 24));
     } catch (Throwable t) {
       return 340;
-    }
-  }
-
-  /** One wheel notch = one row. */
-  @Override
-  protected double scrollRate() {
-    return 24.0;
-  }
-
-  private long lastWheelLogMs;
-  private double wheelRemainder;
-  private long lastWheelApplyMs;
-
-  @Override
-  public boolean mouseScrolled(double x, double y, double scrollX, double scrollY) {
-    try {
-      long now = System.currentTimeMillis();
-      if (now - lastWheelLogMs > 2000) {
-        lastWheelLogMs = now;
-        com.openorigins.client.util.DebugLog.info("[config] wheel delta={}", scrollY);
-      }
-    } catch (Throwable ignored) {
-    }
-    // One detent emits a burst of events: spread them over time instead of
-    // jumping a category per click. Lone notches apply instantly (one row).
-    try {
-      long now = System.currentTimeMillis();
-      wheelRemainder += scrollY * 24.0;
-      if (now - lastWheelApplyMs < 90) {
-        return true;
-      }
-      lastWheelApplyMs = now;
-      double apply = Math.max(-48.0, Math.min(48.0, wheelRemainder));
-      wheelRemainder -= apply;
-      return super.mouseScrolled(x, y, scrollX, apply / 24.0);
-    } catch (Throwable t) {
-      return super.mouseScrolled(x, y, scrollX, scrollY);
     }
   }
 

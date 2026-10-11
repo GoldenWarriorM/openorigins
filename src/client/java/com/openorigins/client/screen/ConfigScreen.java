@@ -22,6 +22,7 @@ public class ConfigScreen extends Screen {
   private Tab[] pages = new Tab[0];
   private final List<SideTabButton> tabButtons = new ArrayList<>();
   private int activeTab;
+  private ConfigTab highlightTab;
   private static final int PANEL_X = 10;
   private static final int PANEL_TOP = 30;
   private static final int ROW_H = 22;
@@ -51,7 +52,7 @@ public class ConfigScreen extends Screen {
 
   private void refreshTabButtons() {
     for (int i = 0; i < this.tabButtons.size() && i < this.tabs.length; i++) {
-      this.tabButtons.get(i).setSelected(i == this.activeTab);
+      this.tabButtons.get(i).setSelected(this.tabs[i] == this.highlightTab);
     }
   }
 
@@ -60,6 +61,7 @@ public class ConfigScreen extends Screen {
       return;
     }
     this.activeTab = i;
+    this.highlightTab = this.tabs[i];
     this.tabManager.setCurrentTab(this.pages[i], true);
     if (this.pages[i] instanceof ConfigTabPage page) {
       page.list().scrollToSection(this.tabs[i]);
@@ -76,14 +78,10 @@ public class ConfigScreen extends Screen {
     for (int i = 0; i < this.tabs.length; i++) {
       pages[i] = this.pageFor(tabs[i]);
     }
-    com.openorigins.client.screen.FeatureList.setSyncEnabled(true);
     com.openorigins.client.screen.FeatureList.setSpyListener(tab -> {
-      ConfigTab[] all = ConfigTab.values();
-      for (int i = 0; i < all.length; i++) {
-        if (all[i] == tab && i != this.activeTab) {
-          this.selectTab(i);
-          return;
-        }
+      if (tab != null && tab != this.highlightTab) {
+        this.highlightTab = tab;
+        this.refreshTabButtons();
       }
     });
     this.tabButtons.clear();
