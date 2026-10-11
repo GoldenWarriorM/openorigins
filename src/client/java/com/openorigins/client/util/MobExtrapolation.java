@@ -39,6 +39,13 @@ public final class MobExtrapolation {
 
   private static final ConcurrentMap<Integer, ArrayDeque<double[]>> HIST =
       new ConcurrentHashMap<>();
+  private static volatile long lastStatMs;
+  private static volatile int appliedCount;
+
+  /** Called from the render mixins when an offset actually shifts a state. */
+  public static void noteApplied() {
+    appliedCount++;
+  }
 
   public static void register() {
     net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents.DISCONNECT
@@ -98,6 +105,16 @@ public final class MobExtrapolation {
               }
             }
           } catch (Throwable ignored) {
+          }
+          long nowMs = System.currentTimeMillis();
+          if (nowMs - lastStatMs > 5000) {
+            lastStatMs = nowMs;
+            try {
+              com.openorigins.client.util.DebugLog.info("[extrap] tracked={} applied={}",
+                  HIST.size(), appliedCount);
+            } catch (Throwable ignored) {
+            }
+            appliedCount = 0;
           }
         });
   }
