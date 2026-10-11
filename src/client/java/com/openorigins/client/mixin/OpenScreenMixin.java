@@ -26,8 +26,11 @@ public abstract class OpenScreenMixin {
   private void openorigins$noteShownMenu(ClientboundOpenScreenPacket packet, CallbackInfo ci) {
     // Swallowed opens never reach the screen: nothing manual happened.
     // A shown server window is user territory: back any fetch off it.
+    // It is also the visible answer to a recent command, if any.
     if (!openorigins$swallowed) {
       BackgroundMenu.noteManualContainer();
+      com.openorigins.client.util.OutboxStats.ack(label ->
+          label.startsWith("cmd /") || label.startsWith("key /") || label.startsWith("menu /"));
     }
     openorigins$swallowed = false;
   }

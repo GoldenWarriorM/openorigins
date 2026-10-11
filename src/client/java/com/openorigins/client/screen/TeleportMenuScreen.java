@@ -176,6 +176,7 @@ public class TeleportMenuScreen extends Screen implements HomePanelHost {
             Component.translatable(entry.labelKey), li.textureId(), li.width(), li.height(), () -> {
               if (this.minecraft != null && this.minecraft.player != null) {
                 this.minecraft.player.connection.sendCommand(entry.command);
+                com.openorigins.client.util.OutboxStats.record("menu /" + entry.command);
               }
               this.onClose();
             }));
@@ -183,6 +184,7 @@ public class TeleportMenuScreen extends Screen implements HomePanelHost {
         this.addRenderableWidget(Button.builder(Component.translatable(entry.labelKey), button -> {
           if (this.minecraft != null && this.minecraft.player != null) {
             this.minecraft.player.connection.sendCommand(entry.command);
+            com.openorigins.client.util.OutboxStats.record("menu /" + entry.command);
           }
           this.onClose();
         }).bounds(x, y, 96, 20).build());
@@ -316,6 +318,7 @@ public class TeleportMenuScreen extends Screen implements HomePanelHost {
   private void teleportHome(String name) {
     if (this.minecraft != null && this.minecraft.player != null) {
       this.minecraft.player.connection.sendCommand("home " + name);
+      com.openorigins.client.util.OutboxStats.record("menu /home " + name);
     }
     this.onClose();
   }
@@ -323,6 +326,7 @@ public class TeleportMenuScreen extends Screen implements HomePanelHost {
   private void deleteHome(String name) {
     if (this.minecraft != null && this.minecraft.player != null) {
       this.minecraft.player.connection.sendCommand("delhome " + name);
+      com.openorigins.client.util.OutboxStats.record("menu /delhome " + name);
       com.openorigins.client.util.HomeListFetcher.noteMutation();
     }
     com.openorigins.client.util.HomeFetch.requestIdleRefresh();

@@ -44,6 +44,7 @@ public final class HomeListFetcher {
     int id = NEXT_ID.getAndIncrement();
     PENDING.put(id, callback);
     mc.player.connection.send(new ServerboundCommandSuggestionPacket(id, command));
+    OutboxStats.record("suggest " + command.strip(), 5000L);
   }
 
   /**
@@ -54,6 +55,7 @@ public final class HomeListFetcher {
     if (callback == null) {
       return false;
     }
+    OutboxStats.ack(label -> label.startsWith("suggest "));
     List<String> names = packet.suggestions().stream()
         .map(ClientboundCommandSuggestionsPacket.Entry::text)
         .filter(s -> !s.isBlank() && !s.contains(" "))

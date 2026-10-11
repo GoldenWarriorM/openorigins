@@ -165,14 +165,38 @@ public final class HotkeyFeatures {
         }
       }
       if (!ConnectionUtil.isConnected() || client.player == null) return;
-      while (navigatorKey.consumeClick()) client.player.connection.sendCommand("navigator");
-      while (gestureKey.consumeClick()) client.player.connection.sendCommand("gesture");
-      while (spawnKey.consumeClick()) client.player.connection.sendCommand("spawn");
-      while (realmKey.consumeClick()) client.player.connection.sendCommand("realm tp");
-      while (blueBalloonKey.consumeClick()) client.player.connection.sendCommand("balloon blue-balloon");
-      while (greenBalloonKey.consumeClick()) client.player.connection.sendCommand("balloon green-balloon");
-      while (yellowBalloonKey.consumeClick()) client.player.connection.sendCommand("balloon yellow-balloon");
-      while (redBalloonKey.consumeClick()) client.player.connection.sendCommand("balloon red-balloon");
+      while (navigatorKey.consumeClick()) {
+        client.player.connection.sendCommand("navigator");
+        com.openorigins.client.util.OutboxStats.record("key /navigator");
+      }
+      while (gestureKey.consumeClick()) {
+        client.player.connection.sendCommand("gesture");
+        com.openorigins.client.util.OutboxStats.record("key /gesture");
+      }
+      while (spawnKey.consumeClick()) {
+        client.player.connection.sendCommand("spawn");
+        com.openorigins.client.util.OutboxStats.record("key /spawn");
+      }
+      while (realmKey.consumeClick()) {
+        client.player.connection.sendCommand("realm tp");
+        com.openorigins.client.util.OutboxStats.record("key /realm tp");
+      }
+      while (blueBalloonKey.consumeClick()) {
+        client.player.connection.sendCommand("balloon blue-balloon");
+        com.openorigins.client.util.OutboxStats.record("key /balloon blue-balloon");
+      }
+      while (greenBalloonKey.consumeClick()) {
+        client.player.connection.sendCommand("balloon green-balloon");
+        com.openorigins.client.util.OutboxStats.record("key /balloon green-balloon");
+      }
+      while (yellowBalloonKey.consumeClick()) {
+        client.player.connection.sendCommand("balloon yellow-balloon");
+        com.openorigins.client.util.OutboxStats.record("key /balloon yellow-balloon");
+      }
+      while (redBalloonKey.consumeClick()) {
+        client.player.connection.sendCommand("balloon red-balloon");
+        com.openorigins.client.util.OutboxStats.record("key /balloon red-balloon");
+      }
     });
   }
 

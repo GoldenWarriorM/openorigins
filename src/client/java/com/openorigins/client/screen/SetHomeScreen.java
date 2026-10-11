@@ -86,6 +86,7 @@ public class SetHomeScreen extends Screen {
       com.openorigins.client.util.HomeCreationConfirm.expect(name);
       com.openorigins.client.util.HomeListFetcher.noteMutation();
       this.minecraft.player.connection.sendCommand("sethome " + name);
+      com.openorigins.client.util.OutboxStats.record("menu /sethome " + name);
       this.waiting = true;
       this.sentAt = System.currentTimeMillis();
       this.status = Component.translatable("menu.openorigins.sethome.creating");

@@ -9,6 +9,12 @@ public final class FeatureRegistry {
     HotkeyFeatures.register();
     AuctionPing.register();
     CosmeticScanner.registerAutoScan();
+    com.openorigins.client.util.OutboxStats.register();
+    net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry.attachElementAfter(
+        net.fabricmc.fabric.api.client.rendering.v1.hud.VanillaHudElements.MISC_OVERLAYS,
+        BadgerHud.ID, new BadgerHud());
+    net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry.attachElementAfter(
+        BadgerHud.ID, ServerOutboxHud.ID, new ServerOutboxHud());
     net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents.END_CLIENT_TICK.register(client -> {
       if (client.level == null) return;
       // Applies tag ops that arrived before their entities were tracked.
@@ -23,8 +29,5 @@ public final class FeatureRegistry {
         .register((entity, level) -> EntityData.clearTag(entity.getId()));
     net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientEntityEvents.ENTITY_LOAD
         .register((entity, level) -> EntityData.flushPendingTags());
-    net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry.attachElementAfter(
-        net.fabricmc.fabric.api.client.rendering.v1.hud.VanillaHudElements.MISC_OVERLAYS,
-        BadgerHud.ID, new BadgerHud());
   }
 }

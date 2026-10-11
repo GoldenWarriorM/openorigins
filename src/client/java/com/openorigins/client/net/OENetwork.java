@@ -46,6 +46,8 @@ public final class OENetwork {
         com.openorigins.client.util.DebugLog.info("[OpenOrigins] login handshake complete, responding");
         FriendlyByteBuf out = new FriendlyByteBuf(Unpooled.buffer());
         OEBuffer.writeShortVarInt(out, OEChannel.OUT_HANDSHAKE_RESPONSE, OEChannel.PROTOCOL_VERSION);
+        com.openorigins.client.util.OutboxStats.record("handshake v5", 15000L);
+        com.openorigins.client.util.OutboxStats.ackExact("handshake v5");
         return CompletableFuture.<FriendlyByteBuf>completedFuture(out);
       }
     } catch (Throwable t) {

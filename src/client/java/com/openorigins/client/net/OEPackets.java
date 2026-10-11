@@ -54,6 +54,8 @@ public final class OEPackets {
     String location = present ? buf.readString() : null;
     com.openorigins.client.util.DebugLog.info("[OpenOrigins] location update: {}", location);
     OriginStateTracker.INSTANCE.update(location);
+    // A location change is the server-visible effect of a teleport click.
+    com.openorigins.client.util.OutboxStats.ack(label -> label.startsWith("click "));
   }
 
   private static void onNametag(OEBuffer buf) {

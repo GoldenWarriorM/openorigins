@@ -60,6 +60,7 @@ public final class BackgroundMenu {
       if (mc != null && mc.player != null) {
         expectOwnSend = true;
         mc.player.connection.sendCommand(command);
+        OutboxStats.record("cmd /" + command, 30000L);
       }
     } catch (Throwable ignored) {
       expectOwnSend = false;
@@ -151,6 +152,7 @@ public final class BackgroundMenu {
           containerId);
       disarm();
     }
+    OutboxStats.ackExact("close w" + containerId);
   }
 
   private static synchronized void disarm() {
@@ -236,6 +238,7 @@ public final class BackgroundMenu {
           windowId = packet.getContainerId();
           verdict = "swallowed";
           swallow = true;
+          OutboxStats.ackExact("cmd /" + pendingCommand);
         }
       } catch (Throwable t) {
         com.openorigins.client.util.DebugLog.warn("[bgmenu] open failed: {}", t.toString());
@@ -336,6 +339,7 @@ public final class BackgroundMenu {
       player.containerMenu = menu;
       mc.gameMode.handleContainerInput(menu.containerId, slot, 0,
           net.minecraft.world.inventory.ContainerInput.PICKUP, player);
+      OutboxStats.record("click " + color + " #" + slot, 15000L);
       com.openorigins.client.util.DebugLog.info("[bgmenu] teleported to {} (slot {})", color, slot);
     } catch (Throwable t) {
       com.openorigins.client.util.DebugLog.warn("[bgmenu] teleport click failed: {}", t.toString());
@@ -496,6 +500,7 @@ public final class BackgroundMenu {
     try {
       int id = m.containerId;
       mc.player.connection.send(new ServerboundContainerClosePacket(id));
+      OutboxStats.record("close w" + id, 5000L);
       try {
         m.removed(mc.player);
       } catch (Throwable ignored) {
