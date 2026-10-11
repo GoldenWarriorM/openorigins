@@ -35,7 +35,11 @@ public final class MobExtrapolation {
   }
   private static final int WINDOW = 4;
   private static final double MAX_WINDOW_DIST = 4.0;
-  private static final int CAP = 256;
+  private static final int CAP = 2048;
+  private static final double TRACK_DIST_SQ = 96.0 * 96.0;
+
+  private static final ConcurrentMap<Integer, Long> LAST_SEEN =
+      new ConcurrentHashMap<>();
 
   private static final ConcurrentMap<Integer, ArrayDeque<double[]>> HIST =
       new ConcurrentHashMap<>();
@@ -52,6 +56,7 @@ public final class MobExtrapolation {
         .register((handler, client) -> {
           HIST.clear();
           SMOOTHED_VEL.clear();
+          LAST_SEEN.clear();
         });
     net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents.END_CLIENT_TICK
         .register(client -> {
@@ -67,8 +72,24 @@ public final class MobExtrapolation {
                   && !hasDisplayPassenger(e)) {
                 continue;
               }
+              try {
+                if (e.distanceToSqr(client.player) > TRACK_DIST_SQ) {
+                  continue;
+                }
+              } catch (Throwable ignored) {
+              }
+              long tickNow;
+              try {
+                tickNow = client.level.getGameTime();
+              } catch (Throwable t) {
+                tickNow = System.currentTimeMillis() / 50L;
+              }
+              LAST_SEEN.put(e.getId(), tickNow);
               if (HIST.size() >= CAP && !HIST.containsKey(e.getId())) {
-                continue;
+                evictOldest(tickNow);
+                if (HIST.size() >= CAP && !HIST.containsKey(e.getId())) {
+                  continue;
+                }
               }
               ArrayDeque<double[]> q = HIST.computeIfAbsent(e.getId(),
                   id -> new ArrayDeque<>(WINDOW));
@@ -117,6 +138,27 @@ public final class MobExtrapolation {
             appliedCount = 0;
           }
         });
+  }
+
+  private static void evictOldest(long tickNow) {
+    try {
+      int target = CAP * 3 / 4;
+      if (HIST.size() < target) {
+        return;
+      }
+      java.util.ArrayList<java.util.Map.Entry<Integer, Long>> entries =
+          new java.util.ArrayList<>(LAST_SEEN.entrySet());
+      entries.sort(java.util.Comparator.comparingLong(java.util.Map.Entry::getValue));
+      for (java.util.Map.Entry<Integer, Long> e : entries) {
+        if (HIST.size() < target) {
+          break;
+        }
+        HIST.remove(e.getKey());
+        SMOOTHED_VEL.remove(e.getKey());
+        LAST_SEEN.remove(e.getKey());
+      }
+    } catch (Throwable ignored) {
+    }
   }
 
   private static boolean hasDisplayPassenger(Entity e) {
