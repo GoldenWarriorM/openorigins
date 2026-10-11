@@ -177,6 +177,8 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
   }
 
   private long lastWheelLogMs;
+  private double wheelRemainder;
+  private long lastWheelApplyMs;
 
   @Override
   public boolean mouseScrolled(double x, double y, double scrollX, double scrollY) {
@@ -188,10 +190,21 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
       }
     } catch (Throwable ignored) {
     }
-    // Some wheels emit huge per-notch deltas (a whole category per click);
-    // cap one event to a few rows, fast flicks still travel via many events.
-    double clamped = Math.max(-3.0, Math.min(3.0, scrollY));
-    return super.mouseScrolled(x, y, scrollX, clamped);
+    // One detent emits a burst of events: spread them over time instead of
+    // jumping a category per click. Lone notches apply instantly (one row).
+    try {
+      long now = System.currentTimeMillis();
+      wheelRemainder += scrollY * 24.0;
+      if (now - lastWheelApplyMs < 90) {
+        return true;
+      }
+      lastWheelApplyMs = now;
+      double apply = Math.max(-48.0, Math.min(48.0, wheelRemainder));
+      wheelRemainder -= apply;
+      return super.mouseScrolled(x, y, scrollX, apply / 24.0);
+    } catch (Throwable t) {
+      return super.mouseScrolled(x, y, scrollX, scrollY);
+    }
   }
 
   /** Jumps the feed to the section a tab points at (real row heights, not estimates). */
