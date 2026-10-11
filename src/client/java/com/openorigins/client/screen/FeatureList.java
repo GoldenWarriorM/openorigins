@@ -33,7 +33,7 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
             this.addEntry(new StepperRow(this, "config.openorigins.extrap_ms",
                 "config.openorigins.extrap_ms_hint", 0, 1000,
                 () -> OpenOriginsConfig.getInstance().getExtrapMs(),
-                v -> OpenOriginsConfig.getInstance().setExtrapMs(v)));
+                v -> OpenOriginsConfig.getInstance().setExtrapMs(v), 12));
           }
         }
       }
@@ -331,12 +331,19 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
     private final java.util.function.IntConsumer set;
     private final Button minusButton;
     private final Button plusButton;
+    private final int indent;
     private net.minecraft.client.gui.components.EditBox field;
 
     public StepperRow(FeatureList list, String labelKey, String tooltipKey, int min, int max,
         java.util.function.IntSupplier get, java.util.function.IntConsumer set) {
+      this(list, labelKey, tooltipKey, min, max, get, set, 0);
+    }
+
+    public StepperRow(FeatureList list, String labelKey, String tooltipKey, int min, int max,
+        java.util.function.IntSupplier get, java.util.function.IntConsumer set, int indent) {
       this.list = list;
       this.labelKey = labelKey;
+      this.indent = indent;
       this.min = min;
       this.max = max;
       this.get = get;
@@ -405,7 +412,7 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
       this.plusButton.extractRenderState(graphics, mouseX, mouseY, partialTick);
       this.minusButton.extractRenderState(graphics, mouseX, mouseY, partialTick);
       net.minecraft.client.gui.Font font = net.minecraft.client.Minecraft.getInstance().font;
-      graphics.text(font, Component.translatable(this.labelKey), this.getContentX(),
+      graphics.text(font, Component.translatable(this.labelKey), this.getContentX() + this.indent,
           this.getContentYMiddle() - 4, 0xFFFFFFFF);
     }
 
