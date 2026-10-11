@@ -32,6 +32,7 @@
     "PauseScreenMixin",
     "ItemDisplayArmsFixMixin",
     "ItemInHandArmsFixMixin",
+    "TabJumpMixin",
     "MenuTabBarMixin",
     "TabBarAccessor",
     "DisplayExtrapolationMixin",

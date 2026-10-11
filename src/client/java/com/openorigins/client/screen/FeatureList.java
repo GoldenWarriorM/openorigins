@@ -26,6 +26,8 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
       java.util.Collections.newSetFromMap(new java.util.WeakHashMap<>());
   private static volatile ConfigTab spyTab;
   private static volatile java.util.function.Consumer<ConfigTab> spyListener;
+  private static volatile com.openorigins.client.FeatureCategory jumpTarget;
+  private static volatile long jumpMs;
 
   /** Called by the config screen to follow the visible section with tabs. */
   public static void setSpyListener(java.util.function.Consumer<ConfigTab> listener) {
@@ -37,9 +39,76 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
     syncEnabled = v;
   }
 
+  /** Section on screen at the current scroll (accumulates real row heights). */
+  private ConfigTab tabAtScroll() {
+    double y = 0;
+    try {
+      y = this.scrollAmount();
+    } catch (Throwable ignored) {
+    }
+    ConfigTab found = null;
+    double acc = 0;
+    try {
+      for (Entry e : this.children()) {
+        if (e instanceof CategoryEntry ce) {
+          for (ConfigTab t : ConfigTab.values()) {
+            if (t.getCategories().contains(ce.category)) {
+              found = t;
+              break;
+            }
+          }
+        }
+        try {
+          acc += e.getHeight();
+        } catch (Throwable ignored) {
+        }
+        if (acc > y + 2) {
+          break;
+        }
+      }
+    } catch (Throwable ignored) {
+    }
+    return found;
+  }
+
+  @Override
+  public void setScrollAmount(double d) {
+    super.setScrollAmount(d);
+    if (!syncEnabled || syncing) {
+      return;
+    }
+    syncing = true;
+    try {
+      try {
+        sharedScroll = this.scrollAmount();
+      } catch (Throwable ignored) {
+        sharedScroll = d;
+      }
+      for (FeatureList l : new java.util.ArrayList<>(ALL)) {
+        if (l != null && l != this) {
+          try {
+            l.setScrollAmount(sharedScroll);
+          } catch (Throwable ignored) {
+          }
+        }
+      }
+      ConfigTab at = tabAtScroll();
+      if (at != null && at != spyTab) {
+        spyTab = at;
+        java.util.function.Consumer<ConfigTab> listener = spyListener;
+        if (listener != null) {
+          listener.accept(at);
+        }
+      }
+    } finally {
+      syncing = false;
+    }
+  }
+
   public FeatureList(Minecraft minecraft, int width, int contentHeight, int headerHeight,
       ConfigTab tab) {
     super(minecraft, width, contentHeight, headerHeight, ROW_H);
+    ALL.add(this);
     // Single feed: every tab page contains all sections; the opener tab only
     // decides the initial scroll position (tabs teleport, nothing is hidden).
     for (ConfigTab t : ConfigTab.values()) {
@@ -101,13 +170,8 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
         for (Entry e : this.children()) {
           if (e instanceof CategoryEntry ce && ce.category == category) {
             this.setScrollAmount(px);
-            try {
-              com.openorigins.client.util.DebugLog.info(
-                  "[config] page={} rows={} sectionPx={} scroll={} maxScroll={}", tab,
-                  this.children().size(), px, (int) this.scrollAmount(),
-                  this.maxScrollAmount());
-            } catch (Throwable ignored) {
-            }
+            jumpTarget = category;
+            jumpMs = System.currentTimeMillis();
             return;
           }
           try {
@@ -191,9 +255,14 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
     public void extractContent(GuiGraphicsExtractor graphics, int mouseX, int mouseY, boolean hovered,
         float partialTick) {
       net.minecraft.client.gui.Font font = net.minecraft.client.Minecraft.getInstance().font;
+      net.minecraft.ChatFormatting style = this.category == com.openorigins.client.FeatureCategory.EXPERIMENTAL
+          ? net.minecraft.ChatFormatting.RED : net.minecraft.ChatFormatting.GOLD;
+      if (this.category == jumpTarget
+          && System.currentTimeMillis() - jumpMs < 1500) {
+        style = net.minecraft.ChatFormatting.WHITE;
+      }
       Component name = Component.translatable(this.category.getTranslationKey())
-          .withStyle(this.category == com.openorigins.client.FeatureCategory.EXPERIMENTAL
-              ? net.minecraft.ChatFormatting.RED : net.minecraft.ChatFormatting.GOLD);
+          .withStyle(style);
       int w = font.width(name);
       int rowW = this.list.getRowRight() - this.getContentX();
       graphics.text(font, name, this.getContentX() + (rowW - w) / 2,

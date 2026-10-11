@@ -28,18 +28,29 @@ public class ConfigScreen extends Screen {
     FeatureList list = new FeatureList(this.minecraft, this.width,
         this.layout.getContentHeight(), this.layout.getHeaderHeight(), tab);
     list.scrollToSection(tab);
-    return new ConfigTabPage(Component.translatable(tab.getTitleKey()), list, this.layout);
+    return new ConfigTabPage(tab, Component.translatable(tab.getTitleKey()), list, this.layout);
   }
 
   @Override
   protected void init() {
     this.layout = new HeaderAndFooterLayout(this);
     this.tabManager = new TabManager(this::addRenderableWidget, this::removeWidget);
+    com.openorigins.client.screen.FeatureList.setSyncEnabled(false);
     ConfigTab[] tabs = ConfigTab.values();
     Tab[] pages = new Tab[tabs.length];
     for (int i = 0; i < tabs.length; i++) {
       pages[i] = this.pageFor(tabs[i]);
     }
+    com.openorigins.client.screen.FeatureList.setSyncEnabled(true);
+    com.openorigins.client.screen.FeatureList.setSpyListener(tab -> {
+      ConfigTab[] all = ConfigTab.values();
+      for (int i = 0; i < all.length && i < pages.length; i++) {
+        if (all[i] == tab) {
+          this.tabManager.setCurrentTab(pages[i], false);
+          return;
+        }
+      }
+    });
     this.tabBar = MenuTabBar.builder(this.tabManager, this.width).addTabs(pages).build();
     this.addRenderableWidget(this.tabBar);
     LinearLayout footer = this.layout.addToFooter(LinearLayout.horizontal().spacing(8));
@@ -58,6 +69,9 @@ public class ConfigScreen extends Screen {
       this.addRenderableWidget(button);
     });
     this.tabBar.selectTab(0, false);
+    if (pages.length > 0 && pages[0] instanceof ConfigTabPage first) {
+      first.list().scrollToSection(tabs[0]);
+    }
     this.repositionElements();
   }
 
@@ -93,6 +107,7 @@ public class ConfigScreen extends Screen {
 
   @Override
   public void onClose() {
+    com.openorigins.client.screen.FeatureList.setSpyListener(null);
     if (this.minecraft != null) {
       this.minecraft.gui.setScreen(this.parent);
     }
