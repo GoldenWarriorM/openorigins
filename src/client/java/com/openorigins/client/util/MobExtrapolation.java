@@ -20,6 +20,12 @@ public final class MobExtrapolation {
   /** How far ahead to render, in milliseconds. Tunable live in settings. */
   public static final long EXTRA_MS = 150;
 
+  /** Velocity smoothing: 1.0 = raw, lower = smoother but laggier. */
+  private static final double SMOOTH = 0.4;
+
+  private static final ConcurrentMap<Integer, double[]> SMOOTHED_VEL =
+      new ConcurrentHashMap<>();
+
   private static long extraMs() {
     try {
       return com.openorigins.client.OpenOriginsConfig.getInstance().getExtrapMs();
@@ -36,7 +42,10 @@ public final class MobExtrapolation {
 
   public static void register() {
     net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents.DISCONNECT
-        .register((handler, client) -> HIST.clear());
+        .register((handler, client) -> {
+          HIST.clear();
+          SMOOTHED_VEL.clear();
+        });
     net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents.END_CLIENT_TICK
         .register(client -> {
           if (client.level == null || client.player == null) {
@@ -61,6 +70,31 @@ public final class MobExtrapolation {
                 while (q.size() > WINDOW) {
                   q.removeFirst();
                 }
+                if (q.size() >= 2) {
+                  double[] first = q.peekFirst();
+                  double[] last = q.peekLast();
+                  double dx = last[0] - first[0];
+                  double dy = last[1] - first[1];
+                  double dz = last[2] - first[2];
+                  double dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+                  if (dist > MAX_WINDOW_DIST) {
+                    // Teleport, not motion: restart from the new spot.
+                    q.clear();
+                    q.addLast(new double[] {e.getX(), e.getY(), e.getZ()});
+                    SMOOTHED_VEL.remove(e.getId());
+                  } else {
+                    double perMs = 1.0 / ((q.size() - 1) * 50.0);
+                    double[] raw = {dx * perMs, dy * perMs, dz * perMs};
+                    double[] sm = SMOOTHED_VEL.get(e.getId());
+                    if (sm == null) {
+                      SMOOTHED_VEL.put(e.getId(), raw);
+                    } else {
+                      sm[0] += (raw[0] - sm[0]) * SMOOTH;
+                      sm[1] += (raw[1] - sm[1]) * SMOOTH;
+                      sm[2] += (raw[2] - sm[2]) * SMOOTH;
+                    }
+                  }
+                }
               }
             }
           } catch (Throwable ignored) {
@@ -81,37 +115,24 @@ public final class MobExtrapolation {
   }
 
   /**
-   * Forward offset in blocks for this render frame, or null when unknown,
-   * stationary or teleported.
+   * Forward offset in blocks for this render frame, or null when unknown or
+   * stationary. Uses the smoothed velocity, so packet quantization jitter
+   * does not shake the model.
    */
   public static double[] offset(Entity e) {
     try {
-      ArrayDeque<double[]> q = HIST.get(e.getId());
-      if (q == null || q.size() < 2) {
+      double[] sm = SMOOTHED_VEL.get(e.getId());
+      if (sm == null) {
         return null;
       }
-      double[] first;
-      double[] last;
-      int n;
-      synchronized (q) {
-        n = q.size();
-        first = q.peekFirst();
-        last = q.peekLast();
-      }
-      double dx = last[0] - first[0];
-      double dy = last[1] - first[1];
-      double dz = last[2] - first[2];
-      double dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
-      if (dist * dist < 0.0001) {
+      double ms = extraMs();
+      double ox = sm[0] * ms;
+      double oy = sm[1] * ms;
+      double oz = sm[2] * ms;
+      if (ox * ox + oy * oy + oz * oz < 0.0001) {
         return null;
       }
-      if (dist > MAX_WINDOW_DIST) {
-        HIST.remove(e.getId());
-        return null;
-      }
-      double perMs = 1.0 / ((n - 1) * 50.0);
-      double k = extraMs() * perMs;
-      return new double[] {dx * k, dy * k, dz * k};
+      return new double[] {ox, oy, oz};
     } catch (Throwable t) {
       return null;
     }
