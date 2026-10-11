@@ -21,6 +21,8 @@ public class ConfigScreen extends Screen {
   private ConfigTab[] tabs = new ConfigTab[0];
   private Tab[] pages = new Tab[0];
   private final List<SideTabButton> tabButtons = new ArrayList<>();
+  private Button resetButton;
+  private Button doneButton;
   private int activeTab;
   private ConfigTab highlightTab;
   private static final int PANEL_X = 10;
@@ -94,16 +96,18 @@ public class ConfigScreen extends Screen {
       this.addRenderableWidget(b);
     }
     LinearLayout footer = this.layout.addToFooter(LinearLayout.horizontal().spacing(8));
-    footer.addChild(Button.builder(Component.translatable("config.openorigins.reset"),
+    this.resetButton = Button.builder(Component.translatable("config.openorigins.reset"),
         button -> {
           OpenOriginsConfig.getInstance().resetAll();
           HotkeyFeatures.reloadScanKey();
           if (this.minecraft != null) {
             this.minecraft.gui.setScreen(new ConfigScreen(this.parent));
           }
-        }).width(120).build());
-    footer.addChild(Button.builder(CommonComponents.GUI_DONE, button -> this.onClose())
-        .width(200).build());
+        }).width(120).build();
+    footer.addChild(this.resetButton);
+    this.doneButton =
+        Button.builder(CommonComponents.GUI_DONE, button -> this.onClose()).width(200).build();
+    footer.addChild(this.doneButton);
     this.layout.visitWidgets(button -> {
       button.setTabOrderGroup(1);
       this.addRenderableWidget(button);
@@ -129,6 +133,18 @@ public class ConfigScreen extends Screen {
         this.height - this.layout.getFooterHeight() - tabAreaTop));
     this.layout.setHeaderHeight(tabAreaTop);
     this.layout.arrangeElements();
+    // Footer buttons keep their sizes; center the pair over the content column.
+    try {
+      if (this.resetButton != null && this.doneButton != null) {
+        int pairL = Math.min(this.resetButton.getX(), this.doneButton.getX());
+        int pairR = Math.max(this.resetButton.getX() + this.resetButton.getWidth(),
+            this.doneButton.getX() + this.doneButton.getWidth());
+        int dx = (contentX + tabW / 2) - (pairL + pairR) / 2;
+        this.resetButton.setX(this.resetButton.getX() + dx);
+        this.doneButton.setX(this.doneButton.getX() + dx);
+      }
+    } catch (Throwable ignored) {
+    }
   }
 
   @Override
