@@ -25,7 +25,7 @@ public abstract class DisplayExtrapolationMixin {
     }
     double[] o;
     try {
-      o = com.openorigins.client.util.MobExtrapolation.offset(entity);
+      o = com.openorigins.client.util.MobExtrapolation.renderOffset(entity);
     } catch (Throwable t) {
       return;
     }

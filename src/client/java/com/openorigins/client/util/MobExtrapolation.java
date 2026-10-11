@@ -23,6 +23,14 @@ public final class MobExtrapolation {
   /** Velocity smoothing: 1.0 = raw, lower = smoother but laggier. */
   private static final double SMOOTH = 0.4;
 
+  /** Render damping time constant: applied offset glides to target this fast. */
+  private static final double DAMP_TAU_MS = 90.0;
+  private static final double MAX_SNAP_LEN = 3.0;
+
+  /** Currently rendered offset per entity: ox, oy, oz, last frame ms. */
+  private static final ConcurrentMap<Integer, double[]> APPLIED =
+      new ConcurrentHashMap<>();
+
   private static final ConcurrentMap<Integer, double[]> SMOOTHED_VEL =
       new ConcurrentHashMap<>();
 
@@ -57,6 +65,7 @@ public final class MobExtrapolation {
           HIST.clear();
           SMOOTHED_VEL.clear();
           LAST_SEEN.clear();
+          APPLIED.clear();
         });
     net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents.END_CLIENT_TICK
         .register(client -> {
@@ -156,6 +165,7 @@ public final class MobExtrapolation {
         HIST.remove(e.getKey());
         SMOOTHED_VEL.remove(e.getKey());
         LAST_SEEN.remove(e.getKey());
+        APPLIED.remove(e.getKey());
       }
     } catch (Throwable ignored) {
     }
@@ -174,11 +184,39 @@ public final class MobExtrapolation {
   }
 
   /**
-   * Forward offset in blocks for this render frame, or null when unknown or
-   * stationary. Uses the smoothed velocity, so packet quantization jitter
-   * does not shake the model.
+   * Render offset with per-frame damping: glides toward the velocity target
+   * instead of stepping every tick. Returns null when there is nothing
+   * sensible to show.
    */
-  public static double[] offset(Entity e) {
+  public static double[] renderOffset(Entity e) {
+    try {
+      double[] t = offset(e);
+      if (t == null) {
+        APPLIED.remove(e.getId());
+        return null;
+      }
+      double tLen2 = t[0] * t[0] + t[1] * t[1] + t[2] * t[2];
+      long nowMs = System.currentTimeMillis();
+      double[] cur = APPLIED.get(e.getId());
+      if (cur == null || tLen2 > MAX_SNAP_LEN * MAX_SNAP_LEN) {
+        double[] snap = {t[0], t[1], t[2], (double) nowMs};
+        APPLIED.put(e.getId(), snap);
+        return new double[] {t[0], t[1], t[2]};
+      }
+      double dt = Math.max(0.0, Math.min(500.0, nowMs - cur[3]));
+      double f = 1.0 - Math.exp(-dt / DAMP_TAU_MS);
+      cur[0] += (t[0] - cur[0]) * f;
+      cur[1] += (t[1] - cur[1]) * f;
+      cur[2] += (t[2] - cur[2]) * f;
+      cur[3] = (double) nowMs;
+      return new double[] {cur[0], cur[1], cur[2]};
+    } catch (Throwable t) {
+      return null;
+    }
+  }
+
+  /** Velocity target from the smoothed per-tick history, or null. */
+  private static double[] offset(Entity e) {
     try {
       double[] sm = SMOOTHED_VEL.get(e.getId());
       if (sm == null) {
