@@ -176,6 +176,24 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
     return 24.0;
   }
 
+  private long lastWheelLogMs;
+
+  @Override
+  public boolean mouseScrolled(double x, double y, double scrollX, double scrollY) {
+    try {
+      long now = System.currentTimeMillis();
+      if (now - lastWheelLogMs > 2000) {
+        lastWheelLogMs = now;
+        com.openorigins.client.util.DebugLog.info("[config] wheel delta={}", scrollY);
+      }
+    } catch (Throwable ignored) {
+    }
+    // Some wheels emit huge per-notch deltas (a whole category per click);
+    // cap one event to a few rows, fast flicks still travel via many events.
+    double clamped = Math.max(-3.0, Math.min(3.0, scrollY));
+    return super.mouseScrolled(x, y, scrollX, clamped);
+  }
+
   /** Jumps the feed to the section a tab points at (real row heights, not estimates). */
   public void scrollToSection(ConfigTab tab) {    try {
       for (com.openorigins.client.FeatureCategory category : tab.getCategories()) {
