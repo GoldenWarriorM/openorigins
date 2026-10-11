@@ -116,9 +116,11 @@ public class ConfigScreen extends Screen {
 
   protected void repositionElements() {
     int left = PANEL_X + this.panelWidth() + 10;
+    int availW = Math.max(220, this.width - left - 10);
+    int tabW = Math.min(availW, 720);
+    int tabX = left + (availW - tabW) / 2;
     int tabAreaTop = PANEL_TOP;
-    this.tabManager.setTabArea(new ScreenRectangle(left, tabAreaTop,
-        Math.max(100, this.width - left - 10),
+    this.tabManager.setTabArea(new ScreenRectangle(tabX, tabAreaTop, tabW,
         this.height - this.layout.getFooterHeight() - tabAreaTop));
     this.layout.setHeaderHeight(tabAreaTop);
     this.layout.arrangeElements();
