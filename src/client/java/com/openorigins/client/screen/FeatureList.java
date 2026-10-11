@@ -366,7 +366,7 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
         this.field = new net.minecraft.client.gui.components.EditBox(mc.font, 0, 0, 52, 20,
             Component.translatable(this.labelKey));
         this.field.setTextColor(0x00000000);
-        this.field.setMaxLength(2);
+        this.field.setMaxLength(Math.max(2, Integer.toString(this.max).length()));
         this.field.setValue(Integer.toString(this.get.getAsInt()));
         this.field.setResponder(s -> {
           String digits = s.replaceAll("[^0-9]", "");
