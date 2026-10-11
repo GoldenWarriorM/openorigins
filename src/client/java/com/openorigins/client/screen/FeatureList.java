@@ -104,8 +104,8 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
             try {
               com.openorigins.client.util.DebugLog.info(
                   "[config] page={} rows={} sectionPx={} scroll={} maxScroll={}", tab,
-                  this.children().size(), px, (int) this.getScrollAmount(),
-                  this.getMaxScrollAmount());
+                  this.children().size(), px, (int) this.scrollAmount(),
+                  this.maxScrollAmount());
             } catch (Throwable ignored) {
             }
             return;
