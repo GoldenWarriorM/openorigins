@@ -17,8 +17,16 @@ import net.minecraft.world.entity.decoration.ArmorStand;
 public final class MobExtrapolation {
   private MobExtrapolation() {}
 
-  /** How far ahead to render, in milliseconds. Fixed for A/B testing. */
+  /** How far ahead to render, in milliseconds. Tunable live in settings. */
   public static final long EXTRA_MS = 150;
+
+  private static long extraMs() {
+    try {
+      return com.openorigins.client.OpenOriginsConfig.getInstance().getExtrapMs();
+    } catch (Throwable t) {
+      return EXTRA_MS;
+    }
+  }
   private static final int WINDOW = 4;
   private static final double MAX_WINDOW_DIST = 4.0;
   private static final int CAP = 256;
@@ -102,7 +110,7 @@ public final class MobExtrapolation {
         return null;
       }
       double perMs = 1.0 / ((n - 1) * 50.0);
-      double k = EXTRA_MS * perMs;
+      double k = extraMs() * perMs;
       return new double[] {dx * k, dy * k, dz * k};
     } catch (Throwable t) {
       return null;

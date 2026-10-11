@@ -26,6 +26,12 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
                 "config.openorigins.hud_position_hint", FeatureList::cornerName,
                 FeatureList::cycleCorner, true));
           }
+          if (feature == OriginFeature.ENTITY_EXTRAPOLATION) {
+            this.addEntry(new StepperRow(this, "config.openorigins.extrap_ms",
+                "config.openorigins.extrap_ms_hint", 0, 1000,
+                () -> OpenOriginsConfig.getInstance().getExtrapMs(),
+                v -> OpenOriginsConfig.getInstance().setExtrapMs(v)));
+          }
         }
       }
       if (category == com.openorigins.client.FeatureCategory.MISC) {

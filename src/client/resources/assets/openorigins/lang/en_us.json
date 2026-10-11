@@ -11,6 +11,8 @@
   "config.openorigins.position": "Position",
   "config.openorigins.hud_position_hint": "Which corner shows the task HUD",
   "config.openorigins.max_slots": "Max home slots",
+  "config.openorigins.extrap_ms": "Extrapolation (ms)",
+  "config.openorigins.extrap_ms_hint": "Forward render time for custom-mob bodies. Start around half your ping + 75.",
   "config.openorigins.reset": "Reset to Defaults",
   "config.openorigins.scan_key": "Scan key",
   "config.openorigins.scan_key_hint": "Debug key for entity dumps (rebind by clicking)",

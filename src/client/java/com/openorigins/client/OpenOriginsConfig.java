@@ -27,6 +27,7 @@ public final class OpenOriginsConfig {
   private String discordClientId = "";
   private HudCorner badgerHudCorner = HudCorner.TOP_LEFT;
   private int homeCapacity = 5;
+  private int extrapMs = 150;
   private boolean badgerHudVisible = true;
   private float allayArmsShiftTexels = 12.0f;
   private int scanKeyType = 0;
@@ -85,6 +86,16 @@ public final class OpenOriginsConfig {
         } catch (NumberFormatException ignored) {
         }
       }
+      String exms = props.getProperty("extrap.ms");
+      if (exms != null) {
+        try {
+          int v = Integer.parseInt(exms.trim());
+          if (v >= 0 && v <= 1000) {
+            extrapMs = v;
+          }
+        } catch (NumberFormatException ignored) {
+        }
+      }
       String scanKey = props.getProperty("scan.key");
       if (scanKey != null) {
         try {
@@ -127,6 +138,7 @@ public final class OpenOriginsConfig {
     props.setProperty("badger.hud.corner", badgerHudCorner.name());
     props.setProperty("badger.hud.visible", Boolean.toString(badgerHudVisible));
     props.setProperty("homes.capacity", Integer.toString(homeCapacity));
+    props.setProperty("extrap.ms", Integer.toString(extrapMs));
     props.setProperty("allay.arms.x", Float.toString(allayArmsShiftTexels));
     props.setProperty("scan.key", scanKeyType + ":" + scanKeyValue);
     props.setProperty("servers", getServersText());
@@ -235,6 +247,11 @@ public final class OpenOriginsConfig {
   }
   public void setHomeCapacity(int v) {
     homeCapacity = Math.max(0, Math.min(15, v));
+    save();
+  }
+  public int getExtrapMs() { return extrapMs; }
+  public void setExtrapMs(int v) {
+    extrapMs = Math.max(0, Math.min(1000, v));
     save();
   }
   public void cycleBadgerHudCorner() {
