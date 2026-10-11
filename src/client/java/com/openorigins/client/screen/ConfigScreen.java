@@ -166,6 +166,18 @@ public class ConfigScreen extends Screen {
   }
 
   @Override
+  public void tick() {
+    super.tick();
+    try {
+      if (this.resetButton != null) {
+        this.resetButton.active =
+            !com.openorigins.client.OpenOriginsConfig.getInstance().isDefault();
+      }
+    } catch (Throwable ignored) {
+    }
+  }
+
+  @Override
   public void onClose() {
     com.openorigins.client.screen.FeatureList.setSpyListener(null);
     if (this.minecraft != null) {

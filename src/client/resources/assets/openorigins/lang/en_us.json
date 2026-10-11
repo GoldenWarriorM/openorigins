@@ -11,6 +11,7 @@
   "config.openorigins.position": "Position",
   "config.openorigins.hud_position_hint": "Which corner shows the task HUD",
   "config.openorigins.max_slots": "Max home slots",
+  "config.openorigins.reset_row": "Reset to default",
   "config.openorigins.extrap_ms": "Extrapolation (ms)",
   "config.openorigins.extrap_ms_hint": "Forward render time for custom-mob bodies. Start around half your ping + 75.",
   "config.openorigins.reset": "Reset to Defaults",

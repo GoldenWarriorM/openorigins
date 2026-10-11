@@ -106,13 +106,17 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
           if (feature == OriginFeature.BADGER_TASK_HUD) {
             this.addEntry(new CycleRow(this, "config.openorigins.position",
                 "config.openorigins.hud_position_hint", FeatureList::cornerName,
-                FeatureList::cycleCorner, true));
+                FeatureList::cycleCorner, true,
+                () -> OpenOriginsConfig.getInstance().setBadgerHudCorner(
+                    OpenOriginsConfig.HudCorner.TOP_LEFT),
+                () -> OpenOriginsConfig.getInstance().getBadgerHudCorner()
+                    == OpenOriginsConfig.HudCorner.TOP_LEFT));
           }
           if (feature == OriginFeature.ENTITY_EXTRAPOLATION) {
             this.addEntry(new StepperRow(this, "config.openorigins.extrap_ms",
                 "config.openorigins.extrap_ms_hint", 0, 1000,
                 () -> OpenOriginsConfig.getInstance().getExtrapMs(),
-                v -> OpenOriginsConfig.getInstance().setExtrapMs(v), true));
+                v -> OpenOriginsConfig.getInstance().setExtrapMs(v), 150, true));
           }
         }
       }
@@ -120,20 +124,27 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
         this.addEntry(new StepperRow(this, "config.openorigins.max_slots",
             "config.openorigins.capacity_hint", 0, 15,
             () -> OpenOriginsConfig.getInstance().getHomeCapacity(),
-            v -> OpenOriginsConfig.getInstance().setHomeCapacity(v)));
+            v -> OpenOriginsConfig.getInstance().setHomeCapacity(v), 5));
       }
       if (category == com.openorigins.client.FeatureCategory.MISC) {
         this.addEntry(new CycleRow(this, "config.openorigins.scan_key",
             "config.openorigins.scan_key_hint",
             () -> com.openorigins.client.HotkeyFeatures.isScanCaptureArmed() ? "..."
                 : com.openorigins.client.HotkeyFeatures.scanKeyName(),
-            () -> com.openorigins.client.HotkeyFeatures.beginScanCapture(), false));
+            () -> com.openorigins.client.HotkeyFeatures.beginScanCapture(), false,
+            () -> {
+              OpenOriginsConfig.getInstance().resetScanKey();
+              com.openorigins.client.HotkeyFeatures.reloadScanKey();
+            },
+            () -> OpenOriginsConfig.getInstance().isScanKeyDefault()));
         for (com.openorigins.client.HotkeyFeatures.Hotkey h
             : com.openorigins.client.HotkeyFeatures.debugHotkeys()) {
           this.addEntry(new CycleRow(this, h.labelKey(), h.labelKey(),
               () -> com.openorigins.client.HotkeyFeatures.isCapturing(h.mapping()) ? "..."
                   : com.openorigins.client.HotkeyFeatures.keyName(h.mapping()),
-              () -> com.openorigins.client.HotkeyFeatures.beginCapture(h.mapping()), false));
+              () -> com.openorigins.client.HotkeyFeatures.beginCapture(h.mapping()), false,
+              () -> h.mapping().setKey(h.mapping().getDefaultKey()),
+              () -> h.mapping().isDefault()));
         }
       }
       if (category == com.openorigins.client.FeatureCategory.SERVERS) {
@@ -208,6 +219,11 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
           OpenOriginsConfig.getInstance().setUseHandshake(
               !OpenOriginsConfig.getInstance().isUseHandshake());
           this.rebuildServerEntries();
+        },
+        true,
+        v -> {
+          OpenOriginsConfig.getInstance().setUseHandshake(v);
+          this.rebuildServerEntries();
         }));
     if (!OpenOriginsConfig.getInstance().isUseHandshake()) {
       for (String s : OpenOriginsConfig.getInstance().getServers()) {
@@ -280,6 +296,7 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
     private final FeatureList list;
     private final OriginFeature feature;
     private final Button toggleButton;
+    private final Button resetButton;
 
     public FeatureEntry(FeatureList list, OriginFeature feature) {
       this.list = list;
@@ -297,6 +314,14 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
           .tooltip(net.minecraft.client.gui.components.Tooltip.create(
               featureTooltip(feature)))
           .build();
+      this.resetButton = Button.builder(Component.literal("R"), button -> {
+        OpenOriginsConfig config = OpenOriginsConfig.getInstance();
+        config.setEnabled(feature, feature.getDefaultValue());
+        list.refreshEntries();
+      }).bounds(0, 0, 20, 20)
+          .tooltip(net.minecraft.client.gui.components.Tooltip.create(
+              Component.translatable("config.openorigins.reset_row")))
+          .build();
       this.refreshEntry();
     }
 
@@ -304,6 +329,7 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
       boolean on = OpenOriginsConfig.getInstance().isEnabled(this.feature);
       this.toggleButton.setMessage(Component.translatable(on ? "options.on" : "options.off")
           .withStyle(on ? net.minecraft.ChatFormatting.GREEN : net.minecraft.ChatFormatting.RED));
+      this.resetButton.active = on != this.feature.getDefaultValue();
     }
 
     private static Component featureTooltip(OriginFeature feature) {
@@ -325,9 +351,12 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
     @Override
     public void extractContent(GuiGraphicsExtractor graphics, int mouseX, int mouseY, boolean hovered,
         float partialTick) {
-      this.toggleButton.setX(this.list.getRowRight() - this.toggleButton.getWidth());
+      this.resetButton.setX(this.list.getRowRight() - this.resetButton.getWidth());
+      this.resetButton.setY(this.getContentY() + 2);
+      this.toggleButton.setX(this.resetButton.getX() - 4 - this.toggleButton.getWidth());
       this.toggleButton.setY(this.getContentY() + 2);
       this.toggleButton.extractRenderState(graphics, mouseX, mouseY, partialTick);
+      this.resetButton.extractRenderState(graphics, mouseX, mouseY, partialTick);
       net.minecraft.client.gui.Font font = net.minecraft.client.Minecraft.getInstance().font;
       graphics.text(font, Component.literal(this.feature.getName()), this.getContentX(),
           this.getContentYMiddle() - 4, 0xFFFFFFFF);
@@ -335,12 +364,12 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
 
     @Override
     public List<? extends GuiEventListener> children() {
-      return List.of(this.toggleButton);
+      return List.of(this.toggleButton, this.resetButton);
     }
 
     @Override
     public List<? extends NarratableEntry> narratables() {
-      return List.of(this.toggleButton);
+      return List.of(this.toggleButton, this.resetButton);
     }
   }
 
@@ -351,21 +380,39 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
     private final String tooltipKey;
     private final java.util.function.BooleanSupplier get;
     private final Runnable onPress;
+    private final boolean defaultValue;
+    private final java.util.function.Consumer<Boolean> set;
     private final Button button;
+    private final Button resetButton;
 
     public ToggleRow(FeatureList list, String labelKey, String tooltipKey,
         java.util.function.BooleanSupplier get, Runnable onPress) {
+      this(list, labelKey, tooltipKey, get, onPress, false, v -> {});
+    }
+
+    public ToggleRow(FeatureList list, String labelKey, String tooltipKey,
+        java.util.function.BooleanSupplier get, Runnable onPress,
+        boolean defaultValue, java.util.function.Consumer<Boolean> set) {
       this.list = list;
       this.labelKey = labelKey;
       this.tooltipKey = tooltipKey;
       this.get = get;
       this.onPress = onPress;
+      this.defaultValue = defaultValue;
+      this.set = set;
       this.button = Button.builder(Component.empty(), b -> {
         this.onPress.run();
         this.list.refreshEntries();
       }).bounds(0, 0, 100, 20)
           .tooltip(net.minecraft.client.gui.components.Tooltip.create(
               Component.translatable(this.tooltipKey)))
+          .build();
+      this.resetButton = Button.builder(Component.literal("R"), b -> {
+        this.set.accept(this.defaultValue);
+        this.list.refreshEntries();
+      }).bounds(0, 0, 20, 20)
+          .tooltip(net.minecraft.client.gui.components.Tooltip.create(
+              Component.translatable("config.openorigins.reset_row")))
           .build();
       this.refreshEntry();
     }
@@ -374,14 +421,18 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
       boolean on = this.get.getAsBoolean();
       this.button.setMessage(Component.translatable(on ? "options.on" : "options.off")
           .withStyle(on ? net.minecraft.ChatFormatting.GREEN : net.minecraft.ChatFormatting.RED));
+      this.resetButton.active = on != this.defaultValue;
     }
 
     @Override
     public void extractContent(GuiGraphicsExtractor graphics, int mouseX, int mouseY, boolean hovered,
         float partialTick) {
-      this.button.setX(this.list.getRowRight() - this.button.getWidth());
+      this.resetButton.setX(this.list.getRowRight() - this.resetButton.getWidth());
+      this.resetButton.setY(this.getContentY() + 2);
+      this.button.setX(this.resetButton.getX() - 4 - this.button.getWidth());
       this.button.setY(this.getContentY() + 2);
       this.button.extractRenderState(graphics, mouseX, mouseY, partialTick);
+      this.resetButton.extractRenderState(graphics, mouseX, mouseY, partialTick);
       net.minecraft.client.gui.Font font = net.minecraft.client.Minecraft.getInstance().font;
       graphics.text(font, Component.translatable(this.labelKey), this.getContentX(),
           this.getContentYMiddle() - 4, 0xFFFFFFFF);
@@ -389,12 +440,12 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
 
     @Override
     public List<? extends GuiEventListener> children() {
-      return List.of(this.button);
+      return List.of(this.button, this.resetButton);
     }
 
     @Override
     public List<? extends NarratableEntry> narratables() {
-      return List.of(this.button);
+      return List.of(this.button, this.resetButton);
     }
   }
 
@@ -407,15 +458,26 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
     private final java.util.function.Supplier<String> value;
     private final Runnable cycle;
     private final Button button;
+    private final Runnable reset;
+    private final java.util.function.BooleanSupplier isDefault;
+    private final Button resetButton;
 
     public CycleRow(FeatureList list, String labelKey, String tooltipKey,
         java.util.function.Supplier<String> value, Runnable cycle, boolean indented) {
+      this(list, labelKey, tooltipKey, value, cycle, indented, null, () -> true);
+    }
+
+    public CycleRow(FeatureList list, String labelKey, String tooltipKey,
+        java.util.function.Supplier<String> value, Runnable cycle, boolean indented,
+        Runnable reset, java.util.function.BooleanSupplier isDefault) {
       this.list = list;
       this.labelKey = labelKey;
       this.tooltipKey = tooltipKey;
       this.indented = indented;
       this.value = value;
       this.cycle = cycle;
+      this.reset = reset;
+      this.isDefault = isDefault;
       this.button = Button.builder(Component.empty(), b -> {
         this.cycle.run();
         this.list.refreshEntries();
@@ -423,17 +485,34 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
           .tooltip(net.minecraft.client.gui.components.Tooltip.create(
               Component.translatable(this.tooltipKey)))
           .build();
+      this.resetButton = Button.builder(Component.literal("R"), b -> {
+        if (this.reset != null) {
+          this.reset.run();
+        }
+        this.list.refreshEntries();
+      }).bounds(0, 0, 20, 20)
+          .tooltip(net.minecraft.client.gui.components.Tooltip.create(
+              Component.translatable("config.openorigins.reset_row")))
+          .build();
       this.refreshEntry();
     }
 
     public void refreshEntry() {
       this.button.setMessage(Component.literal(this.value.get()));
+      this.resetButton.active = this.reset != null && !this.isDefault.getAsBoolean();
     }
 
     @Override
     public void extractContent(GuiGraphicsExtractor graphics, int mouseX, int mouseY, boolean hovered,
         float partialTick) {
-      this.button.setX(this.list.getRowRight() - this.button.getWidth());
+      if (this.reset != null) {
+        this.resetButton.setX(this.list.getRowRight() - this.resetButton.getWidth());
+        this.resetButton.setY(this.getContentY() + 2);
+        this.resetButton.extractRenderState(graphics, mouseX, mouseY, partialTick);
+        this.button.setX(this.resetButton.getX() - 4 - this.button.getWidth());
+      } else {
+        this.button.setX(this.list.getRowRight() - this.button.getWidth());
+      }
       this.button.setY(this.getContentY() + 2);
       this.button.extractRenderState(graphics, mouseX, mouseY, partialTick);
       net.minecraft.client.gui.Font font = net.minecraft.client.Minecraft.getInstance().font;
@@ -447,11 +526,17 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
 
     @Override
     public List<? extends GuiEventListener> children() {
+      if (this.reset != null) {
+        return List.of(this.button, this.resetButton);
+      }
       return List.of(this.button);
     }
 
     @Override
     public List<? extends NarratableEntry> narratables() {
+      if (this.reset != null) {
+        return List.of(this.button, this.resetButton);
+      }
       return List.of(this.button);
     }
   }
@@ -468,16 +553,19 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
     private final java.util.function.IntConsumer set;
     private final Button minusButton;
     private final Button plusButton;
+    private final int defaultValue;
+    private final Button resetButton;
     private final boolean indented;
     private net.minecraft.client.gui.components.EditBox field;
 
     public StepperRow(FeatureList list, String labelKey, String tooltipKey, int min, int max,
-        java.util.function.IntSupplier get, java.util.function.IntConsumer set) {
-      this(list, labelKey, tooltipKey, min, max, get, set, false);
+        java.util.function.IntSupplier get, java.util.function.IntConsumer set, int defaultValue) {
+      this(list, labelKey, tooltipKey, min, max, get, set, defaultValue, false);
     }
 
     public StepperRow(FeatureList list, String labelKey, String tooltipKey, int min, int max,
-        java.util.function.IntSupplier get, java.util.function.IntConsumer set, boolean indented) {
+        java.util.function.IntSupplier get, java.util.function.IntConsumer set, int defaultValue,
+        boolean indented) {
       this.list = list;
       this.labelKey = labelKey;
       this.indented = indented;
@@ -485,6 +573,7 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
       this.max = max;
       this.get = get;
       this.set = set;
+      this.defaultValue = defaultValue;
       this.minusButton = Button.builder(Component.literal("-"), b -> {
         this.set.accept(Math.max(this.min, this.get.getAsInt() - 1));
         this.list.refreshEntries();
@@ -493,6 +582,13 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
         this.set.accept(Math.min(this.max, this.get.getAsInt() + 1));
         this.list.refreshEntries();
       }).bounds(0, 0, 20, 20).build();
+      this.resetButton = Button.builder(Component.literal("R"), b -> {
+        this.set.accept(this.defaultValue);
+        this.list.refreshEntries();
+      }).bounds(0, 0, 20, 20)
+          .tooltip(net.minecraft.client.gui.components.Tooltip.create(
+              Component.translatable("config.openorigins.reset_row")))
+          .build();
     }
 
     public void refreshEntry() {
@@ -502,6 +598,7 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
           this.field.setValue(v);
         }
       }
+      this.resetButton.active = this.get.getAsInt() != this.defaultValue;
     }
 
     @Override
@@ -526,6 +623,7 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
               int v = Integer.parseInt(digits);
               if (v >= this.min && v <= this.max) {
                 this.set.accept(v);
+                this.list.refreshEntries();
               }
             } catch (NumberFormatException ignored) {
             }
@@ -534,8 +632,11 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
       }
       this.plusButton.setX(right - 20);
       this.plusButton.setY(this.getContentY() + 2);
+      this.resetButton.setX(right - this.resetButton.getWidth());
+      this.resetButton.setY(this.getContentY() + 2);
+      this.plusButton.setX(this.resetButton.getX() - 4 - this.plusButton.getWidth());
       if (this.field != null) {
-        this.field.setX(right - 20 - 4 - 52);
+        this.field.setX(this.plusButton.getX() - 4 - 52);
         this.field.setY(this.getContentY() + 2);
         try {
           // Our value is drawn manually centered with invisible field text;
@@ -547,13 +648,16 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
         net.minecraft.client.gui.Font ff = net.minecraft.client.Minecraft.getInstance().font;
         String fv = this.field.getValue();
         int fw = ff.width(fv);
-        graphics.text(ff, fv, right - 20 - 4 - 52 + (52 - fw) / 2,
+        graphics.text(ff, fv, this.field.getX() + (52 - fw) / 2,
             this.getContentYMiddle() - 4, 0xFFFFFFFF);
       }
-      this.minusButton.setX(right - 20 - 4 - 52 - 4 - 20);
+      this.minusButton.setX(this.field != null
+          ? this.field.getX() - 4 - this.minusButton.getWidth()
+          : this.plusButton.getX() - 4 - this.minusButton.getWidth());
       this.minusButton.setY(this.getContentY() + 2);
       this.plusButton.extractRenderState(graphics, mouseX, mouseY, partialTick);
       this.minusButton.extractRenderState(graphics, mouseX, mouseY, partialTick);
+      this.resetButton.extractRenderState(graphics, mouseX, mouseY, partialTick);
       net.minecraft.client.gui.Font font = net.minecraft.client.Minecraft.getInstance().font;
       Component label = Component.translatable(this.labelKey);
       if (this.indented) {
@@ -566,17 +670,17 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
     @Override
     public List<? extends GuiEventListener> children() {
       if (this.field != null) {
-        return List.of(this.minusButton, this.field, this.plusButton);
+        return List.of(this.minusButton, this.field, this.plusButton, this.resetButton);
       }
-      return List.of(this.minusButton, this.plusButton);
+      return List.of(this.minusButton, this.plusButton, this.resetButton);
     }
 
     @Override
     public List<? extends NarratableEntry> narratables() {
       if (this.field != null) {
-        return List.of(this.minusButton, this.field, this.plusButton);
+        return List.of(this.minusButton, this.field, this.plusButton, this.resetButton);
       }
-      return List.of(this.minusButton, this.plusButton);
+      return List.of(this.minusButton, this.plusButton, this.resetButton);
     }
   }
 

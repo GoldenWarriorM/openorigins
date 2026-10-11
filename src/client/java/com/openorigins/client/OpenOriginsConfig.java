@@ -255,6 +255,41 @@ public final class OpenOriginsConfig {
     homeCapacity = Math.max(0, Math.min(15, v));
     save();
   }
+
+  /** True when every setting matches its default (global reset can rest). */
+  public synchronized boolean isDefault() {
+    for (OriginFeature f : OriginFeature.values()) {
+      Boolean v = enabled.get(f);
+      if (v == null || v != f.getDefaultValue()) {
+        return false;
+      }
+    }
+    return discordClientId.isEmpty()
+        && badgerHudCorner == HudCorner.TOP_LEFT
+        && homeCapacity == 5
+        && extrapMs == 150
+        && badgerHudVisible
+        && allayArmsShiftTexels == 12.0f
+        && scanKeyType == 0
+        && scanKeyValue == -1
+        && useHandshake
+        && servers.equals(new java.util.LinkedHashSet<>(DEFAULT_SERVERS));
+  }
+
+  public void setBadgerHudCorner(HudCorner v) {
+    badgerHudCorner = v;
+    save();
+  }
+
+  public synchronized void resetScanKey() {
+    scanKeyType = 0;
+    scanKeyValue = -1;
+    save();
+  }
+
+  public synchronized boolean isScanKeyDefault() {
+    return scanKeyType == 0 && scanKeyValue == -1;
+  }
   public int getExtrapMs() { return extrapMs; }
   public void setExtrapMs(int v) {
     extrapMs = Math.max(0, Math.min(1000, v));
@@ -276,6 +311,7 @@ public final class OpenOriginsConfig {
     discordClientId = "";
     badgerHudCorner = HudCorner.TOP_LEFT;
     homeCapacity = 5;
+    extrapMs = 150;
     badgerHudVisible = true;
     allayArmsShiftTexels = 12.0f;
     scanKeyType = 0;
