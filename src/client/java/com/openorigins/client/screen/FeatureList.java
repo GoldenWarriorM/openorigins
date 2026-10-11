@@ -26,8 +26,6 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
       java.util.Collections.newSetFromMap(new java.util.WeakHashMap<>());
   private static volatile ConfigTab spyTab;
   private static volatile java.util.function.Consumer<ConfigTab> spyListener;
-  private static volatile com.openorigins.client.FeatureCategory jumpTarget;
-  private static volatile long jumpMs;
 
   /** Called by the config screen to follow the visible section with tabs. */
   public static void setSpyListener(java.util.function.Consumer<ConfigTab> listener) {
@@ -170,8 +168,6 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
         for (Entry e : this.children()) {
           if (e instanceof CategoryEntry ce && ce.category == category) {
             this.setScrollAmount(px);
-            jumpTarget = category;
-            jumpMs = System.currentTimeMillis();
             return;
           }
           try {
@@ -255,14 +251,9 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
     public void extractContent(GuiGraphicsExtractor graphics, int mouseX, int mouseY, boolean hovered,
         float partialTick) {
       net.minecraft.client.gui.Font font = net.minecraft.client.Minecraft.getInstance().font;
-      net.minecraft.ChatFormatting style = this.category == com.openorigins.client.FeatureCategory.EXPERIMENTAL
-          ? net.minecraft.ChatFormatting.RED : net.minecraft.ChatFormatting.GOLD;
-      if (this.category == jumpTarget
-          && System.currentTimeMillis() - jumpMs < 1500) {
-        style = net.minecraft.ChatFormatting.WHITE;
-      }
       Component name = Component.translatable(this.category.getTranslationKey())
-          .withStyle(style);
+          .withStyle(this.category == com.openorigins.client.FeatureCategory.EXPERIMENTAL
+              ? net.minecraft.ChatFormatting.RED : net.minecraft.ChatFormatting.GOLD);
       int w = font.width(name);
       int rowW = this.list.getRowRight() - this.getContentX();
       graphics.text(font, name, this.getContentX() + (rowW - w) / 2,
