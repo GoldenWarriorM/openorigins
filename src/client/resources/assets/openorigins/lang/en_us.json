@@ -30,7 +30,7 @@
   "feature.openorigins.outbox_hud.desc": "Bottom-right monitor of requests sent to the server, with 1m / 30m / session rates (off by default).",
   "feature.openorigins.allay_arms_fix.desc": "Shifts custom allay arm models into place. The server sends arm parts detached, on every client version.",
   "feature.openorigins.entity_extrapolation.desc": "Renders custom-mob bodies ahead to match server hitboxes.",
-  "feature.openorigins.entity_extrapolation.hint": "Display/stand parts shift forward by velocity x the configured time. This makes models jitterier; recommended only on a stable connection. May overshoot on sharp turns; toggle live with the hotkey to compare.",
+  "feature.openorigins.entity_extrapolation.hint": "Display/stand parts shift forward by velocity x the configured time. Recommended only on a stable connection. May overshoot on sharp turns; toggle live with the hotkey to compare.",
   "key.openorigins.navigator": "Open Navigator",
   "key.openorigins.gesture_menu": "Open Gesture Menu",
   "key.openorigins.spawn": "Go to Spawn",
