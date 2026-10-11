@@ -317,7 +317,8 @@ public class TeleportMenuScreen extends Screen implements HomePanelHost {
 
   private void teleportHome(String name) {
     if (this.minecraft != null && this.minecraft.player != null) {
-      this.minecraft.player.connection.sendCommand("home " + name);
+      // Server home ids use underscores; display names use spaces.
+      this.minecraft.player.connection.sendCommand("home " + name.replace(' ', '_'));
       com.openorigins.client.util.OutboxStats.record("menu /home " + name);
     }
     this.onClose();
@@ -325,7 +326,7 @@ public class TeleportMenuScreen extends Screen implements HomePanelHost {
 
   private void deleteHome(String name) {
     if (this.minecraft != null && this.minecraft.player != null) {
-      this.minecraft.player.connection.sendCommand("delhome " + name);
+      this.minecraft.player.connection.sendCommand("delhome " + name.replace(' ', '_'));
       com.openorigins.client.util.OutboxStats.record("menu /delhome " + name);
       com.openorigins.client.util.HomeListFetcher.noteMutation();
     }
