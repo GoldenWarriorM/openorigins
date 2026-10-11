@@ -116,15 +116,15 @@ public final class HotkeyFeatures {
         joinTicks++;
         com.openorigins.client.util.BackgroundMenu.tick();
         if (!badgerFetchDone && joinTicks > 100
-            && !com.openorigins.client.util.BackgroundMenu.isArmed()) {
+            && !com.openorigins.client.util.BackgroundMenu.isArmed()
+            && com.openorigins.client.util.BackgroundMenu.tryArm("streaks")) {
           badgerFetchDone = true;
-          com.openorigins.client.util.BackgroundMenu.tryArm("streaks");
         }
         if (!worldsFetchDone && joinTicks > 120
             && !com.openorigins.client.util.BackgroundMenu.isArmed()
-            && com.openorigins.client.util.OpenWorldCache.worlds().isEmpty()) {
+            && com.openorigins.client.util.OpenWorldCache.worlds().isEmpty()
+            && com.openorigins.client.util.BackgroundMenu.tryArm("navigator worlds")) {
           worldsFetchDone = true;
-          com.openorigins.client.util.BackgroundMenu.tryArm("navigator worlds");
         }
         if (com.openorigins.client.util.BadgerCache.needsDeliveredRefresh()
             && !com.openorigins.client.util.BackgroundMenu.isArmed()

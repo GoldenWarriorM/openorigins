@@ -63,6 +63,13 @@ public abstract class MenuClickMixin {
       Player player, CallbackInfo ci) {
     AbstractContainerMenu menu = (AbstractContainerMenu) (Object) this;
     if (menu.containerId != 0) {
+      // A click in a real server window: user territory. Our own teleport
+      // click inside the background menu must not disarm its own fetch.
+      Minecraft mc = Minecraft.getInstance();
+      if (mc != null && mc.player != null && player == mc.player
+          && !com.openorigins.client.util.BackgroundMenu.isBackground(menu)) {
+        com.openorigins.client.util.BackgroundMenu.noteManualContainer();
+      }
       return;
     }
     ItemStack armor5;
