@@ -2,8 +2,9 @@ package com.openorigins.client.screen;
 
 import com.openorigins.client.HotkeyFeatures;
 import com.openorigins.client.OpenOriginsConfig;
+import java.util.ArrayList;
+import java.util.List;
 import net.minecraft.client.gui.components.Button;
-import net.minecraft.client.gui.components.tabs.MenuTabBar;
 import net.minecraft.client.gui.components.tabs.Tab;
 import net.minecraft.client.gui.components.tabs.TabManager;
 import net.minecraft.client.gui.layouts.HeaderAndFooterLayout;
@@ -17,7 +18,13 @@ public class ConfigScreen extends Screen {
   public HeaderAndFooterLayout layout;
   private final Screen parent;
   private TabManager tabManager;
-  private MenuTabBar tabBar;
+  private ConfigTab[] tabs = new ConfigTab[0];
+  private Tab[] pages = new Tab[0];
+  private final List<SideTabButton> tabButtons = new ArrayList<>();
+  private int activeTab;
+  private static final int PANEL_X = 10;
+  private static final int PANEL_TOP = 30;
+  private static final int ROW_H = 22;
 
   public ConfigScreen(Screen parent) {
     super(Component.translatable("screen.openorigins.config.title"));
@@ -31,28 +38,63 @@ public class ConfigScreen extends Screen {
     return new ConfigTabPage(tab, Component.translatable(tab.getTitleKey()), list, this.layout);
   }
 
+  private int panelWidth() {
+    int w = 0;
+    if (this.minecraft != null) {
+      for (ConfigTab tab : this.tabs) {
+        w = Math.max(w,
+            this.minecraft.font.width(Component.translatable(tab.getTitleKey())));
+      }
+    }
+    return w + 24;
+  }
+
+  private void refreshTabButtons() {
+    for (int i = 0; i < this.tabButtons.size() && i < this.tabs.length; i++) {
+      this.tabButtons.get(i).setSelected(i == this.activeTab);
+    }
+  }
+
+  private void selectTab(int i) {
+    if (i < 0 || i >= this.pages.length) {
+      return;
+    }
+    this.activeTab = i;
+    this.tabManager.setCurrentTab(this.pages[i], true);
+    if (this.pages[i] instanceof ConfigTabPage page) {
+      page.list().scrollToSection(this.tabs[i]);
+    }
+    this.refreshTabButtons();
+  }
+
   @Override
   protected void init() {
     this.layout = new HeaderAndFooterLayout(this);
     this.tabManager = new TabManager(this::addRenderableWidget, this::removeWidget);
-    com.openorigins.client.screen.FeatureList.setSyncEnabled(false);
-    ConfigTab[] tabs = ConfigTab.values();
-    Tab[] pages = new Tab[tabs.length];
-    for (int i = 0; i < tabs.length; i++) {
+    this.tabs = ConfigTab.values();
+    this.pages = new Tab[this.tabs.length];
+    for (int i = 0; i < this.tabs.length; i++) {
       pages[i] = this.pageFor(tabs[i]);
     }
     com.openorigins.client.screen.FeatureList.setSyncEnabled(true);
     com.openorigins.client.screen.FeatureList.setSpyListener(tab -> {
       ConfigTab[] all = ConfigTab.values();
-      for (int i = 0; i < all.length && i < pages.length; i++) {
-        if (all[i] == tab) {
-          this.tabManager.setCurrentTab(pages[i], false);
+      for (int i = 0; i < all.length; i++) {
+        if (all[i] == tab && i != this.activeTab) {
+          this.selectTab(i);
           return;
         }
       }
     });
-    this.tabBar = MenuTabBar.builder(this.tabManager, this.width).addTabs(pages).build();
-    this.addRenderableWidget(this.tabBar);
+    this.tabButtons.clear();
+    int pw = this.panelWidth();
+    for (int i = 0; i < this.tabs.length; i++) {
+      final int idx = i;
+      SideTabButton b = new SideTabButton(PANEL_X, PANEL_TOP + idx * ROW_H, pw, ROW_H - 2,
+          Component.translatable(this.tabs[i].getTitleKey()), () -> this.selectTab(idx));
+      this.tabButtons.add(b);
+      this.addRenderableWidget(b);
+    }
     LinearLayout footer = this.layout.addToFooter(LinearLayout.horizontal().spacing(8));
     footer.addChild(Button.builder(Component.translatable("config.openorigins.reset"),
         button -> {
@@ -68,23 +110,18 @@ public class ConfigScreen extends Screen {
       button.setTabOrderGroup(1);
       this.addRenderableWidget(button);
     });
-    this.tabBar.selectTab(0, false);
-    if (pages.length > 0 && pages[0] instanceof ConfigTabPage first) {
-      first.list().scrollToSection(tabs[0]);
-    }
+    this.selectTab(0);
     this.repositionElements();
   }
 
   protected void repositionElements() {
-    if (this.tabBar != null) {
-      this.tabBar.arrangeElements(this.width);
-      this.tabBar.setY(7);
-      int tabAreaTop = this.tabBar.getRectangle().bottom() + 4;
-      this.tabManager.setTabArea(new ScreenRectangle(0, tabAreaTop, this.width,
-          this.height - this.layout.getFooterHeight() - tabAreaTop));
-      this.layout.setHeaderHeight(tabAreaTop);
-      this.layout.arrangeElements();
-    }
+    int left = PANEL_X + this.panelWidth() + 10;
+    int tabAreaTop = PANEL_TOP;
+    this.tabManager.setTabArea(new ScreenRectangle(left, tabAreaTop,
+        Math.max(100, this.width - left - 10),
+        this.height - this.layout.getFooterHeight() - tabAreaTop));
+    this.layout.setHeaderHeight(tabAreaTop);
+    this.layout.arrangeElements();
   }
 
   @Override
