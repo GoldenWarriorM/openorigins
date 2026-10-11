@@ -1,22 +1,24 @@
 package com.openorigins.client.mixin;
 
-import net.minecraft.client.gui.components.TabButton;
+import net.minecraft.client.gui.components.events.GuiEventListener;
+import net.minecraft.client.gui.components.tabs.TabNavigationBar;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 /**
- * Tab clicks teleport the single settings feed: pre-scroll the target page
- * (shared scroll carries it everywhere) before vanilla switches to it.
+ * Tab selection (click or keyboard focus) teleports the single settings feed:
+ * pre-scrolls the newly shown page to its section (shared scroll carries it
+ * everywhere).
  */
-@Mixin(TabButton.class)
+@Mixin(TabNavigationBar.class)
 public abstract class TabJumpMixin {
-  @Inject(method = "onPress", at = @At("HEAD"))
-  private void openorigins$jumpToSection(CallbackInfo ci) {
+  @Inject(method = "setFocused", at = @At("TAIL"))
+  private void openorigins$jumpToSection(GuiEventListener focused, CallbackInfo ci) {
     try {
-      TabButton self = (TabButton) (Object) this;
-      if (self.tab() instanceof com.openorigins.client.screen.ConfigTabPage page) {
+      if (focused instanceof net.minecraft.client.gui.components.TabButton button
+          && button.tab() instanceof com.openorigins.client.screen.ConfigTabPage page) {
         page.list().scrollToSection(page.tab);
       }
     } catch (Throwable ignored) {
