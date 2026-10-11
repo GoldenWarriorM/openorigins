@@ -115,7 +115,11 @@ public class ConfigScreen extends Screen {
   }
 
   protected void repositionElements() {
-    int left = PANEL_X + this.panelWidth() + 10;
+    int left = PANEL_X + this.panelWidth() + 8;
+    int availW = Math.max(220, this.width - left - 10);
+    int rowW = Math.max(200, Math.min(620, availW - 16));
+    com.openorigins.client.screen.FeatureList.rowLeftOv = left + (availW - rowW) / 2;
+    com.openorigins.client.screen.FeatureList.rowWidthOv = rowW;
     int tabAreaTop = PANEL_TOP;
     this.tabManager.setTabArea(new ScreenRectangle(left, tabAreaTop,
         Math.max(100, this.width - left - 10),

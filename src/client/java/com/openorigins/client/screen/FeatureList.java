@@ -160,9 +160,14 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
     this.addServerRows();
   }
 
+  /** One wheel notch = one row. */
+  @Override
+  protected double scrollRate() {
+    return 24.0;
+  }
+
   /** Jumps the feed to the section a tab points at (real row heights, not estimates). */
-  public void scrollToSection(ConfigTab tab) {
-    try {
+  public void scrollToSection(ConfigTab tab) {    try {
       for (com.openorigins.client.FeatureCategory category : tab.getCategories()) {
         int px = 0;
         for (Entry e : this.children()) {
@@ -227,9 +232,28 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
     this.children().forEach(FeatureList.Entry::refreshEntry);
   }
 
+  /** Explicit row geometry (set by the config screen next to the sidebar). */
+  static volatile int rowLeftOv = -1;
+  static volatile int rowWidthOv = -1;
+
+  @Override
+  public int getRowLeft() {
+    if (rowLeftOv >= 0) {
+      return rowLeftOv;
+    }
+    return super.getRowLeft();
+  }
+
   @Override
   public int getRowWidth() {
-    return 340;
+    if (rowWidthOv > 0) {
+      return rowWidthOv;
+    }
+    try {
+      return Math.max(220, this.getWidth() - 24);
+    } catch (Throwable t) {
+      return 340;
+    }
   }
 
   public abstract static class Entry extends ContainerObjectSelectionList.Entry<Entry> {

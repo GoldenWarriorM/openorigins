@@ -45,7 +45,7 @@ public class SideTabButton extends AbstractWidget {
     net.minecraft.client.gui.Font font = net.minecraft.client.Minecraft.getInstance().font;
     graphics.text(font, this.getMessage().getString(), this.getX() + 10,
         this.getY() + (this.height - 9) / 2,
-        this.selected ? 0xFFFFFFFF : 0xFFAAAAAA);
+        this.selected ? 0xFFFFFFFF : 0xFFCCCCCC);
   }
 
   @Override
