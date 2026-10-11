@@ -25,6 +25,13 @@ public final class MobExtrapolation {
 
   private static final ConcurrentMap<Integer, ArrayDeque<double[]>> HIST =
       new ConcurrentHashMap<>();
+  private static volatile long lastStatMs;
+  private static volatile int appliedCount;
+
+  /** Called from the render mixins when an offset actually shifts a state. */
+  public static void noteApplied() {
+    appliedCount++;
+  }
 
   public static void register() {
     net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents.DISCONNECT
@@ -56,6 +63,33 @@ public final class MobExtrapolation {
               }
             }
           } catch (Throwable ignored) {
+          }
+          long now = System.currentTimeMillis();
+          if (now - lastStatMs > 5000) {
+            lastStatMs = now;
+            try {
+              double best = 0;
+              for (ArrayDeque<double[]> qq : HIST.values()) {
+                if (qq == null || qq.size() < 2) {
+                  continue;
+                }
+                double[] f;
+                double[] l;
+                synchronized (qq) {
+                  f = qq.peekFirst();
+                  l = qq.peekLast();
+                }
+                double dx = l[0] - f[0];
+                double dy = l[1] - f[1];
+                double dz = l[2] - f[2];
+                best = Math.max(best, Math.sqrt(dx * dx + dy * dy + dz * dz));
+              }
+              com.openorigins.client.util.DebugLog.info(
+                  "[extrap] tracked={} bestWindowMove={} applied={}", HIST.size(),
+                  String.format(java.util.Locale.ROOT, "%.2f", best), appliedCount);
+            } catch (Throwable ignored) {
+            }
+            appliedCount = 0;
           }
         });
   }

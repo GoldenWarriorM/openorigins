@@ -32,6 +32,7 @@ public abstract class DisplayExtrapolationMixin {
     if (o == null) {
       return;
     }
+    com.openorigins.client.util.MobExtrapolation.noteApplied();
     state.x += o[0];
     state.y += o[1];
     state.z += o[2];
