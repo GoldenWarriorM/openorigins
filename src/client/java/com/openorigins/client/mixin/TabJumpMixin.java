@@ -14,7 +14,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  */
 @Mixin(TabNavigationBar.class)
 public abstract class TabJumpMixin {
-  @Inject(method = "setFocused", at = @At("TAIL"))
+  @Inject(method = "setFocused(Lnet/minecraft/client/gui/components/events/GuiEventListener;)V",
+      at = @At("TAIL"))
   private void openorigins$jumpToSection(GuiEventListener focused, CallbackInfo ci) {
     try {
       if (focused instanceof net.minecraft.client.gui.components.TabButton button
