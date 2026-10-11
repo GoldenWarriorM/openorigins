@@ -17,4 +17,31 @@ public abstract class ChatConfirmMixin {
       HomeCreationConfirm.onChat(packet.content().getString());
     }
   }
+
+  /**
+   * Swallows vanilla "unknown command" errors caused by our own background
+   * fetches (boss rooms etc. where the commands don't exist). Never touches
+   * errors after manual input.
+   */
+  @Inject(method = "handleSystemChat", at = @At("HEAD"), cancellable = true)
+  private void openorigins$suppressOwnCommandError(ClientboundSystemChatPacket packet,
+      CallbackInfo ci) {
+    if (packet.overlay()) {
+      return;
+    }
+    String text;
+    try {
+      text = packet.content().getString().toLowerCase(java.util.Locale.ROOT);
+    } catch (Throwable t) {
+      return;
+    }
+    if (!(text.contains("unknown or incomplete command") || text.contains("unknown command"))) {
+      return;
+    }
+    if (!com.openorigins.client.util.BackgroundMenu.isServerErrorOurs()) {
+      return;
+    }
+    com.openorigins.client.util.BackgroundMenu.noteCommandError();
+    ci.cancel();
+  }
 }

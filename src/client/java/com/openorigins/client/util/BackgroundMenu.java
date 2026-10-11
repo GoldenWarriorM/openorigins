@@ -72,6 +72,50 @@ public final class BackgroundMenu {
     lastForeignCmdMs = System.currentTimeMillis();
   }
 
+  private static volatile String deadZoneLocation;
+  private static volatile long deadZoneUntil;
+  private static final long DEAD_ZONE_MS = 300000;
+
+  /**
+   * The server answered a recent send of ours with vanilla "unknown command"
+   * (boss rooms, intermission, server finder...). Kills the fetch and marks
+   * the location command-dead for a while, so we stop spamming failing
+   * commands there.
+   */
+  public static synchronized void noteCommandError() {
+    if (armed) {
+      com.openorigins.client.util.DebugLog.info("[bgmenu] command failed in this area, disarming '{}'",
+          pendingCommand);
+      disarm();
+    }
+    try {
+      String loc = com.openorigins.client.server.OriginStateTracker.INSTANCE.getLocation();
+      deadZoneLocation = loc;
+      deadZoneUntil = System.currentTimeMillis() + DEAD_ZONE_MS;
+      com.openorigins.client.util.DebugLog.info("[bgmenu] dead zone '{}' for {}s", loc,
+          DEAD_ZONE_MS / 1000);
+    } catch (Throwable ignored) {
+    }
+  }
+
+  /** True when a vanilla command error right now is attributable to our send. */
+  public static boolean isServerErrorOurs() {
+    long now = System.currentTimeMillis();
+    return now - lastOwnSendMs < 3000 && now - lastForeignCmdMs > 3000;
+  }
+
+  private static boolean inDeadZone() {
+    try {
+      if (System.currentTimeMillis() > deadZoneUntil || deadZoneLocation == null) {
+        return false;
+      }
+      String loc = com.openorigins.client.server.OriginStateTracker.INSTANCE.getLocation();
+      return deadZoneLocation.equals(loc);
+    } catch (Throwable t) {
+      return false;
+    }
+  }
+
   /**
    * The user touched a real container (a shown server window or a click in
    * one). Background fetches must never compete with that: disarm in flight,
@@ -111,6 +155,14 @@ public final class BackgroundMenu {
         lastTryArmLogMs = now;
         com.openorigins.client.util.DebugLog.info("[bgmenu] tryArm '{}' refused: manual container {}s ago",
             command, (now - lastManualContainerMs) / 1000);
+      }
+      return false;
+    }
+    if (inDeadZone()) {
+      if (now - lastTryArmLogMs > 15000) {
+        lastTryArmLogMs = now;
+        com.openorigins.client.util.DebugLog.info("[bgmenu] tryArm '{}' refused: dead zone '{}'",
+            command, deadZoneLocation);
       }
       return false;
     }
