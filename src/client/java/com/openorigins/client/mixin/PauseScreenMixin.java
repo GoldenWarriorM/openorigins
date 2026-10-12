@@ -28,6 +28,12 @@ public abstract class PauseScreenMixin extends Screen {
 
   @Inject(method = "init", at = @At("TAIL"))
   private void openorigins$addConfigIcon(CallbackInfo ci) {
+    try {
+      if (!com.openorigins.client.OpenOriginsConfig.getInstance().isPauseConfigButton()) {
+        return;
+      }
+    } catch (Throwable ignored) {
+    }
     int anchorRight = -1;
     int anchorY = -1;
     for (GuiEventListener child : this.children()) {

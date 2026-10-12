@@ -310,6 +310,18 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
         }
       }
       if (category == com.openorigins.client.FeatureCategory.UI) {
+        out.add(new ToggleRow(this, "config.openorigins.title_join_button",
+            "config.openorigins.title_join_button_hint",
+            () -> OpenOriginsConfig.getInstance().isTitleJoinButton(),
+            () -> OpenOriginsConfig.getInstance().setTitleJoinButton(
+                !OpenOriginsConfig.getInstance().isTitleJoinButton()),
+            true, v -> OpenOriginsConfig.getInstance().setTitleJoinButton(v)));
+        out.add(new ToggleRow(this, "config.openorigins.pause_config_button",
+            "config.openorigins.pause_config_button_hint",
+            () -> OpenOriginsConfig.getInstance().isPauseConfigButton(),
+            () -> OpenOriginsConfig.getInstance().setPauseConfigButton(
+                !OpenOriginsConfig.getInstance().isPauseConfigButton()),
+            true, v -> OpenOriginsConfig.getInstance().setPauseConfigButton(v)));
         out.add(new StepperRow(this, "config.openorigins.max_slots",
             "config.openorigins.capacity_hint", 0, 15,
             () -> OpenOriginsConfig.getInstance().getHomeCapacity(),

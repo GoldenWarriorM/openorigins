@@ -33,6 +33,8 @@ public final class OpenOriginsConfig {
   private int scanKeyType = 0;
   private int scanKeyValue = -1;
   private boolean useHandshake = true;
+  private boolean titleJoinButton = true;
+  private boolean pauseConfigButton = true;
   private final java.util.Set<String> servers =
       new java.util.LinkedHashSet<>(DEFAULT_SERVERS);
 
@@ -125,6 +127,14 @@ public final class OpenOriginsConfig {
       if (bypass != null) {
         useHandshake = Boolean.parseBoolean(bypass.trim());
       }
+      String joinBtn = props.getProperty("ui.title.join.button");
+      if (joinBtn != null) {
+        titleJoinButton = Boolean.parseBoolean(joinBtn.trim());
+      }
+      String cfgBtn = props.getProperty("ui.pause.config.button");
+      if (cfgBtn != null) {
+        pauseConfigButton = Boolean.parseBoolean(cfgBtn.trim());
+      }
     } catch (IOException ignored) {
     }
   }
@@ -143,6 +153,8 @@ public final class OpenOriginsConfig {
     props.setProperty("scan.key", scanKeyType + ":" + scanKeyValue);
     props.setProperty("servers", getServersText());
     props.setProperty("use.handshake", Boolean.toString(useHandshake));
+    props.setProperty("ui.title.join.button", Boolean.toString(titleJoinButton));
+    props.setProperty("ui.pause.config.button", Boolean.toString(pauseConfigButton));
     try {
       Files.createDirectories(configPath().getParent());
       try (OutputStream out = Files.newOutputStream(configPath())) {
@@ -185,6 +197,24 @@ public final class OpenOriginsConfig {
     servers.add(norm);
     save();
     return true;
+  }
+
+  public synchronized boolean isTitleJoinButton() {
+    return titleJoinButton;
+  }
+
+  public synchronized void setTitleJoinButton(boolean v) {
+    titleJoinButton = v;
+    save();
+  }
+
+  public synchronized boolean isPauseConfigButton() {
+    return pauseConfigButton;
+  }
+
+  public synchronized void setPauseConfigButton(boolean v) {
+    pauseConfigButton = v;
+    save();
   }
 
   public synchronized boolean isUseHandshake() {
@@ -273,6 +303,8 @@ public final class OpenOriginsConfig {
         && scanKeyType == 0
         && scanKeyValue == -1
         && useHandshake
+        && titleJoinButton
+        && pauseConfigButton
         && servers.equals(new java.util.LinkedHashSet<>(DEFAULT_SERVERS));
   }
 
@@ -319,6 +351,8 @@ public final class OpenOriginsConfig {
     servers.clear();
     servers.addAll(DEFAULT_SERVERS);
     useHandshake = true;
+    titleJoinButton = true;
+    pauseConfigButton = true;
     save();
   }
 }

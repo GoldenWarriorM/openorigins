@@ -38,6 +38,12 @@ public abstract class TitleScreenMixin extends Screen {
 
   @Inject(method = "init", at = @At("TAIL"))
   private void openorigins$addJoinButton(CallbackInfo ci) {
+    try {
+      if (!com.openorigins.client.OpenOriginsConfig.getInstance().isTitleJoinButton()) {
+        return;
+      }
+    } catch (Throwable ignored) {
+    }
     int anchorRight = -1;
     int anchorY = -1;
     for (GuiEventListener child : this.children()) {
