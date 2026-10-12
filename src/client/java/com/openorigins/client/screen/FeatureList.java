@@ -632,14 +632,15 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
       this.resetButton.setY(this.getContentY() + 2);
       this.toggleButton.setX(this.resetButton.getX() - 4 - this.toggleButton.getWidth());
       this.toggleButton.setY(this.getContentY() + 2);
-      this.toggleButton.extractRenderState(graphics, mouseX, mouseY, partialTick);
-      this.resetButton.extractRenderState(graphics, mouseX, mouseY, partialTick);
       int labelX = this.getContentX();
       if (this.expandButton != null) {
-        this.expandButton.setX(labelX);
+        this.expandButton.setX(this.toggleButton.getX() - 4 - this.expandButton.getWidth());
         this.expandButton.setY(this.getContentY() + 2);
+      }
+      this.toggleButton.extractRenderState(graphics, mouseX, mouseY, partialTick);
+      this.resetButton.extractRenderState(graphics, mouseX, mouseY, partialTick);
+      if (this.expandButton != null) {
         this.expandButton.extractRenderState(graphics, mouseX, mouseY, partialTick);
-        labelX += 20;
       }
       net.minecraft.client.gui.Font font = net.minecraft.client.Minecraft.getInstance().font;
       graphics.text(font, Component.literal(this.feature.getName()), labelX,
@@ -752,14 +753,15 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
       this.resetButton.setY(this.getContentY() + 2);
       this.button.setX(this.resetButton.getX() - 4 - this.button.getWidth());
       this.button.setY(this.getContentY() + 2);
-      this.button.extractRenderState(graphics, mouseX, mouseY, partialTick);
-      this.resetButton.extractRenderState(graphics, mouseX, mouseY, partialTick);
       int labelX = this.getContentX();
       if (this.expandButton != null) {
-        this.expandButton.setX(labelX);
+        this.expandButton.setX(this.button.getX() - 4 - this.expandButton.getWidth());
         this.expandButton.setY(this.getContentY() + 2);
+      }
+      this.button.extractRenderState(graphics, mouseX, mouseY, partialTick);
+      this.resetButton.extractRenderState(graphics, mouseX, mouseY, partialTick);
+      if (this.expandButton != null) {
         this.expandButton.extractRenderState(graphics, mouseX, mouseY, partialTick);
-        labelX += 20;
       }
       net.minecraft.client.gui.Font font = net.minecraft.client.Minecraft.getInstance().font;
       graphics.text(font, Component.translatable(this.labelKey), labelX,
