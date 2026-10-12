@@ -499,6 +499,28 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
     public boolean isCollapsed() {
       return this.collapseGroup != null && this.animProgress <= 0.0;
     }
+
+    /** Extra clickable gutter left of the row (group +/- glyph). */
+    public int gutterWidth() {
+      return 0;
+    }
+
+    @Override
+    public boolean isMouseOver(double mouseX, double mouseY) {
+      if (super.isMouseOver(mouseX, mouseY)) {
+        return true;
+      }
+      int gutter = gutterWidth();
+      if (gutter <= 0) {
+        return false;
+      }
+      try {
+        return mouseX >= this.getX() - gutter - 4 && mouseX < this.getX()
+            && mouseY >= this.getY() && mouseY < this.getY() + this.getHeight();
+      } catch (Throwable t) {
+        return false;
+      }
+    }
   }
 
   public static class CategoryEntry extends Entry {    private final FeatureList list;
@@ -609,6 +631,11 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
       return "feat:" + this.feature.name();
     }
 
+    @Override
+    public int gutterWidth() {
+      return this.group != null ? 24 : 0;
+    }
+
     private static Component featureTooltip(OriginFeature feature) {
       Component desc = Component.translatable(feature.getDescriptionKey());
       if (feature == OriginFeature.HELMET_COSMETIC_SLOT
@@ -634,7 +661,12 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
       this.toggleButton.setY(this.getContentY() + 2);
       int labelX = this.getContentX();
       if (this.expandButton != null) {
-        this.expandButton.setX(Math.max(this.getX(), labelX - 20));
+        int gx = labelX - 20;
+        try {
+          gx = Math.max(gx, this.list.getX() + 2);
+        } catch (Throwable ignored) {
+        }
+        this.expandButton.setX(gx);
         this.expandButton.setY(this.getContentY() + 2);
         this.expandButton.extractRenderState(graphics, mouseX, mouseY, partialTick);
       }
@@ -745,6 +777,11 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
     }
 
     @Override
+    public int gutterWidth() {
+      return this.group != null ? 24 : 0;
+    }
+
+    @Override
     public void extractContent(GuiGraphicsExtractor graphics, int mouseX, int mouseY, boolean hovered,
         float partialTick) {
       this.resetButton.setX(this.list.getRowRight() - this.resetButton.getWidth());
@@ -753,7 +790,12 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
       this.button.setY(this.getContentY() + 2);
       int labelX = this.getContentX();
       if (this.expandButton != null) {
-        this.expandButton.setX(Math.max(this.getX(), labelX - 20));
+        int gx = labelX - 20;
+        try {
+          gx = Math.max(gx, this.list.getX() + 2);
+        } catch (Throwable ignored) {
+        }
+        this.expandButton.setX(gx);
         this.expandButton.setY(this.getContentY() + 2);
         this.expandButton.extractRenderState(graphics, mouseX, mouseY, partialTick);
       }
