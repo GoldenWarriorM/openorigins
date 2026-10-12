@@ -55,7 +55,7 @@ public abstract class TitleScreenMixin extends Screen {
         btn -> QuickJoin.join((TitleScreen) (Object) this),
         true)
         .width(20)
-        .sprite(new WidgetSprites(JOIN_ICON, JOIN_ICON_HOVERED, JOIN_ICON), 20, 20)
+        .sprite(new WidgetSprites(JOIN_ICON, JOIN_ICON_HOVERED, JOIN_ICON), 14, 15)
         .tooltip(Component.translatable("button.openorigins.quickjoin_hint"))
         .build();
     if (anchorRight >= 0) {
