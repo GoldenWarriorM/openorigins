@@ -324,7 +324,7 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
         config.setEnabled(feature, feature.getDefaultValue());
         list.refreshEntries();
       }, true)
-          .width(20).sprite(RESET_ICON, 14, 14).withTootip().build();
+          .width(20).sprite(RESET_ICON, 9, 9).withTootip().build();
       this.refreshEntry();
     }
 
@@ -415,7 +415,7 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
         this.set.accept(this.defaultValue);
         this.list.refreshEntries();
       }, true)
-          .width(20).sprite(RESET_ICON, 14, 14).withTootip().build();
+          .width(20).sprite(RESET_ICON, 9, 9).withTootip().build();
       this.refreshEntry();
     }
 
@@ -494,7 +494,7 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
         }
         this.list.refreshEntries();
       }, true)
-          .width(20).sprite(RESET_ICON, 14, 14).withTootip().build();
+          .width(20).sprite(RESET_ICON, 9, 9).withTootip().build();
       this.refreshEntry();
     }
 
@@ -588,7 +588,7 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
         this.set.accept(this.defaultValue);
         this.list.refreshEntries();
       }, true)
-          .width(20).sprite(RESET_ICON, 14, 14).withTootip().build();
+          .width(20).sprite(RESET_ICON, 9, 9).withTootip().build();
     }
 
     public void refreshEntry() {
