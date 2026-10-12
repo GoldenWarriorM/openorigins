@@ -634,14 +634,12 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
       this.toggleButton.setY(this.getContentY() + 2);
       int labelX = this.getContentX();
       if (this.expandButton != null) {
-        this.expandButton.setX(this.toggleButton.getX() - 4 - this.expandButton.getWidth());
+        this.expandButton.setX(Math.max(this.getX(), labelX - 20));
         this.expandButton.setY(this.getContentY() + 2);
+        this.expandButton.extractRenderState(graphics, mouseX, mouseY, partialTick);
       }
       this.toggleButton.extractRenderState(graphics, mouseX, mouseY, partialTick);
       this.resetButton.extractRenderState(graphics, mouseX, mouseY, partialTick);
-      if (this.expandButton != null) {
-        this.expandButton.extractRenderState(graphics, mouseX, mouseY, partialTick);
-      }
       net.minecraft.client.gui.Font font = net.minecraft.client.Minecraft.getInstance().font;
       graphics.text(font, Component.literal(this.feature.getName()), labelX,
           this.getContentYMiddle() - 4, 0xFFFFFFFF);
@@ -755,14 +753,12 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
       this.button.setY(this.getContentY() + 2);
       int labelX = this.getContentX();
       if (this.expandButton != null) {
-        this.expandButton.setX(this.button.getX() - 4 - this.expandButton.getWidth());
+        this.expandButton.setX(Math.max(this.getX(), labelX - 20));
         this.expandButton.setY(this.getContentY() + 2);
+        this.expandButton.extractRenderState(graphics, mouseX, mouseY, partialTick);
       }
       this.button.extractRenderState(graphics, mouseX, mouseY, partialTick);
       this.resetButton.extractRenderState(graphics, mouseX, mouseY, partialTick);
-      if (this.expandButton != null) {
-        this.expandButton.extractRenderState(graphics, mouseX, mouseY, partialTick);
-      }
       net.minecraft.client.gui.Font font = net.minecraft.client.Minecraft.getInstance().font;
       graphics.text(font, Component.translatable(this.labelKey), labelX,
           this.getContentYMiddle() - 4, 0xFFFFFFFF);
