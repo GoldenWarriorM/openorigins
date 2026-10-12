@@ -25,9 +25,9 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 @Mixin(TitleScreen.class)
 public abstract class TitleScreenMixin extends Screen {
   private static final Identifier JOIN_ICON =
-      Identifier.withDefaultNamespace("server_list/join");
+      Identifier.fromNamespaceAndPath("openorigins", "join_button");
   private static final Identifier JOIN_ICON_HOVERED =
-      Identifier.withDefaultNamespace("server_list/join_highlighted");
+      Identifier.fromNamespaceAndPath("openorigins", "join_button_focused");
 
   @Unique
   private SpriteIconButton openorigins$joinButton;
