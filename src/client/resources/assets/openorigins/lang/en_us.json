@@ -73,7 +73,7 @@
   "screen.openorigins.config.title": "OpenOrigin config",
   "button.openorigins.config": "OpenOrigins",
   "button.openorigins.quickjoin": "Join Origin Realms",
-  "button.openorigins.quickjoin_hint": "Left-click: join Origin Realms\nRight-click: settings",
+  "button.openorigins.quickjoin_hint": "Left-click: join Origin Realms\nRight-click: open config",
   "label.openorigins.experimental": "Experimental",
   "config.openorigins.reconnect_note": "Will apply on reconnect",
   "toast.openorigins.outdated": "Your OpenOrigins is too old! Please update to use server features.",
