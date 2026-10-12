@@ -27,6 +27,7 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
   private boolean rebuildPending = false;
   private static final double WHEEL_STEP = 24.0;
   private static final double SMOOTH_SPEED = 12.0;
+  private static final double GROUP_ANIM_SPEED = 3.2;
   private static final java.util.Map<String, Boolean> EXPANDED = new java.util.HashMap<>();
 
   private static boolean isExpanded(String group) {
@@ -143,6 +144,12 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
   @Override
   public void extractWidgetRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY,
       float partialTick) {
+    long now = System.nanoTime();
+    if (this.lastFrameNs == 0) {
+      this.lastFrameNs = now;
+    }
+    double dt = Math.min(0.05, Math.max(0, (now - this.lastFrameNs) / 1_000_000_000.0));
+    this.lastFrameNs = now;
     if (this.rebuildPending) {
       this.rebuildPending = false;
       try {
@@ -150,18 +157,79 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
       } catch (Throwable ignored) {
       }
     }
-    this.advanceSmoothScroll();
+    this.advanceGroupAnims(dt);
+    try {
+      double max = this.maxScrollAmount();
+      if (this.scrollAmount() > max) {
+        this.setScrollAmount(max);
+      }
+    } catch (Throwable ignored) {
+    }
+    this.advanceSmoothScroll(dt);
     super.extractWidgetRenderState(graphics, mouseX, mouseY, partialTick);
   }
 
-  /** Framerate-independent glide toward the wheel target (softer than Cloth). */
-  private void advanceSmoothScroll() {
-    long now = System.nanoTime();
-    if (this.lastFrameNs == 0) {
-      this.lastFrameNs = now;
+  private static int animHeight(double p) {
+    double e = p <= 0 ? 0 : p >= 1 ? 1
+        : (p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2);
+    return (int) Math.round(ROW_H * e);
+  }
+
+  private double groupOpenTarget(String group) {
+    OpenOriginsConfig cfg = OpenOriginsConfig.getInstance();
+    return switch (group) {
+      case "badger" ->
+        cfg.isEnabled(OriginFeature.BADGER_TASK_HUD) && isExpanded("badger") ? 1 : 0;
+      case "extrap" ->
+        cfg.isEnabled(OriginFeature.ENTITY_EXTRAPOLATION) && isExpanded("extrap") ? 1 : 0;
+      case "servers" -> !cfg.isUseHandshake() && isExpanded("servers") ? 1 : 0;
+      default -> 1;
+    };
+  }
+
+  /** Snaps every collapsible row to its target (open/rebuild/tab switch). */
+  public void snapGroups() {
+    try {
+      for (Entry e : this.children()) {
+        if (e.collapseGroup() != null) {
+          double t = groupOpenTarget(e.collapseGroup());
+          e.animProgress = t;
+          try {
+            e.setHeight(animHeight(t));
+          } catch (Throwable ignored) {
+          }
+        }
+      }
+    } catch (Throwable ignored) {
     }
-    double dt = Math.min(0.05, Math.max(0, (now - this.lastFrameNs) / 1_000_000_000.0));
-    this.lastFrameNs = now;
+  }
+
+  private void advanceGroupAnims(double dt) {
+    try {
+      for (Entry e : this.children()) {
+        String g = e.collapseGroup();
+        if (g == null) {
+          continue;
+        }
+        double target = groupOpenTarget(g);
+        double cur = e.animProgress;
+        if (cur == target) {
+          continue;
+        }
+        double next = cur < target ? Math.min(target, cur + dt * GROUP_ANIM_SPEED)
+            : Math.max(target, cur - dt * GROUP_ANIM_SPEED);
+        e.animProgress = next;
+        try {
+          e.setHeight(animHeight(next));
+        } catch (Throwable ignored) {
+        }
+      }
+    } catch (Throwable ignored) {
+    }
+  }
+
+  /** Framerate-independent glide toward the wheel target (softer than Cloth). */
+  private void advanceSmoothScroll(double dt) {
     double cur;
     try {
       cur = this.scrollAmount();
@@ -210,6 +278,7 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
     for (Entry e : buildFeed()) {
       this.addEntry(e);
     }
+    this.snapGroups();
   }
 
   private static String groupFor(OriginFeature feature) {
@@ -239,24 +308,24 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
             continue;
           }
           out.add(new FeatureEntry(this, feature, groupFor(feature)));
-          if (feature == OriginFeature.BADGER_TASK_HUD
-              && OpenOriginsConfig.getInstance().isEnabled(feature)
-              && isExpanded("badger")) {
-            out.add(new CycleRow(this, "config.openorigins.position",
+          if (feature == OriginFeature.BADGER_TASK_HUD) {
+            CycleRow posRow = new CycleRow(this, "config.openorigins.position",
                 "config.openorigins.hud_position_hint", FeatureList::cornerName,
                 FeatureList::cycleCorner, true,
                 () -> OpenOriginsConfig.getInstance().setBadgerHudCorner(
                     OpenOriginsConfig.HudCorner.TOP_LEFT),
                 () -> OpenOriginsConfig.getInstance().getBadgerHudCorner()
-                    == OpenOriginsConfig.HudCorner.TOP_LEFT));
+                    == OpenOriginsConfig.HudCorner.TOP_LEFT);
+            posRow.setCollapseGroup("badger");
+            out.add(posRow);
           }
-          if (feature == OriginFeature.ENTITY_EXTRAPOLATION
-              && OpenOriginsConfig.getInstance().isEnabled(feature)
-              && isExpanded("extrap")) {
-            out.add(new StepperRow(this, "config.openorigins.extrap_ms",
+          if (feature == OriginFeature.ENTITY_EXTRAPOLATION) {
+            StepperRow extrapRow = new StepperRow(this, "config.openorigins.extrap_ms",
                 "config.openorigins.extrap_ms_hint", 0, 1000,
                 () -> OpenOriginsConfig.getInstance().getExtrapMs(),
-                v -> OpenOriginsConfig.getInstance().setExtrapMs(v), 150, true));
+                v -> OpenOriginsConfig.getInstance().setExtrapMs(v), 150, true);
+            extrapRow.setCollapseGroup("extrap");
+            out.add(extrapRow);
           }
         }
       }
@@ -369,6 +438,7 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
     } catch (Throwable t) {
       return;
     }
+    this.snapGroups();
     try {
       if (anchor != null) {
         double acc = 0;
@@ -398,19 +468,17 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
         () -> {
           OpenOriginsConfig.getInstance().setUseHandshake(
               !OpenOriginsConfig.getInstance().isUseHandshake());
-          this.requestRebuild();
+          this.refreshEntries();
         },
         true,
         v -> {
           OpenOriginsConfig.getInstance().setUseHandshake(v);
-          this.requestRebuild();
+          this.refreshEntries();
         }, "servers", () -> !OpenOriginsConfig.getInstance().isUseHandshake()));
-    if (isExpanded("servers") && !OpenOriginsConfig.getInstance().isUseHandshake()) {
-      for (String s : OpenOriginsConfig.getInstance().getServers()) {
-        out.add(new ServerRow(this, s));
-      }
-      out.add(new ServerAddRow(this));
+    for (String s : OpenOriginsConfig.getInstance().getServers()) {
+      out.add(new ServerRow(this, s));
     }
+    out.add(new ServerAddRow(this));
   }
 
   private static String cornerName() {
@@ -428,11 +496,27 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
   }
 
   public abstract static class Entry extends ContainerObjectSelectionList.Entry<Entry> {
+    private String collapseGroup;
+    private double animProgress = 1.0;
+
     public abstract void refreshEntry();
 
     /** Stable id used to anchor the scroll across feed rebuilds. */
     public String key() {
       return "entry";
+    }
+
+    /** Dependent-subgroup id, or null for static rows. */
+    public String collapseGroup() {
+      return this.collapseGroup;
+    }
+
+    public void setCollapseGroup(String group) {
+      this.collapseGroup = group;
+    }
+
+    public boolean isCollapsed() {
+      return this.collapseGroup != null && this.animProgress <= 0.0;
     }
   }
 
@@ -488,7 +572,7 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
     private final String group;
     private final Button toggleButton;
     private final Button resetButton;
-    private final Button expandButton;
+    private final GlyphToggleButton expandButton;
 
     public FeatureEntry(FeatureList list, OriginFeature feature, String group) {
       this.list = list;
@@ -502,7 +586,7 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
           ReconnectToast.show(mc.gui.toastManager(), Component.literal("OpenOrigins"),
               Component.translatable("config.openorigins.reconnect_note"));
         }
-        list.requestRebuild();
+        list.refreshEntries();
       }).bounds(0, 0, 100, 20)
           .tooltip(net.minecraft.client.gui.components.Tooltip.create(
               featureTooltip(feature)))
@@ -511,14 +595,14 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
           Component.translatable("config.openorigins.reset_row"), button -> {
         OpenOriginsConfig config = OpenOriginsConfig.getInstance();
         config.setEnabled(feature, feature.getDefaultValue());
-        list.requestRebuild();
+        list.refreshEntries();
       }, true)
           .width(20).sprite(RESET_ICON, 8, 8).withTootip().build();
       if (group != null) {
-        this.expandButton = Button.builder(Component.literal("+"), b -> {
+        this.expandButton = new GlyphToggleButton(() -> {
           EXPANDED.put(group, !isExpanded(group));
-          list.requestRebuild();
-        }).bounds(0, 0, 20, 20).build();
+          list.refreshEntries();
+        }, Component.translatable("config.openorigins.expand"));
       } else {
         this.expandButton = null;
       }
@@ -574,7 +658,7 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
         this.expandButton.setX(labelX);
         this.expandButton.setY(this.getContentY() + 2);
         this.expandButton.extractRenderState(graphics, mouseX, mouseY, partialTick);
-        labelX += 24;
+        labelX += 20;
       }
       net.minecraft.client.gui.Font font = net.minecraft.client.Minecraft.getInstance().font;
       graphics.text(font, Component.literal(this.feature.getName()), labelX,
@@ -611,7 +695,7 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
     private final java.util.function.BooleanSupplier groupActive;
     private final Button button;
     private final Button resetButton;
-    private final Button expandButton;
+    private final GlyphToggleButton expandButton;
 
     public ToggleRow(FeatureList list, String labelKey, String tooltipKey,
         java.util.function.BooleanSupplier get, Runnable onPress) {
@@ -651,10 +735,10 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
       }, true)
           .width(20).sprite(RESET_ICON, 8, 8).withTootip().build();
       if (group != null) {
-        this.expandButton = Button.builder(Component.literal("+"), b -> {
+        this.expandButton = new GlyphToggleButton(() -> {
           EXPANDED.put(group, !isExpanded(group));
-          list.requestRebuild();
-        }).bounds(0, 0, 20, 20).build();
+          list.refreshEntries();
+        }, Component.translatable("config.openorigins.expand"));
       } else {
         this.expandButton = null;
       }
@@ -694,7 +778,7 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
         this.expandButton.setX(labelX);
         this.expandButton.setY(this.getContentY() + 2);
         this.expandButton.extractRenderState(graphics, mouseX, mouseY, partialTick);
-        labelX += 24;
+        labelX += 20;
       }
       net.minecraft.client.gui.Font font = net.minecraft.client.Minecraft.getInstance().font;
       graphics.text(font, Component.translatable(this.labelKey), labelX,
@@ -778,6 +862,9 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
     @Override
     public void extractContent(GuiGraphicsExtractor graphics, int mouseX, int mouseY, boolean hovered,
         float partialTick) {
+      if (this.isCollapsed()) {
+        return;
+      }
       if (this.reset != null) {
         this.resetButton.setX(this.list.getRowRight() - this.resetButton.getWidth());
         this.resetButton.setY(this.getContentY() + 2);
@@ -799,6 +886,9 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
 
     @Override
     public List<? extends GuiEventListener> children() {
+      if (this.isCollapsed()) {
+        return List.of();
+      }
       if (this.reset != null) {
         return List.of(this.button, this.resetButton);
       }
@@ -807,6 +897,9 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
 
     @Override
     public List<? extends NarratableEntry> narratables() {
+      if (this.isCollapsed()) {
+        return List.of();
+      }
       if (this.reset != null) {
         return List.of(this.button, this.resetButton);
       }
@@ -881,6 +974,9 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
     @Override
     public void extractContent(GuiGraphicsExtractor graphics, int mouseX, int mouseY, boolean hovered,
         float partialTick) {
+      if (this.isCollapsed()) {
+        return;
+      }
       int right = this.list.getRowRight();
       net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
       if (this.field == null && mc != null) {
@@ -946,6 +1042,9 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
 
     @Override
     public List<? extends GuiEventListener> children() {
+      if (this.isCollapsed()) {
+        return List.of();
+      }
       if (this.field != null) {
         return List.of(this.minusButton, this.field, this.plusButton, this.resetButton);
       }
@@ -954,6 +1053,9 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
 
     @Override
     public List<? extends NarratableEntry> narratables() {
+      if (this.isCollapsed()) {
+        return List.of();
+      }
       if (this.field != null) {
         return List.of(this.minusButton, this.field, this.plusButton, this.resetButton);
       }
@@ -1014,6 +1116,7 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
     public ServerRow(FeatureList list, String address) {
       this.list = list;
       this.address = address;
+      this.setCollapseGroup("servers");
       this.removeButton = Button.builder(
           Component.literal("-").withStyle(net.minecraft.ChatFormatting.RED), b -> {
             OpenOriginsConfig.getInstance().removeServer(this.address);
@@ -1032,6 +1135,9 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
     @Override
     public void extractContent(GuiGraphicsExtractor graphics, int mouseX, int mouseY, boolean hovered,
         float partialTick) {
+      if (this.isCollapsed()) {
+        return;
+      }
       int right = this.list.getRowRight();
       this.removeButton.setX(right - 20);
       this.removeButton.setY(this.getContentY() + 2);
@@ -1043,11 +1149,17 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
 
     @Override
     public List<? extends GuiEventListener> children() {
+      if (this.isCollapsed()) {
+        return List.of();
+      }
       return List.of(this.removeButton);
     }
 
     @Override
     public List<? extends NarratableEntry> narratables() {
+      if (this.isCollapsed()) {
+        return List.of();
+      }
       return List.of(this.removeButton);
     }
   }
@@ -1060,6 +1172,7 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
 
     public ServerAddRow(FeatureList list) {
       this.list = list;
+      this.setCollapseGroup("servers");
       this.addButton = Button.builder(
           Component.literal("+").withStyle(net.minecraft.ChatFormatting.GREEN), b -> {
             if (this.field != null
@@ -1081,6 +1194,9 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
     @Override
     public void extractContent(GuiGraphicsExtractor graphics, int mouseX, int mouseY, boolean hovered,
         float partialTick) {
+      if (this.isCollapsed()) {
+        return;
+      }
       int right = this.list.getRowRight();
       net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
       if (this.field == null && mc != null) {
@@ -1105,6 +1221,9 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
 
     @Override
     public List<? extends GuiEventListener> children() {
+      if (this.isCollapsed()) {
+        return List.of();
+      }
       if (this.field != null) {
         return List.of(this.field, this.addButton);
       }
@@ -1113,6 +1232,9 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
 
     @Override
     public List<? extends NarratableEntry> narratables() {
+      if (this.isCollapsed()) {
+        return List.of();
+      }
       if (this.field != null) {
         return List.of(this.field, this.addButton);
       }
