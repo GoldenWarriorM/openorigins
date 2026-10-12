@@ -200,6 +200,12 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
       }
     } catch (Throwable ignored) {
     }
+    try {
+      // Heights changed: force Y re-layout now, otherwise rows below keep
+      // stale positions until the next scroll event.
+      this.refreshScrollAmount();
+    } catch (Throwable ignored) {
+    }
   }
 
   /** Framerate-independent glide toward the wheel target (softer than Cloth). */
