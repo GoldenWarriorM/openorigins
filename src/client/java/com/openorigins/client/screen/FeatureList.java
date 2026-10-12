@@ -551,9 +551,6 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
               net.minecraft.ChatFormatting.BOLD);
       int w = font.width(name);
       int rowW = this.list.getRowRight() - this.getContentX();
-      int rowTop = this.getContentYMiddle() - 12;
-      graphics.fill(this.getContentX(), rowTop, this.list.getRowRight(), rowTop + 24,
-          0x40000000);
       graphics.text(font, name, this.getContentX() + (rowW - w) / 2,
           this.getContentYMiddle() - 4, 0xFFFFFFFF);
     }
