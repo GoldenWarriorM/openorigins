@@ -8,6 +8,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.SpriteIconButton;
+import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.resources.Identifier;
 import net.minecraft.client.gui.components.ContainerObjectSelectionList;
 import net.minecraft.client.gui.components.events.GuiEventListener;
@@ -18,9 +19,25 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
   private static final Identifier RESET_ICON =
       Identifier.fromNamespaceAndPath("openorigins", "reset");
   private static final int ROW_H = 24;
-  private int serverStart = -1;
   private ConfigTab jumpTab;
   private double jumpScroll;
+  private double smoothTarget = Double.NaN;
+  private double lastScroll = Double.NaN;
+  private long lastFrameNs = 0;
+  private boolean rebuildPending = false;
+  private static final double WHEEL_STEP = 24.0;
+  private static final double SMOOTH_SPEED = 12.0;
+  private static final java.util.Map<String, Boolean> EXPANDED = new java.util.HashMap<>();
+
+  private static boolean isExpanded(String group) {
+    Boolean b = EXPANDED.get(group);
+    return b == null || b;
+  }
+
+  /** Structural change (toggle, expand/collapse): rebuild entries next frame. */
+  public void requestRebuild() {
+    this.rebuildPending = true;
+  }
 
   private static volatile ConfigTab spyTab;
   private static volatile java.util.function.Consumer<ConfigTab> spyListener;
@@ -93,22 +110,139 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
     }
   }
 
+  @Override
+  public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
+    try {
+      if (scrollY == 0 || !this.isMouseOver(mouseX, mouseY)) {
+        return super.mouseScrolled(mouseX, mouseY, scrollX, scrollY);
+      }
+      double max;
+      try {
+        max = this.maxScrollAmount();
+      } catch (Throwable t) {
+        max = 0;
+      }
+      if (max <= 0) {
+        return false;
+      }
+      double cur;
+      try {
+        cur = this.scrollAmount();
+      } catch (Throwable t) {
+        return super.mouseScrolled(mouseX, mouseY, scrollX, scrollY);
+      }
+      double base = Double.isNaN(this.smoothTarget) ? cur : this.smoothTarget;
+      this.smoothTarget = Math.max(0, Math.min(max, base - scrollY * WHEEL_STEP));
+      this.lastScroll = cur;
+      return true;
+    } catch (Throwable t) {
+      return false;
+    }
+  }
+
+  @Override
+  public void extractWidgetRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY,
+      float partialTick) {
+    if (this.rebuildPending) {
+      this.rebuildPending = false;
+      try {
+        this.rebuildNow();
+      } catch (Throwable ignored) {
+      }
+    }
+    this.advanceSmoothScroll();
+    super.extractWidgetRenderState(graphics, mouseX, mouseY, partialTick);
+  }
+
+  /** Framerate-independent glide toward the wheel target (softer than Cloth). */
+  private void advanceSmoothScroll() {
+    long now = System.nanoTime();
+    if (this.lastFrameNs == 0) {
+      this.lastFrameNs = now;
+    }
+    double dt = Math.min(0.05, Math.max(0, (now - this.lastFrameNs) / 1_000_000_000.0));
+    this.lastFrameNs = now;
+    double cur;
+    try {
+      cur = this.scrollAmount();
+    } catch (Throwable t) {
+      return;
+    }
+    if (Double.isNaN(this.smoothTarget)) {
+      this.lastScroll = cur;
+      return;
+    }
+    if (!Double.isNaN(this.lastScroll) && Math.abs(cur - this.lastScroll) > 0.75) {
+      // Scrollbar drag, key scroll or a programmed jump moved us: yield.
+      this.smoothTarget = Double.NaN;
+      this.lastScroll = cur;
+      return;
+    }
+    double diff = this.smoothTarget - cur;
+    if (Math.abs(diff) < 0.5) {
+      try {
+        this.setScrollAmount(this.smoothTarget);
+      } catch (Throwable ignored) {
+      }
+      this.smoothTarget = Double.NaN;
+      try {
+        this.lastScroll = this.scrollAmount();
+      } catch (Throwable ignored) {
+      }
+      return;
+    }
+    double next = cur + diff * (1.0 - Math.exp(-dt * SMOOTH_SPEED));
+    try {
+      this.setScrollAmount(next);
+    } catch (Throwable ignored) {
+      this.smoothTarget = Double.NaN;
+      return;
+    }
+    try {
+      this.lastScroll = this.scrollAmount();
+    } catch (Throwable ignored) {
+    }
+  }
+
   public FeatureList(Minecraft minecraft, int width, int contentHeight, int headerHeight,
       ConfigTab tab) {
     super(minecraft, width, contentHeight, headerHeight, ROW_H);
+    for (Entry e : buildFeed()) {
+      this.addEntry(e);
+    }
+  }
+
+  private static String groupFor(OriginFeature feature) {
+    if (feature == OriginFeature.BADGER_TASK_HUD) {
+      return "badger";
+    }
+    if (feature == OriginFeature.ENTITY_EXTRAPOLATION) {
+      return "extrap";
+    }
+    return null;
+  }
+
+  /**
+   * Full feed in order. Hidden group children are omitted entirely (not
+   * zero-height), so scrollbar, spy and scroll math stay exact.
+   */
+  private java.util.List<Entry> buildFeed() {
+    java.util.List<Entry> out = new java.util.ArrayList<>();
     // Single feed: every tab page contains all sections; the opener tab only
     // decides the initial scroll position (tabs teleport, nothing is hidden).
     for (ConfigTab t : ConfigTab.values()) {
       for (com.openorigins.client.FeatureCategory category : t.getCategories()) {
-        this.addEntry(new CategoryEntry(this, category));
+        out.add(new CategoryEntry(this, category));
       for (OriginFeature feature : OriginFeature.values()) {
         if (feature.getCategory() == category) {
           if (feature.isHidden()) {
             continue;
           }
-          this.addEntry(new FeatureEntry(this, feature));
-          if (feature == OriginFeature.BADGER_TASK_HUD) {
-            this.addEntry(new CycleRow(this, "config.openorigins.position",
+          out.add(new FeatureEntry(this, feature, groupFor(feature)));
+          if (feature == OriginFeature.BADGER_TASK_HUD
+              && OpenOriginsConfig.getInstance().isEnabled(feature)
+              && isExpanded("badger")) {
+            out.add(new CycleRow(this, "config.openorigins.position",
                 "config.openorigins.hud_position_hint", FeatureList::cornerName,
                 FeatureList::cycleCorner, true,
                 () -> OpenOriginsConfig.getInstance().setBadgerHudCorner(
@@ -116,8 +250,10 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
                 () -> OpenOriginsConfig.getInstance().getBadgerHudCorner()
                     == OpenOriginsConfig.HudCorner.TOP_LEFT));
           }
-          if (feature == OriginFeature.ENTITY_EXTRAPOLATION) {
-            this.addEntry(new StepperRow(this, "config.openorigins.extrap_ms",
+          if (feature == OriginFeature.ENTITY_EXTRAPOLATION
+              && OpenOriginsConfig.getInstance().isEnabled(feature)
+              && isExpanded("extrap")) {
+            out.add(new StepperRow(this, "config.openorigins.extrap_ms",
                 "config.openorigins.extrap_ms_hint", 0, 1000,
                 () -> OpenOriginsConfig.getInstance().getExtrapMs(),
                 v -> OpenOriginsConfig.getInstance().setExtrapMs(v), 150, true));
@@ -125,13 +261,13 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
         }
       }
       if (category == com.openorigins.client.FeatureCategory.UI) {
-        this.addEntry(new StepperRow(this, "config.openorigins.max_slots",
+        out.add(new StepperRow(this, "config.openorigins.max_slots",
             "config.openorigins.capacity_hint", 0, 15,
             () -> OpenOriginsConfig.getInstance().getHomeCapacity(),
             v -> OpenOriginsConfig.getInstance().setHomeCapacity(v), 5));
       }
       if (category == com.openorigins.client.FeatureCategory.MISC) {
-        this.addEntry(new CycleRow(this, "config.openorigins.scan_key",
+        out.add(new CycleRow(this, "config.openorigins.scan_key",
             "config.openorigins.scan_key_hint",
             () -> com.openorigins.client.HotkeyFeatures.isScanCaptureArmed() ? "..."
                 : com.openorigins.client.HotkeyFeatures.scanKeyName(),
@@ -143,7 +279,7 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
             () -> OpenOriginsConfig.getInstance().isScanKeyDefault()));
         for (com.openorigins.client.HotkeyFeatures.Hotkey h
             : com.openorigins.client.HotkeyFeatures.debugHotkeys()) {
-          this.addEntry(new CycleRow(this, h.labelKey(), h.labelKey(),
+          out.add(new CycleRow(this, h.labelKey(), h.labelKey(),
               () -> com.openorigins.client.HotkeyFeatures.isCapturing(h.mapping()) ? "..."
                   : com.openorigins.client.HotkeyFeatures.keyName(h.mapping()),
               () -> com.openorigins.client.HotkeyFeatures.beginCapture(h.mapping()), false,
@@ -151,12 +287,10 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
               () -> h.mapping().isDefault()));
         }
       }
-      if (category == com.openorigins.client.FeatureCategory.SERVERS) {
-        this.serverStart = this.children().size();
-      }
       }
     }
-    this.addServerRows();
+    addServerRows(out);
+    return out;
   }
 
   /** Rows fit the list: wide enough for long labels, never wider (scissor). */
@@ -170,7 +304,9 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
   }
 
   /** Jumps the feed to the section a tab points at (real row heights, not estimates). */
-  public void scrollToSection(ConfigTab tab) {    try {
+  public void scrollToSection(ConfigTab tab) {
+    this.smoothTarget = Double.NaN;
+    try {
       for (com.openorigins.client.FeatureCategory category : tab.getCategories()) {
         int px = 0;
         for (Entry e : this.children()) {
@@ -199,41 +335,81 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
     }
   }
 
-  /** Rebuilds only the Servers section at the end of the feed. */
-  public void rebuildServerEntries() {
+  /**
+   * Full feed rebuild with scroll anchored to the top visible row, so
+   * collapsing a group above the viewport does not jump the view.
+   */
+  public void rebuildNow() {
+    double top = 0;
     try {
-      if (this.serverStart < 0) {
-        return;
-      }
-      java.util.List<Entry> kids = this.children();
-      while (kids.size() > this.serverStart) {
-        this.removeEntry(kids.get(kids.size() - 1));
+      top = this.scrollAmount();
+    } catch (Throwable ignored) {
+    }
+    String anchor = null;
+    double anchorOff = 0;
+    try {
+      double acc = 0;
+      for (Entry e : this.children()) {
+        double h = ROW_H;
+        try {
+          h = e.getHeight();
+        } catch (Throwable ignored) {
+        }
+        if (acc + h > top + 1) {
+          anchor = e.key();
+          anchorOff = top - acc;
+          break;
+        }
+        acc += h;
       }
     } catch (Throwable ignored) {
     }
-    this.addServerRows();
+    try {
+      this.replaceEntries(buildFeed());
+    } catch (Throwable t) {
+      return;
+    }
+    try {
+      if (anchor != null) {
+        double acc = 0;
+        for (Entry e : this.children()) {
+          if (anchor.equals(e.key())) {
+            this.setScrollAmount(acc + anchorOff);
+            break;
+          }
+          try {
+            acc += e.getHeight();
+          } catch (Throwable ignored) {
+          }
+        }
+      } else {
+        this.setScrollAmount(top);
+      }
+    } catch (Throwable ignored) {
+    }
+    this.refreshEntries();
   }
 
-  private void addServerRows() {
-    this.addEntry(new ServerInfoRow(this));
-    this.addEntry(new ToggleRow(this, "config.openorigins.use_handshake",
+  private void addServerRows(java.util.List<Entry> out) {
+    out.add(new ServerInfoRow(this));
+    out.add(new ToggleRow(this, "config.openorigins.use_handshake",
         "config.openorigins.use_handshake_hint",
         () -> OpenOriginsConfig.getInstance().isUseHandshake(),
         () -> {
           OpenOriginsConfig.getInstance().setUseHandshake(
               !OpenOriginsConfig.getInstance().isUseHandshake());
-          this.rebuildServerEntries();
+          this.requestRebuild();
         },
         true,
         v -> {
           OpenOriginsConfig.getInstance().setUseHandshake(v);
-          this.rebuildServerEntries();
-        }));
-    if (!OpenOriginsConfig.getInstance().isUseHandshake()) {
+          this.requestRebuild();
+        }, "servers", () -> !OpenOriginsConfig.getInstance().isUseHandshake()));
+    if (isExpanded("servers") && !OpenOriginsConfig.getInstance().isUseHandshake()) {
       for (String s : OpenOriginsConfig.getInstance().getServers()) {
-        this.addEntry(new ServerRow(this, s));
+        out.add(new ServerRow(this, s));
       }
-      this.addEntry(new ServerAddRow(this));
+      out.add(new ServerAddRow(this));
     }
   }
 
@@ -253,6 +429,11 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
 
   public abstract static class Entry extends ContainerObjectSelectionList.Entry<Entry> {
     public abstract void refreshEntry();
+
+    /** Stable id used to anchor the scroll across feed rebuilds. */
+    public String key() {
+      return "entry";
+    }
   }
 
   public static class CategoryEntry extends Entry {    private final FeatureList list;
@@ -264,6 +445,11 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
     }
 
     public void refreshEntry() {
+    }
+
+    @Override
+    public String key() {
+      return "cat:" + this.category.name();
     }
 
     @Override
@@ -299,12 +485,15 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
   public static class FeatureEntry extends Entry {
     private final FeatureList list;
     private final OriginFeature feature;
+    private final String group;
     private final Button toggleButton;
     private final Button resetButton;
+    private final Button expandButton;
 
-    public FeatureEntry(FeatureList list, OriginFeature feature) {
+    public FeatureEntry(FeatureList list, OriginFeature feature, String group) {
       this.list = list;
       this.feature = feature;
+      this.group = group;
       this.toggleButton = Button.builder(Component.empty(), button -> {
         OpenOriginsConfig config = OpenOriginsConfig.getInstance();
         config.setEnabled(feature, !config.isEnabled(feature));
@@ -313,7 +502,7 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
           ReconnectToast.show(mc.gui.toastManager(), Component.literal("OpenOrigins"),
               Component.translatable("config.openorigins.reconnect_note"));
         }
-        list.refreshEntries();
+        list.requestRebuild();
       }).bounds(0, 0, 100, 20)
           .tooltip(net.minecraft.client.gui.components.Tooltip.create(
               featureTooltip(feature)))
@@ -322,9 +511,17 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
           Component.translatable("config.openorigins.reset_row"), button -> {
         OpenOriginsConfig config = OpenOriginsConfig.getInstance();
         config.setEnabled(feature, feature.getDefaultValue());
-        list.refreshEntries();
+        list.requestRebuild();
       }, true)
           .width(20).sprite(RESET_ICON, 8, 8).withTootip().build();
+      if (group != null) {
+        this.expandButton = Button.builder(Component.literal("+"), b -> {
+          EXPANDED.put(group, !isExpanded(group));
+          list.requestRebuild();
+        }).bounds(0, 0, 20, 20).build();
+      } else {
+        this.expandButton = null;
+      }
       this.refreshEntry();
     }
 
@@ -333,6 +530,18 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
       this.toggleButton.setMessage(Component.translatable(on ? "options.on" : "options.off")
           .withStyle(on ? net.minecraft.ChatFormatting.GREEN : net.minecraft.ChatFormatting.RED));
       this.resetButton.active = on != this.feature.getDefaultValue();
+      if (this.expandButton != null) {
+        boolean exp = isExpanded(this.group);
+        this.expandButton.setMessage(Component.literal(exp ? "-" : "+"));
+        this.expandButton.setTooltip(Tooltip.create(Component.translatable(
+            exp ? "config.openorigins.collapse" : "config.openorigins.expand")));
+        this.expandButton.active = on;
+      }
+    }
+
+    @Override
+    public String key() {
+      return "feat:" + this.feature.name();
     }
 
     private static Component featureTooltip(OriginFeature feature) {
@@ -360,18 +569,31 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
       this.toggleButton.setY(this.getContentY() + 2);
       this.toggleButton.extractRenderState(graphics, mouseX, mouseY, partialTick);
       this.resetButton.extractRenderState(graphics, mouseX, mouseY, partialTick);
+      int labelX = this.getContentX();
+      if (this.expandButton != null) {
+        this.expandButton.setX(labelX);
+        this.expandButton.setY(this.getContentY() + 2);
+        this.expandButton.extractRenderState(graphics, mouseX, mouseY, partialTick);
+        labelX += 24;
+      }
       net.minecraft.client.gui.Font font = net.minecraft.client.Minecraft.getInstance().font;
-      graphics.text(font, Component.literal(this.feature.getName()), this.getContentX(),
+      graphics.text(font, Component.literal(this.feature.getName()), labelX,
           this.getContentYMiddle() - 4, 0xFFFFFFFF);
     }
 
     @Override
     public List<? extends GuiEventListener> children() {
+      if (this.expandButton != null) {
+        return List.of(this.expandButton, this.toggleButton, this.resetButton);
+      }
       return List.of(this.toggleButton, this.resetButton);
     }
 
     @Override
     public List<? extends NarratableEntry> narratables() {
+      if (this.expandButton != null) {
+        return List.of(this.expandButton, this.toggleButton, this.resetButton);
+      }
       return List.of(this.toggleButton, this.resetButton);
     }
   }
@@ -385,17 +607,27 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
     private final Runnable onPress;
     private final boolean defaultValue;
     private final java.util.function.Consumer<Boolean> set;
+    private final String group;
+    private final java.util.function.BooleanSupplier groupActive;
     private final Button button;
     private final Button resetButton;
+    private final Button expandButton;
 
     public ToggleRow(FeatureList list, String labelKey, String tooltipKey,
         java.util.function.BooleanSupplier get, Runnable onPress) {
-      this(list, labelKey, tooltipKey, get, onPress, false, v -> {});
+      this(list, labelKey, tooltipKey, get, onPress, false, v -> {}, null, null);
     }
 
     public ToggleRow(FeatureList list, String labelKey, String tooltipKey,
         java.util.function.BooleanSupplier get, Runnable onPress,
         boolean defaultValue, java.util.function.Consumer<Boolean> set) {
+      this(list, labelKey, tooltipKey, get, onPress, defaultValue, set, null, null);
+    }
+
+    public ToggleRow(FeatureList list, String labelKey, String tooltipKey,
+        java.util.function.BooleanSupplier get, Runnable onPress,
+        boolean defaultValue, java.util.function.Consumer<Boolean> set,
+        String group, java.util.function.BooleanSupplier groupActive) {
       this.list = list;
       this.labelKey = labelKey;
       this.tooltipKey = tooltipKey;
@@ -403,6 +635,8 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
       this.onPress = onPress;
       this.defaultValue = defaultValue;
       this.set = set;
+      this.group = group;
+      this.groupActive = groupActive;
       this.button = Button.builder(Component.empty(), b -> {
         this.onPress.run();
         this.list.refreshEntries();
@@ -416,6 +650,14 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
         this.list.refreshEntries();
       }, true)
           .width(20).sprite(RESET_ICON, 8, 8).withTootip().build();
+      if (group != null) {
+        this.expandButton = Button.builder(Component.literal("+"), b -> {
+          EXPANDED.put(group, !isExpanded(group));
+          list.requestRebuild();
+        }).bounds(0, 0, 20, 20).build();
+      } else {
+        this.expandButton = null;
+      }
       this.refreshEntry();
     }
 
@@ -424,6 +666,18 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
       this.button.setMessage(Component.translatable(on ? "options.on" : "options.off")
           .withStyle(on ? net.minecraft.ChatFormatting.GREEN : net.minecraft.ChatFormatting.RED));
       this.resetButton.active = on != this.defaultValue;
+      if (this.expandButton != null) {
+        boolean exp = isExpanded(this.group);
+        this.expandButton.setMessage(Component.literal(exp ? "-" : "+"));
+        this.expandButton.setTooltip(Tooltip.create(Component.translatable(
+            exp ? "config.openorigins.collapse" : "config.openorigins.expand")));
+        this.expandButton.active = this.groupActive == null || this.groupActive.getAsBoolean();
+      }
+    }
+
+    @Override
+    public String key() {
+      return "toggle:" + this.labelKey;
     }
 
     @Override
@@ -435,18 +689,31 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
       this.button.setY(this.getContentY() + 2);
       this.button.extractRenderState(graphics, mouseX, mouseY, partialTick);
       this.resetButton.extractRenderState(graphics, mouseX, mouseY, partialTick);
+      int labelX = this.getContentX();
+      if (this.expandButton != null) {
+        this.expandButton.setX(labelX);
+        this.expandButton.setY(this.getContentY() + 2);
+        this.expandButton.extractRenderState(graphics, mouseX, mouseY, partialTick);
+        labelX += 24;
+      }
       net.minecraft.client.gui.Font font = net.minecraft.client.Minecraft.getInstance().font;
-      graphics.text(font, Component.translatable(this.labelKey), this.getContentX(),
+      graphics.text(font, Component.translatable(this.labelKey), labelX,
           this.getContentYMiddle() - 4, 0xFFFFFFFF);
     }
 
     @Override
     public List<? extends GuiEventListener> children() {
+      if (this.expandButton != null) {
+        return List.of(this.expandButton, this.button, this.resetButton);
+      }
       return List.of(this.button, this.resetButton);
     }
 
     @Override
     public List<? extends NarratableEntry> narratables() {
+      if (this.expandButton != null) {
+        return List.of(this.expandButton, this.button, this.resetButton);
+      }
       return List.of(this.button, this.resetButton);
     }
   }
@@ -504,6 +771,11 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
     }
 
     @Override
+    public String key() {
+      return "cycle:" + this.labelKey;
+    }
+
+    @Override
     public void extractContent(GuiGraphicsExtractor graphics, int mouseX, int mouseY, boolean hovered,
         float partialTick) {
       if (this.reset != null) {
@@ -519,7 +791,7 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
       net.minecraft.client.gui.Font font = net.minecraft.client.Minecraft.getInstance().font;
       Component label = Component.translatable(this.labelKey);
       if (this.indented) {
-        label = Component.literal("  ").append(label);
+        label = Component.literal("    ").append(label);
       }
       graphics.text(font, label, this.getContentX(),
           this.getContentYMiddle() - 4, 0xFFFFFFFF);
@@ -602,6 +874,11 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
     }
 
     @Override
+    public String key() {
+      return "step:" + this.labelKey;
+    }
+
+    @Override
     public void extractContent(GuiGraphicsExtractor graphics, int mouseX, int mouseY, boolean hovered,
         float partialTick) {
       int right = this.list.getRowRight();
@@ -661,7 +938,7 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
       net.minecraft.client.gui.Font font = net.minecraft.client.Minecraft.getInstance().font;
       Component label = Component.translatable(this.labelKey);
       if (this.indented) {
-        label = Component.literal("  ").append(label);
+        label = Component.literal("    ").append(label);
       }
       graphics.text(font, label, this.getContentX(),
           this.getContentYMiddle() - 4, 0xFFFFFFFF);
@@ -700,6 +977,11 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
     }
 
     @Override
+    public String key() {
+      return "servers:info";
+    }
+
+    @Override
     public void extractContent(GuiGraphicsExtractor graphics, int mouseX, int mouseY, boolean hovered,
         float partialTick) {
       net.minecraft.client.gui.Font font = net.minecraft.client.Minecraft.getInstance().font;
@@ -735,11 +1017,16 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
       this.removeButton = Button.builder(
           Component.literal("-").withStyle(net.minecraft.ChatFormatting.RED), b -> {
             OpenOriginsConfig.getInstance().removeServer(this.address);
-            this.list.rebuildServerEntries();
+            this.list.requestRebuild();
           }).bounds(0, 0, 20, 20).build();
     }
 
     public void refreshEntry() {
+    }
+
+    @Override
+    public String key() {
+      return "server:" + this.address;
     }
 
     @Override
@@ -779,11 +1066,16 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
                 && OpenOriginsConfig.getInstance().addServer(this.field.getValue())) {
               this.field.setValue("");
             }
-            this.list.rebuildServerEntries();
+            this.list.requestRebuild();
           }).bounds(0, 0, 20, 20).build();
     }
 
     public void refreshEntry() {
+    }
+
+    @Override
+    public String key() {
+      return "servers:add";
     }
 
     @Override

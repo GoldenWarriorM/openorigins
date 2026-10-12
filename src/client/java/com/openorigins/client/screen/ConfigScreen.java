@@ -66,6 +66,7 @@ public class ConfigScreen extends Screen {
     this.highlightTab = this.tabs[i];
     this.tabManager.setCurrentTab(this.pages[i], true);
     if (this.pages[i] instanceof ConfigTabPage page) {
+      page.list().requestRebuild();
       page.list().scrollToSection(this.tabs[i]);
     }
     this.refreshTabButtons();
