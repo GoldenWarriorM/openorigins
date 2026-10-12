@@ -7,12 +7,16 @@ import java.util.List;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.SpriteIconButton;
+import net.minecraft.resources.Identifier;
 import net.minecraft.client.gui.components.ContainerObjectSelectionList;
 import net.minecraft.client.gui.components.events.GuiEventListener;
 import net.minecraft.client.gui.narration.NarratableEntry;
 import net.minecraft.network.chat.Component;
 
 public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry> {
+  private static final Identifier RESET_ICON =
+      Identifier.fromNamespaceAndPath("openorigins", "reset");
   private static final int ROW_H = 24;
   private int serverStart = -1;
   private ConfigTab jumpTab;
@@ -314,14 +318,13 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
           .tooltip(net.minecraft.client.gui.components.Tooltip.create(
               featureTooltip(feature)))
           .build();
-      this.resetButton = Button.builder(Component.literal("R"), button -> {
+      this.resetButton = SpriteIconButton.builder(
+          Component.translatable("config.openorigins.reset_row"), button -> {
         OpenOriginsConfig config = OpenOriginsConfig.getInstance();
         config.setEnabled(feature, feature.getDefaultValue());
         list.refreshEntries();
-      }).bounds(0, 0, 20, 20)
-          .tooltip(net.minecraft.client.gui.components.Tooltip.create(
-              Component.translatable("config.openorigins.reset_row")))
-          .build();
+      }, true)
+          .width(20).sprite(RESET_ICON, 14, 14).withTootip().build();
       this.refreshEntry();
     }
 
@@ -407,13 +410,12 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
           .tooltip(net.minecraft.client.gui.components.Tooltip.create(
               Component.translatable(this.tooltipKey)))
           .build();
-      this.resetButton = Button.builder(Component.literal("R"), b -> {
+      this.resetButton = SpriteIconButton.builder(
+          Component.translatable("config.openorigins.reset_row"), b -> {
         this.set.accept(this.defaultValue);
         this.list.refreshEntries();
-      }).bounds(0, 0, 20, 20)
-          .tooltip(net.minecraft.client.gui.components.Tooltip.create(
-              Component.translatable("config.openorigins.reset_row")))
-          .build();
+      }, true)
+          .width(20).sprite(RESET_ICON, 14, 14).withTootip().build();
       this.refreshEntry();
     }
 
@@ -485,15 +487,14 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
           .tooltip(net.minecraft.client.gui.components.Tooltip.create(
               Component.translatable(this.tooltipKey)))
           .build();
-      this.resetButton = Button.builder(Component.literal("R"), b -> {
+      this.resetButton = SpriteIconButton.builder(
+          Component.translatable("config.openorigins.reset_row"), b -> {
         if (this.reset != null) {
           this.reset.run();
         }
         this.list.refreshEntries();
-      }).bounds(0, 0, 20, 20)
-          .tooltip(net.minecraft.client.gui.components.Tooltip.create(
-              Component.translatable("config.openorigins.reset_row")))
-          .build();
+      }, true)
+          .width(20).sprite(RESET_ICON, 14, 14).withTootip().build();
       this.refreshEntry();
     }
 
@@ -582,13 +583,12 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
         this.set.accept(Math.min(this.max, this.get.getAsInt() + 1));
         this.list.refreshEntries();
       }).bounds(0, 0, 20, 20).build();
-      this.resetButton = Button.builder(Component.literal("R"), b -> {
+      this.resetButton = SpriteIconButton.builder(
+          Component.translatable("config.openorigins.reset_row"), b -> {
         this.set.accept(this.defaultValue);
         this.list.refreshEntries();
-      }).bounds(0, 0, 20, 20)
-          .tooltip(net.minecraft.client.gui.components.Tooltip.create(
-              Component.translatable("config.openorigins.reset_row")))
-          .build();
+      }, true)
+          .width(20).sprite(RESET_ICON, 14, 14).withTootip().build();
     }
 
     public void refreshEntry() {
