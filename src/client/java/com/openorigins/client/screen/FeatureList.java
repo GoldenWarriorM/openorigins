@@ -27,7 +27,6 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
   private boolean rebuildPending = false;
   private static final double WHEEL_STEP = 24.0;
   private static final double SMOOTH_SPEED = 12.0;
-  private static final double GROUP_ANIM_SPEED = 3.2;
   private static final java.util.Map<String, Boolean> EXPANDED = new java.util.HashMap<>();
 
   private static boolean isExpanded(String group) {
@@ -157,7 +156,6 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
       } catch (Throwable ignored) {
       }
     }
-    this.advanceGroupAnims(dt);
     try {
       double max = this.maxScrollAmount();
       if (this.scrollAmount() > max) {
@@ -198,30 +196,6 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
             e.setHeight(animHeight(t));
           } catch (Throwable ignored) {
           }
-        }
-      }
-    } catch (Throwable ignored) {
-    }
-  }
-
-  private void advanceGroupAnims(double dt) {
-    try {
-      for (Entry e : this.children()) {
-        String g = e.collapseGroup();
-        if (g == null) {
-          continue;
-        }
-        double target = groupOpenTarget(g);
-        double cur = e.animProgress;
-        if (cur == target) {
-          continue;
-        }
-        double next = cur < target ? Math.min(target, cur + dt * GROUP_ANIM_SPEED)
-            : Math.max(target, cur - dt * GROUP_ANIM_SPEED);
-        e.animProgress = next;
-        try {
-          e.setHeight(animHeight(next));
-        } catch (Throwable ignored) {
         }
       }
     } catch (Throwable ignored) {
@@ -493,6 +467,7 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
 
   public void refreshEntries() {
     this.children().forEach(FeatureList.Entry::refreshEntry);
+    this.snapGroups();
   }
 
   public abstract static class Entry extends ContainerObjectSelectionList.Entry<Entry> {
