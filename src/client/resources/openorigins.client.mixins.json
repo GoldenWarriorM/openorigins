@@ -30,6 +30,7 @@
     "EntityCullingMixin",
     "EntityDistanceMixin",
     "PauseScreenMixin",
+    "TitleScreenMixin",
     "ItemDisplayArmsFixMixin",
     "ItemInHandArmsFixMixin",
     "DisplayExtrapolationMixin",
