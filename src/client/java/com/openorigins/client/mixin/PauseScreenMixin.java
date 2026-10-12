@@ -52,5 +52,6 @@ public abstract class PauseScreenMixin extends Screen {
     button.setX(anchorRight + 4);
     button.setY(anchorY);
     this.addRenderableWidget(button);
+    com.openorigins.client.screen.IconRow.addCentered(this, button);
   }
 }

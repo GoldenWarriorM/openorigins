@@ -67,6 +67,7 @@ public abstract class TitleScreenMixin extends Screen {
     }
     this.openorigins$joinButton = button;
     this.addRenderableWidget(button);
+    com.openorigins.client.screen.IconRow.addCentered(this, button);
   }
 
   @Inject(method = "mouseClicked", at = @At("HEAD"), cancellable = true)
