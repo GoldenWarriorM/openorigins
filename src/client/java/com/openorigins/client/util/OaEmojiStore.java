@@ -34,6 +34,7 @@ public final class OaEmojiStore {
 
   private static final Map<String, String> display = new LinkedHashMap<>();
   private static final List<String> order = new ArrayList<>();
+  private static final java.util.Set<String> unlocked = new java.util.HashSet<>();
   private static final Deque<String> pendingSent = new ArrayDeque<>();
 
   private OaEmojiStore() {}
@@ -118,7 +119,31 @@ public final class OaEmojiStore {
   }
 
   public static synchronized List<String> orderedIds() {
-    return new ArrayList<>(order);
+    List<String> out = new ArrayList<>();
+    for (String id : order) {
+      if (unlocked.contains(id)) out.add(id);
+    }
+    return out;
+  }
+
+  public static synchronized boolean isUnlocked(String id) {
+    return unlocked.contains(id);
+  }
+
+  /** Returns true if newly unlocked. Unknown ids are registered on the fly. */
+  public static synchronized boolean setUnlocked(String id) {
+    String c = id.trim().toLowerCase(java.util.Locale.ROOT);
+    if (!CODE.matcher(":" + c + ":").matches()) return false;
+    if (!display.containsKey(c)) {
+      display.put(c, "");
+      order.add(c);
+      save();
+    }
+    return unlocked.add(c);
+  }
+
+  public static synchronized void clearUnlocked() {
+    unlocked.clear();
   }
 
   public static synchronized String displayFor(String id) {

@@ -59,4 +59,33 @@ public abstract class OaEmojiLearnMixin {
     } catch (Throwable ignored) {
     }
   }
+
+  @Inject(method = "handlePlayerInfoUpdate",
+      at = @At("HEAD"))
+  private void openorigins$unlockEmoji(
+      net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket packet,
+      CallbackInfo ci) {
+    if (!openorigins$emojiOn()) return;
+    try {
+      if (!packet.actions().contains(
+          net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket.Action.ADD_PLAYER)) {
+        return;
+      }
+      for (net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket.Entry e
+          : packet.entries()) {
+        String name;
+        try {
+          name = e.profile().name();
+        } catch (Throwable t) {
+          continue;
+        }
+        if (name != null && name.startsWith(":")) {
+          String id = name.substring(1);
+          if (id.endsWith(":") && id.length() > 1) id = id.substring(0, id.length() - 1);
+          OaEmojiStore.setUnlocked(id);
+        }
+      }
+    } catch (Throwable ignored) {
+    }
+  }
 }

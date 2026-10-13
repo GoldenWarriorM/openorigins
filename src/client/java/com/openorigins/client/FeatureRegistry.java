@@ -8,6 +8,8 @@ public final class FeatureRegistry {
   public static void registerAll() {
     HotkeyFeatures.register();
     com.openorigins.client.util.OaEmojiStore.load();
+    net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents.JOIN.register(
+        (handler, sender, client) -> com.openorigins.client.util.OaEmojiStore.clearUnlocked());
     AuctionPing.register();
     CosmeticScanner.registerAutoScan();
     com.openorigins.client.util.MobExtrapolation.register();
