@@ -30,33 +30,20 @@ public final class EmojiCodes {
   private static final Deque<String> pendingSent = new ArrayDeque<>();
 
   private static long joinTick = -1;
-  private static long lastHarvestTick = -1;
   private static long lastProbeMs = 0;
-  private static boolean learnSent;
 
   public static synchronized void registerAuto() {
     net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents.JOIN.register(
         (handler, sender, client) -> {
           joinTick = client.level == null ? 0 : client.level.getGameTime();
-          learnSent = false;
         });
     net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents.END_CLIENT_TICK.register(
         client -> {
           if (client.level == null || client.player == null || joinTick < 0) return;
           long now = client.level.getGameTime();
-          // Bulk-learn unlearned codes via one DM to self, once per join and
-          // once more shortly after new codes arrive. Debt guard stops retries
-          // when the server doesn't convert DMs.
-          if (!learnSent && ((now - joinTick > 200 && now - joinTick < 900)
-              || (lastHarvestTick >= 0 && now - lastHarvestTick > 100
-                  && now - lastHarvestTick < 900))) {
-            learnSent = true;
-            lastHarvestTick = -1;
-            bulkLearn(client);
-          }
           // Staggered ":" probe: tests whether the server answers bare
           // suggestion requests outside chat. At most once per 5 minutes,
-          // only while unlearned codes remain.
+          // only while unlearned codes remain. Fully invisible, no chat.
           long nowMs = System.currentTimeMillis();
           if (now - joinTick > 100 && nowMs - lastProbeMs > 300000 && hasUnlearned()) {
             lastProbeMs = nowMs;
@@ -76,82 +63,6 @@ public final class EmojiCodes {
       if (v == null || v.isEmpty()) return true;
     }
     return false;
-  }
-
-  private static synchronized void bulkLearn(net.minecraft.client.Minecraft client) {
-    List<String> todo = new ArrayList<>();
-    for (String code : codeToChar.keySet()) {
-      String c = codeToChar.get(code);
-      if (c == null || c.isEmpty()) todo.add(code);
-    }
-    if (todo.isEmpty()) return;
-    int debt = debt();
-    if (debt == todo.size()) return; // server doesn't convert DMs; don't spam
-    setDebt(todo.size());
-    String self;
-    try {
-      self = client.player.getName().getString();
-    } catch (Throwable t) {
-      return;
-    }
-    StringBuilder sb = new StringBuilder();
-    for (String code : todo) {
-      String tok = ":" + code + ": ";
-      if (sb.length() + tok.length() > 200) {
-        sendDm(client, self, sb.toString().trim());
-        sb.setLength(0);
-      }
-      sb.append(tok);
-    }
-    if (sb.length() > 0) sendDm(client, self, sb.toString().trim());
-    DebugLog.info("[emoji] bulk learn sent (" + todo.size() + " codes)");
-  }
-
-  private static void sendDm(net.minecraft.client.Minecraft client, String self, String body) {
-    try {
-      client.getConnection().sendCommand("msg " + self + " " + body);
-    } catch (Throwable ignored) {
-    }
-  }
-
-  private static int debt() {
-    try {
-      String v = propsCache().getProperty("_debt", "-1");
-      return Integer.parseInt(v.trim());
-    } catch (Throwable t) {
-      return -1;
-    }
-  }
-
-  private static void setDebt(int n) {
-    try {
-      Path p = path();
-      Properties props = new Properties();
-      if (Files.exists(p)) {
-        try (InputStream in = Files.newInputStream(p)) {
-          props.load(in);
-        }
-      }
-      props.setProperty("_debt", Integer.toString(n));
-      try (OutputStream out = Files.newOutputStream(p)) {
-        props.store(out, "OpenOrigins emoji: code=glyph.");
-      }
-    } catch (IOException ignored) {
-    }
-  }
-
-  private static Properties propsCache() {
-    Properties props = new Properties();
-    try {
-      Path p = path();
-      if (Files.exists(p)) {
-        try (InputStream in = Files.newInputStream(p)) {
-          props.load(in);
-        }
-      }
-    } catch (IOException ignored) {
-    }
-    return props;
   }
 
   public static synchronized void load() {
@@ -248,14 +159,7 @@ public final class EmojiCodes {
     if (probe.length() > 0) {
       DebugLog.info("[emoji] suggest probe: " + probe + " -> +" + n);
     }
-    if (n > 0) {
-      save();
-      try {
-        net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
-        if (mc != null && mc.level != null) lastHarvestTick = mc.level.getGameTime();
-      } catch (Throwable ignored) {
-      }
-    }
+    if (n > 0) save();
     return n;
   }
 
