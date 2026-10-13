@@ -42,6 +42,7 @@ public final class EmojiCodes {
     try (InputStream in = Files.newInputStream(p)) {
       props.load(in);
       for (String k : props.stringPropertyNames()) {
+        if (k.startsWith("_")) continue;
         String code = k.trim().toLowerCase(java.util.Locale.ROOT);
         if (CODE.matcher(":" + code + ":").matches()) {
           codeToChar.put(code, props.getProperty(k, "").trim());
@@ -50,10 +51,32 @@ public final class EmojiCodes {
     } catch (IOException ignored) {
     }
     for (String s : SEEDS) codeToChar.putIfAbsent(s, "");
+    // One-time cleanup (marker _migrated=1): unlearned non-seed codes harvested
+    // before the leading-colon rule (mostly player nicknames) are dropped;
+    // correct ones re-harvest on the next Tab. Later manual additions stay.
+    if (!"1".equals(props.getProperty("_migrated"))) {
+      int dropped = 0;
+      java.util.Iterator<Map.Entry<String, String>> it = codeToChar.entrySet().iterator();
+      while (it.hasNext()) {
+        Map.Entry<String, String> e = it.next();
+        if ((e.getValue() == null || e.getValue().isEmpty()) && !SEEDS.contains(e.getKey())) {
+          it.remove();
+          dropped++;
+        }
+      }
+      props.setProperty("_migrated", "1");
+      try (OutputStream out2 = Files.newOutputStream(p)) {
+        props.store(out2, "OpenOrigins emoji: code=glyph.");
+      } catch (IOException ignored) {
+      }
+      if (dropped > 0) DebugLog.info("[emoji] dropped " + dropped + " junk codes");
+      save();
+    }
   }
 
   public static synchronized void save() {
     Properties props = new Properties();
+    props.setProperty("_migrated", "1");
     for (Map.Entry<String, String> e : codeToChar.entrySet()) {
       props.setProperty(e.getKey(), e.getValue());
     }
@@ -88,13 +111,12 @@ public final class EmojiCodes {
     StringBuilder probe = new StringBuilder();
     for (String t : texts) {
       String s = t.trim();
-      if (s.startsWith(":")) {
-        if (probe.length() < 200) {
-          if (probe.length() > 0) probe.append(' ');
-          probe.append(s);
-        }
-        s = s.substring(1);
+      if (!s.startsWith(":")) continue;
+      if (probe.length() < 200) {
+        if (probe.length() > 0) probe.append(' ');
+        probe.append(s);
       }
+      s = s.substring(1);
       if (s.endsWith(":") && s.length() > 1) s = s.substring(0, s.length() - 1);
       if (CODE.matcher(":" + s + ":").matches() && addCodeNoSave(s)) n++;
     }
@@ -144,8 +166,9 @@ public final class EmojiCodes {
   }
 
   /**
-   * Align our sent text against an incoming line: if they differ only by one
-   * :code: span replaced with 1-2 private-use chars, the mapping is learned.
+   * Align our sent text against an incoming line by surrounding context: the
+   * server adds rank/name affixes, so only the neighbourhood of the :code:
+   * has to match, with 1-2 private-use chars in place of the code.
    */
   public static synchronized void learnFromIncoming(String text) {
     if (text == null || text.isEmpty() || pendingSent.isEmpty()) return;
@@ -166,19 +189,26 @@ public final class EmojiCodes {
         if (known != null && !known.isEmpty()) continue;
         int a = m.start();
         int b = m.end();
-        for (int len = 1; len <= 2; len++) {
-          if (a + len > text.length()) continue;
-          String cand = sent.substring(0, a) + text.substring(a, a + len)
-              + sent.substring(b);
-          if (!cand.equals(text)) continue;
-          String glyph = text.substring(a, a + len);
-          if (!isPua(glyph)) continue;
-          codeToChar.put(code, glyph);
-          save();
-          pendingSent.remove(sent);
-          DebugLog.info("[emoji] learned :" + code + ": -> glyph");
-          return;
+        String pre = sent.substring(Math.max(0, a - 12), a);
+        String post = sent.substring(b, Math.min(sent.length(), b + 12));
+        int from = 0;
+        boolean done = false;
+        while (!done && (from = text.indexOf(pre, from)) >= 0) {
+          int g0 = from + pre.length();
+          for (int len = 1; len <= 2 && !done; len++) {
+            if (g0 + len + post.length() > text.length()) continue;
+            if (!text.startsWith(post, g0 + len)) continue;
+            String glyph = text.substring(g0, g0 + len);
+            if (!isPua(glyph)) continue;
+            codeToChar.put(code, glyph);
+            save();
+            pendingSent.remove(sent);
+            DebugLog.info("[emoji] learned :" + code + ": -> glyph");
+            done = true;
+          }
+          from++;
         }
+        if (done) return;
       }
     }
   }
