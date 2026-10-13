@@ -309,6 +309,9 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
           }
         }
       }
+      if (category == com.openorigins.client.FeatureCategory.SERVERS) {
+        addServerRows(out);
+      }
       if (category == com.openorigins.client.FeatureCategory.UI) {
         out.add(new ToggleRow(this, "config.openorigins.title_join_button",
             "config.openorigins.title_join_button_hint",
@@ -350,7 +353,6 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
       }
       }
     }
-    addServerRows(out);
     return out;
   }
 
