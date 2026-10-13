@@ -217,15 +217,6 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
     int y0 = (int) Math.round(hiY);
     int y1 = (int) Math.round(hiY + hiH);
     graphics.fill(x0, y0, x0 + rowW, y1, (a << 24) | 0xFFFFFF);
-    try {
-      String dbg = (target == null ? "null" : target.getClass().getSimpleName())
-          + " ty=" + (target == null ? -1 : target.getY())
-          + " th=" + (target == null ? -1 : target.getHeight())
-          + " hy=" + y0 + " hh=" + (y1 - y0);
-      graphics.text(net.minecraft.client.Minecraft.getInstance().font, dbg, x0 + 4, y0 + 2,
-          0xFFFF5555);
-    } catch (Throwable ignored) {
-    }
   }
 
   private static int animHeight(double p) {
@@ -728,9 +719,9 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
     public void extractContent(GuiGraphicsExtractor graphics, int mouseX, int mouseY, boolean hovered,
         float partialTick) {
       this.resetButton.setX(this.list.getRowRight() - this.resetButton.getWidth());
-      this.resetButton.setY(this.getContentY() + 2);
+      this.resetButton.setY(this.getContentY() + 1);
       this.toggleButton.setX(this.resetButton.getX() - 4 - this.toggleButton.getWidth());
-      this.toggleButton.setY(this.getContentY() + 2);
+      this.toggleButton.setY(this.getContentY() + 1);
       int labelX = this.getContentX();
       if (this.expandButton != null) {
         int gx = labelX - 20;
@@ -739,7 +730,7 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
         } catch (Throwable ignored) {
         }
         this.expandButton.setX(gx);
-        this.expandButton.setY(this.getContentY() + 2);
+        this.expandButton.setY(this.getContentY() + 1);
         this.expandButton.extractRenderState(graphics, mouseX, mouseY, partialTick);
       }
       this.toggleButton.extractRenderState(graphics, mouseX, mouseY, partialTick);
@@ -857,9 +848,9 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
     public void extractContent(GuiGraphicsExtractor graphics, int mouseX, int mouseY, boolean hovered,
         float partialTick) {
       this.resetButton.setX(this.list.getRowRight() - this.resetButton.getWidth());
-      this.resetButton.setY(this.getContentY() + 2);
+      this.resetButton.setY(this.getContentY() + 1);
       this.button.setX(this.resetButton.getX() - 4 - this.button.getWidth());
-      this.button.setY(this.getContentY() + 2);
+      this.button.setY(this.getContentY() + 1);
       int labelX = this.getContentX();
       if (this.expandButton != null) {
         int gx = labelX - 20;
@@ -868,7 +859,7 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
         } catch (Throwable ignored) {
         }
         this.expandButton.setX(gx);
-        this.expandButton.setY(this.getContentY() + 2);
+        this.expandButton.setY(this.getContentY() + 1);
         this.expandButton.extractRenderState(graphics, mouseX, mouseY, partialTick);
       }
       this.button.extractRenderState(graphics, mouseX, mouseY, partialTick);
@@ -960,13 +951,13 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
       }
       if (this.reset != null) {
         this.resetButton.setX(this.list.getRowRight() - this.resetButton.getWidth());
-        this.resetButton.setY(this.getContentY() + 2);
+        this.resetButton.setY(this.getContentY() + 1);
         this.resetButton.extractRenderState(graphics, mouseX, mouseY, partialTick);
         this.button.setX(this.resetButton.getX() - 4 - this.button.getWidth());
       } else {
         this.button.setX(this.list.getRowRight() - this.button.getWidth());
       }
-      this.button.setY(this.getContentY() + 2);
+      this.button.setY(this.getContentY() + 1);
       this.button.extractRenderState(graphics, mouseX, mouseY, partialTick);
       net.minecraft.client.gui.Font font = net.minecraft.client.Minecraft.getInstance().font;
       Component label = Component.translatable(this.labelKey);
@@ -1097,13 +1088,13 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
         });
       }
       this.plusButton.setX(right - 20);
-      this.plusButton.setY(this.getContentY() + 2);
+      this.plusButton.setY(this.getContentY() + 1);
       this.resetButton.setX(right - this.resetButton.getWidth());
-      this.resetButton.setY(this.getContentY() + 2);
+      this.resetButton.setY(this.getContentY() + 1);
       this.plusButton.setX(this.resetButton.getX() - 4 - this.plusButton.getWidth());
       if (this.field != null) {
         this.field.setX(this.plusButton.getX() - 4 - 52);
-        this.field.setY(this.getContentY() + 2);
+        this.field.setY(this.getContentY() + 1);
         try {
           // Our value is drawn manually centered with invisible field text;
           // pin the selection to the cursor so its white box never shows.
@@ -1120,7 +1111,7 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
       this.minusButton.setX(this.field != null
           ? this.field.getX() - 4 - this.minusButton.getWidth()
           : this.plusButton.getX() - 4 - this.minusButton.getWidth());
-      this.minusButton.setY(this.getContentY() + 2);
+      this.minusButton.setY(this.getContentY() + 1);
       this.plusButton.extractRenderState(graphics, mouseX, mouseY, partialTick);
       this.minusButton.extractRenderState(graphics, mouseX, mouseY, partialTick);
       this.resetButton.extractRenderState(graphics, mouseX, mouseY, partialTick);
@@ -1233,7 +1224,7 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
       }
       int right = this.list.getRowRight();
       this.removeButton.setX(right - 20);
-      this.removeButton.setY(this.getContentY() + 2);
+      this.removeButton.setY(this.getContentY() + 1);
       this.removeButton.extractRenderState(graphics, mouseX, mouseY, partialTick);
       net.minecraft.client.gui.Font font = net.minecraft.client.Minecraft.getInstance().font;
       graphics.text(font, Component.literal(this.address), this.getContentX(),
@@ -1300,10 +1291,10 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
             Component.translatable("config.openorigins.servers_hint")));
       }
       this.addButton.setX(right - 20);
-      this.addButton.setY(this.getContentY() + 2);
+      this.addButton.setY(this.getContentY() + 1);
       if (this.field != null) {
         this.field.setX(right - 20 - 4 - 220);
-        this.field.setY(this.getContentY() + 2);
+        this.field.setY(this.getContentY() + 1);
         this.field.extractRenderState(graphics, mouseX, mouseY, partialTick);
       }
       this.addButton.extractRenderState(graphics, mouseX, mouseY, partialTick);
