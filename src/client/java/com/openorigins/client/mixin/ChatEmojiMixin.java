@@ -37,7 +37,10 @@ public abstract class ChatEmojiMixin extends net.minecraft.client.gui.screens.Sc
     openorigins$emojiPanel = null;
     if (!OpenOriginsConfig.getInstance().isEnabled(OriginFeature.EMOJI_PICKER)) return;
     if (input == null) return;
-    input.setWidth(input.getWidth() - 22);
+    int btnX = input.getX();
+    int btnY0 = input.getY() - 22;
+    if (btnY0 < 2) btnY0 = 2;
+    final int btnY = btnY0;
     openorigins$emojiButton = Button.builder(Component.literal("\u263A"), btn -> {
       if (openorigins$emojiPanel != null) {
         this.removeWidget(openorigins$emojiPanel);
@@ -45,14 +48,15 @@ public abstract class ChatEmojiMixin extends net.minecraft.client.gui.screens.Sc
       } else {
         int w = EmojiPanel.COLS * EmojiPanel.CELL + EmojiPanel.PAD * 2;
         int h = EmojiPanel.HEADER + EmojiPanel.ROWS * EmojiPanel.CELL + EmojiPanel.PAD * 2;
-        int px = input.getX() + input.getWidth() + 2 - w;
+        int px = btnX;
+        if (px + w > this.width - 2) px = this.width - 2 - w;
         if (px < 2) px = 2;
-        int py = input.getY() - h - 2;
+        int py = btnY - h - 2;
         if (py < 2) py = 2;
         openorigins$emojiPanel = new EmojiPanel(input, px, py);
-        this.addWidget(openorigins$emojiPanel);
+        this.addRenderableWidget(openorigins$emojiPanel);
       }
-    }).bounds(input.getX() + input.getWidth() + 2, input.getY(), 20, 20).build();
+    }).bounds(btnX, btnY, 20, 20).build();
     this.addRenderableWidget(openorigins$emojiButton);
   }
 
