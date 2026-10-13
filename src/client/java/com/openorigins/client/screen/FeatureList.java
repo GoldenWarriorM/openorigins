@@ -199,8 +199,10 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
       hiH = wantH;
     }
     double k = Math.min(1.0, dt * HI_SPEED);
-    hiY += (wantY - hiY) * k;
-    hiH += (wantH - hiH) * k;
+    if (target != null) {
+      hiY += (wantY - hiY) * k;
+      hiH += (wantH - hiH) * k;
+    }
     hiAlpha += (wantA - hiAlpha) * Math.min(1.0, dt * HI_SPEED * 0.8);
     if (hiAlpha < 0.02 || hiH < 2) return;
     int x0;
