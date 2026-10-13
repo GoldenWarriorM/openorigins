@@ -30,32 +30,27 @@ public final class EmojiCodes {
   private static final Deque<String> pendingSent = new ArrayDeque<>();
 
   private static long joinTick = -1;
-  private static boolean fetchSent;
+  private static long lastHarvestTick = -1;
   private static boolean learnSent;
 
   public static synchronized void registerAuto() {
     net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents.JOIN.register(
         (handler, sender, client) -> {
           joinTick = client.level == null ? 0 : client.level.getGameTime();
-          fetchSent = false;
           learnSent = false;
         });
     net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents.END_CLIENT_TICK.register(
         client -> {
           if (client.level == null || client.player == null || joinTick < 0) return;
           long now = client.level.getGameTime();
-          if (!fetchSent && now - joinTick > 60) {
-            fetchSent = true;
-            try {
-              client.getConnection().send(
-                  new net.minecraft.network.protocol.game.ServerboundCommandSuggestionPacket(
-                      0xE401, ":"));
-              DebugLog.info("[emoji] auto-tab sent");
-            } catch (Throwable ignored) {
-            }
-          }
-          if (!learnSent && now - joinTick > 200 && now - joinTick < 600) {
+          // Bulk-learn unlearned codes via one DM to self, once per join and
+          // once more shortly after new codes arrive. Debt guard stops retries
+          // when the server doesn't convert DMs.
+          if (!learnSent && ((now - joinTick > 200 && now - joinTick < 900)
+              || (lastHarvestTick >= 0 && now - lastHarvestTick > 100
+                  && now - lastHarvestTick < 900))) {
             learnSent = true;
+            lastHarvestTick = -1;
             bulkLearn(client);
           }
         });
@@ -231,7 +226,14 @@ public final class EmojiCodes {
     if (probe.length() > 0) {
       DebugLog.info("[emoji] suggest probe: " + probe + " -> +" + n);
     }
-    if (n > 0) save();
+    if (n > 0) {
+      save();
+      try {
+        net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
+        if (mc != null && mc.level != null) lastHarvestTick = mc.level.getGameTime();
+      } catch (Throwable ignored) {
+      }
+    }
     return n;
   }
 

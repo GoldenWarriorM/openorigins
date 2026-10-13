@@ -301,6 +301,11 @@ public final class HomeInfoCache {
         layout.add("home:" + key(name));
         guiNames.put(key(name), name);
         n++;
+        String lore0 = lore.lines().isEmpty() ? "<no lore>"
+            : lore.lines().get(0).getString();
+        if (lore0.length() > 80) lore0 = lore0.substring(0, 80);
+        com.openorigins.client.util.DebugLog.info("[homes-lore] +home '{}' lore1: '{}'",
+            name, lore0);
       } else {
         String lower = name.toLowerCase(java.util.Locale.ROOT);
         if (lower.contains("rank up to unlock")) {
@@ -431,6 +436,7 @@ public final class HomeInfoCache {
       }
     }
     NAMES.add(name);
+    com.openorigins.client.util.DebugLog.info("[homes] +name via addName: '{}'", name);
     save();
     return true;
   }
