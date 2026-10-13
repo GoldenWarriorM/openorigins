@@ -13,6 +13,14 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public abstract class CommandSuggestionsMixin {
   @Inject(method = "handleCommandSuggestions", at = @At("HEAD"), cancellable = true)
   private void openorigins$onSuggestions(ClientboundCommandSuggestionsPacket packet, CallbackInfo ci) {
+    try {
+      java.util.List<String> texts = new java.util.ArrayList<>();
+      for (ClientboundCommandSuggestionsPacket.Entry e : packet.suggestions()) {
+        texts.add(e.text());
+      }
+      com.openorigins.client.util.EmojiCodes.harvestTexts(texts);
+    } catch (Throwable ignored) {
+    }
     if (HomeListFetcher.handle(packet)) {
       ci.cancel();
     }

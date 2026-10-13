@@ -74,6 +74,33 @@ public final class EmojiCodes {
     return new ArrayList<>(codeToChar.keySet());
   }
 
+  public static synchronized boolean addCode(String code) {
+    String c = code.trim().toLowerCase(java.util.Locale.ROOT);
+    if (!CODE.matcher(":" + c + ":").matches() || codeToChar.containsKey(c)) return false;
+    codeToChar.put(c, "");
+    save();
+    return true;
+  }
+
+  /** Harvest :code: entries from brigadier suggestion lists (rank-dependent). */
+  public static synchronized int harvestTexts(java.util.List<String> texts) {
+    int n = 0;
+    for (String t : texts) {
+      String s = t.trim();
+      if (s.startsWith(":")) s = s.substring(1);
+      if (s.endsWith(":") && s.length() > 1) s = s.substring(0, s.length() - 1);
+      if (CODE.matcher(":" + s + ":").matches() && addCodeNoSave(s)) n++;
+    }
+    if (n > 0) save();
+    return n;
+  }
+
+  private static boolean addCodeNoSave(String c) {
+    if (codeToChar.containsKey(c)) return false;
+    codeToChar.put(c, "");
+    return true;
+  }
+
   public static synchronized String charFor(String code) {
     String c = codeToChar.get(code);
     return c == null || c.isEmpty() ? null : c;
