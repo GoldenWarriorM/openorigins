@@ -217,6 +217,15 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
     int y0 = (int) Math.round(hiY);
     int y1 = (int) Math.round(hiY + hiH);
     graphics.fill(x0, y0, x0 + rowW, y1, (a << 24) | 0xFFFFFF);
+    try {
+      String dbg = (target == null ? "null" : target.getClass().getSimpleName())
+          + " ty=" + (target == null ? -1 : target.getY())
+          + " th=" + (target == null ? -1 : target.getHeight())
+          + " hy=" + y0 + " hh=" + (y1 - y0);
+      graphics.text(net.minecraft.client.Minecraft.getInstance().font, dbg, x0 + 4, y0 + 2,
+          0xFFFF5555);
+    } catch (Throwable ignored) {
+    }
   }
 
   private static int animHeight(double p) {
