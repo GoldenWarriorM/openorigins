@@ -21,6 +21,11 @@ public class ConfigScreen extends Screen {
   private ConfigTab[] tabs = new ConfigTab[0];
   private Tab[] pages = new Tab[0];
   private final List<SideTabButton> tabButtons = new ArrayList<>();
+  private double tabHiY = 0;
+  private double tabHiH = 0;
+  private double tabHiAlpha = 0;
+  private long tabHiLastNs = 0;
+  private static final double TAB_HI_SPEED = 14.0;
   private Button resetButton;
   private Button doneButton;
   private int activeTab;
@@ -91,7 +96,7 @@ public class ConfigScreen extends Screen {
     int pw = this.panelWidth();
     for (int i = 0; i < this.tabs.length; i++) {
       final int idx = i;
-      SideTabButton b = new SideTabButton(PANEL_X, PANEL_TOP + idx * ROW_H, pw, ROW_H - 2,
+      SideTabButton b = new SideTabButton(PANEL_X, PANEL_TOP + idx * ROW_H, pw, ROW_H,
           Component.translatable(this.tabs[i].getTitleKey()), () -> this.selectTab(idx));
       this.tabButtons.add(b);
       this.addRenderableWidget(b);
@@ -164,6 +169,70 @@ public class ConfigScreen extends Screen {
       return true;
     }
     return super.keyPressed(event);
+  }
+
+  @Override
+  public void extractRenderState(net.minecraft.client.gui.GuiGraphicsExtractor graphics, int mouseX,
+      int mouseY, float partialTick) {
+    this.drawTabHighlight(graphics, mouseX, mouseY);
+    super.extractRenderState(graphics, mouseX, mouseY, partialTick);
+  }
+
+  /** Gliding sidebar highlight matching the row list, no gaps. */
+  private void drawTabHighlight(net.minecraft.client.gui.GuiGraphicsExtractor graphics, int mouseX,
+      int mouseY) {
+    long now = System.nanoTime();
+    if (this.tabHiLastNs == 0) this.tabHiLastNs = now;
+    double dt = Math.min(0.05, Math.max(0, (now - this.tabHiLastNs) / 1_000_000_000.0));
+    this.tabHiLastNs = now;
+    SideTabButton target = null;
+    try {
+      for (int i = 0; i < this.tabButtons.size() && i < this.tabs.length; i++) {
+        SideTabButton b = this.tabButtons.get(i);
+        if (b.isHovered()) {
+          target = b;
+          break;
+        }
+      }
+      if (target == null && this.highlightTab != null) {
+        for (int i = 0; i < this.tabButtons.size() && i < this.tabs.length; i++) {
+          if (this.tabs[i] == this.highlightTab) {
+            target = this.tabButtons.get(i);
+            break;
+          }
+        }
+      }
+    } catch (Throwable ignored) {
+    }
+    double wantY = 0;
+    double wantH = 0;
+    double wantA = 0;
+    int tx = 0;
+    int tw = 0;
+    if (target != null) {
+      try {
+        wantY = target.getY();
+        wantH = target.getHeight();
+        tx = target.getX();
+        tw = target.getWidth();
+        wantA = 1;
+      } catch (Throwable ignored) {
+      }
+    }
+    if (tabHiH <= 0 && wantH > 0 && tabHiAlpha <= 0) {
+      tabHiY = wantY;
+      tabHiH = wantH;
+    }
+    double k = Math.min(1.0, dt * TAB_HI_SPEED);
+    if (target != null) {
+      tabHiY += (wantY - tabHiY) * k;
+      tabHiH += (wantH - tabHiH) * k;
+    }
+    tabHiAlpha += (wantA - tabHiAlpha) * Math.min(1.0, dt * TAB_HI_SPEED * 0.8);
+    if (tabHiAlpha < 0.02 || tabHiH < 2 || tw <= 0) return;
+    int a = (int) Math.round(48 * Math.max(0, Math.min(1, tabHiAlpha)));
+    graphics.fill(tx, (int) Math.round(tabHiY), tx + tw, (int) Math.round(tabHiY + tabHiH),
+        (a << 24) | 0xFFFFFF);
   }
 
   @Override

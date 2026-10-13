@@ -34,16 +34,6 @@ public class SideTabButton extends AbstractWidget {
   @Override
   protected void extractWidgetRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY,
       float partialTick) {
-    boolean hovered = this.isHovered();
-    if (this.selected) {
-      graphics.fill(this.getX(), this.getY(), this.getX() + this.width, this.getY() + this.height,
-          0x40000000);
-      graphics.fill(this.getX(), this.getY() + 3, this.getX() + 2, this.getY() + this.height - 3,
-          0xFFFFAA00);
-    } else {
-      graphics.fill(this.getX(), this.getY(), this.getX() + this.width, this.getY() + this.height,
-          hovered ? 0x30FFFFFF : 0x60000000);
-    }
     net.minecraft.client.gui.Font font = net.minecraft.client.Minecraft.getInstance().font;
     graphics.text(font, this.getMessage().getString(), this.getX() + 10,
         this.getY() + (this.height - 9) / 2,
