@@ -24,6 +24,8 @@ public class ConfigScreen extends Screen {
   private double tabHiY = 0;
   private double tabHiH = 0;
   private double tabHiAlpha = 0;
+  private double tabSelY = 0;
+  private double tabSelH = 0;
   private long tabHiLastNs = 0;
   private static final double TAB_HI_SPEED = 14.0;
   private Button resetButton;
@@ -233,6 +235,30 @@ public class ConfigScreen extends Screen {
     int a = (int) Math.round(72 * Math.max(0, Math.min(1, tabHiAlpha)));
     graphics.fill(tx, (int) Math.round(tabHiY), tx + tw, (int) Math.round(tabHiY + tabHiH),
         (a << 24) | 0xA0A0A0);
+    try {
+      SideTabButton sel = null;
+      if (this.highlightTab != null) {
+        for (int i = 0; i < this.tabButtons.size() && i < this.tabs.length; i++) {
+          if (this.tabs[i] == this.highlightTab) {
+            sel = this.tabButtons.get(i);
+            break;
+          }
+        }
+      }
+      if (sel != null) {
+        double sy = sel.getY();
+        double sh = sel.getHeight();
+        if (tabSelH <= 0) {
+          tabSelY = sy;
+          tabSelH = sh;
+        }
+        tabSelY += (sy - tabSelY) * k;
+        tabSelH += (sh - tabSelH) * k;
+        graphics.fill(sel.getX(), (int) Math.round(tabSelY), sel.getX() + 2,
+            (int) Math.round(tabSelY + tabSelH), 0xFFFFAA00);
+      }
+    } catch (Throwable ignored) {
+    }
   }
 
   @Override
