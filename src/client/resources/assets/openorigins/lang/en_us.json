@@ -94,7 +94,6 @@
   "feature.openorigins.scoreboard_desync_fix.desc": "Tolerates stale scoreboard team packets instead of disconnecting.",
   "feature.openorigins.registry_desync_fix.desc": "Tolerates duplicate registry entries from the server instead of disconnecting.",
   "feature.openorigins.badger_task_hud.desc": "Shows the active badger task requirements on the HUD.",
-  "feature.openorigins.emoji_picker.desc": "Smiley button in chat with a clickable emoji grid.",
   "feature.openorigins.helmet_cosmetic_slot.desc": "Shows helmet cosmetic in a separate slot, real helmet in the helmet slot.",
   "feature.openorigins.helmet_cosmetic_slot.hint": "If the helmet is missing or wrong, take the item off and put it back on.",
   "feature.openorigins.strict_recipe_match.desc": "Strict recipe-book matching for custom items.",

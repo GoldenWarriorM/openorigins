@@ -17,8 +17,6 @@
     "CommandProbeMixin",
     "OpenScreenMixin",
     "ChatConfirmMixin",
-    "ChatEmojiMixin",
-    "EmojiLearnMixin",
     "ContainerHotkeyMixin",
     "RegistryDesyncMixin",
     "HelmetCosmeticSlotMixin",
