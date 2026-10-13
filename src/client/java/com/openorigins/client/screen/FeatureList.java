@@ -206,8 +206,8 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
     int x0;
     int rowW;
     try {
-      x0 = target != null ? target.getX() : this.getX();
-      rowW = this.getRowWidth();
+      x0 = this.getX();
+      rowW = this.getWidth();
     } catch (Throwable t) {
       return;
     }
@@ -215,7 +215,6 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
     int y0 = (int) Math.round(hiY);
     int y1 = (int) Math.round(hiY + hiH);
     graphics.fill(x0, y0, x0 + rowW, y1, (a << 24) | 0xFFFFFF);
-    graphics.fill(x0, y0, x0 + 2, y1, (Math.max(a, 120) << 24) | 0xFFC838);
   }
 
   private static int animHeight(double p) {

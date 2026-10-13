@@ -137,13 +137,17 @@ public final class OaEmojiStore {
   /** Returns true if newly unlocked. Unknown ids are registered on the fly. */
   public static synchronized boolean setUnlocked(String id) {
     String c = id.trim().toLowerCase(java.util.Locale.ROOT);
-    if (!CODE.matcher(":" + c + ":").matches()) return false;
+    if (!CODE.matcher(":" + c + ":").matches()) {
+      DebugLog.info("[emoji] unlock rejected: '{}'", id);
+      return false;
+    }
     if (!display.containsKey(c)) {
       display.put(c, "");
       order.add(c);
       save();
     }
     if (unlocked.add(c) && !unlockSeq.contains(c)) unlockSeq.add(c);
+    DebugLog.info("[emoji] unlocked '{}' (have {})", c, unlockSeq.size());
     return unlocked.contains(c);
   }
 
