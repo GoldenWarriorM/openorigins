@@ -25,6 +25,10 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
   private double lastScroll = Double.NaN;
   private long lastFrameNs = 0;
   private boolean rebuildPending = false;
+  private double hiY = 0;
+  private double hiH = 0;
+  private double hiAlpha = 0;
+  private static final double HI_SPEED = 14.0;
   private static final double WHEEL_STEP = 24.0;
   private static final double SMOOTH_SPEED = 12.0;
   private static final java.util.Map<String, Boolean> EXPANDED = new java.util.HashMap<>();
@@ -164,7 +168,54 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
     } catch (Throwable ignored) {
     }
     this.advanceSmoothScroll(dt);
+    this.advanceHoverHighlight(graphics, mouseX, mouseY, dt);
     super.extractWidgetRenderState(graphics, mouseX, mouseY, partialTick);
+  }
+
+  /** Cloth-style gliding row highlight, own math, no dependency. */
+  private void advanceHoverHighlight(GuiGraphicsExtractor graphics, int mouseX, int mouseY,
+      double dt) {
+    Entry target = null;
+    try {
+      if (this.isMouseOver(mouseX, mouseY)) {
+        Entry e = this.getEntryAtPosition(mouseX, mouseY);
+        if (e != null && !(e instanceof CategoryEntry)) target = e;
+      }
+    } catch (Throwable ignored) {
+    }
+    double wantY = 0;
+    double wantH = 0;
+    double wantA = 0;
+    if (target != null) {
+      try {
+        wantY = target.getY();
+        wantH = target.getHeight();
+        wantA = 1;
+      } catch (Throwable ignored) {
+      }
+    }
+    if (hiH <= 0 && wantH > 0 && hiAlpha <= 0) {
+      hiY = wantY;
+      hiH = wantH;
+    }
+    double k = Math.min(1.0, dt * HI_SPEED);
+    hiY += (wantY - hiY) * k;
+    hiH += (wantH - hiH) * k;
+    hiAlpha += (wantA - hiAlpha) * Math.min(1.0, dt * HI_SPEED * 0.8);
+    if (hiAlpha < 0.02 || hiH < 2) return;
+    int x0;
+    int rowW;
+    try {
+      x0 = target != null ? target.getX() : this.getX();
+      rowW = this.getRowWidth();
+    } catch (Throwable t) {
+      return;
+    }
+    int a = (int) Math.round(40 * Math.max(0, Math.min(1, hiAlpha)));
+    int y0 = (int) Math.round(hiY);
+    int y1 = (int) Math.round(hiY + hiH);
+    graphics.fill(x0, y0, x0 + rowW, y1, (a << 24) | 0xFFFFFF);
+    graphics.fill(x0, y0, x0 + 2, y1, (Math.max(a, 120) << 24) | 0xFFC838);
   }
 
   private static int animHeight(double p) {

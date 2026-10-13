@@ -15,6 +15,8 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.ModifyArgs;
+import org.spongepowered.asm.mixin.injection.invoke.arg.Args;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
@@ -74,6 +76,32 @@ public abstract class OaChatEmojiMixin extends net.minecraft.client.gui.screens.
       openorigins$emojiPanel.scrollBy(scrollY);
       cir.setReturnValue(true);
       cir.cancel();
+    }
+  }
+
+  @Unique
+  private boolean openorigins$panelHovered() {
+    if (openorigins$emojiPanel == null) return false;
+    try {
+      double mx = net.minecraft.client.Minecraft.getInstance().mouseHandler.xpos()
+          * net.minecraft.client.Minecraft.getInstance().getWindow().getGuiScaledWidth()
+          / net.minecraft.client.Minecraft.getInstance().getWindow().getScreenWidth();
+      double my = net.minecraft.client.Minecraft.getInstance().mouseHandler.ypos()
+          * net.minecraft.client.Minecraft.getInstance().getWindow().getGuiScaledHeight()
+          / net.minecraft.client.Minecraft.getInstance().getWindow().getScreenHeight();
+      return openorigins$emojiPanel.isMouseOver(mx, my);
+    } catch (Throwable t) {
+      return false;
+    }
+  }
+
+  /** Blinds chat-history hover while the emoji box is hovered (no bleed-through). */
+  @ModifyArgs(method = "extractRenderState", at = @At(value = "INVOKE",
+      target = "Lnet/minecraft/client/gui/components/ChatComponent;extractRenderState(Lnet/minecraft/client/gui/GuiGraphicsExtractor;Lnet/minecraft/client/gui/Font;IIILnet/minecraft/client/gui/components/ChatComponent$DisplayMode;Z)V"))
+  private void openorigins$blindHistoryHover(Args args) {
+    if (openorigins$panelHovered()) {
+      args.set(2, -999);
+      args.set(3, -999);
     }
   }
 

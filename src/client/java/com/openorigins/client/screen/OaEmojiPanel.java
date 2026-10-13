@@ -32,7 +32,7 @@ public class OaEmojiPanel implements Renderable, GuiEventListener, NarratableEnt
   public static final int UNITS_PER_ROW = 9;
   public static final int UNIT = 12;
 
-  private final java.util.List<String> ids = OaEmojiStore.orderedIds();
+  private java.util.List<String> ids = java.util.List.of();
   private final EditBox target;
   private final int x;
   private final int y;
@@ -44,6 +44,12 @@ public class OaEmojiPanel implements Renderable, GuiEventListener, NarratableEnt
     this.target = target;
     this.x = 4;
     this.y = screenHeight - BOX_H - 34;
+    refresh();
+  }
+
+  private void refresh() {
+    ids = OaEmojiStore.orderedIds();
+    scroll = Math.max(0, Math.min(maxScroll(), scroll));
   }
 
   private int contentHeight() {
@@ -82,6 +88,7 @@ public class OaEmojiPanel implements Renderable, GuiEventListener, NarratableEnt
 
   @Override
   public void extractRenderState(GuiGraphicsExtractor gfx, int mouseX, int mouseY, float partialTick) {
+    refresh();
     Font font = Minecraft.getInstance().font;
     gfx.blit(RenderPipelines.GUI_TEXTURED, TEX, x, y, 0.0f, 0.0f, BOX_W, BOX_H, TEX_W, TEX_H);
     hoverIdx = -1;
@@ -117,6 +124,7 @@ public class OaEmojiPanel implements Renderable, GuiEventListener, NarratableEnt
   @Override
   public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
     if (event.button() != 0 && event.button() != 1) return false;
+    refresh();
     double mx = event.x();
     double my = event.y();
     if (mx < x || mx >= x + BOX_W || my < y || my >= y + BOX_H) return false;
