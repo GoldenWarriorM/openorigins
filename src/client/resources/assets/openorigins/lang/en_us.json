@@ -98,6 +98,7 @@
   "feature.openorigins.oa_emoji_picker.desc": "Chat emoji grid backed by config/openorigins/emoji.json (OriginAddons-style).",
   "feature.openorigins.oa_rocket_fuel_hud.desc": "Rocket-boots fuel bar above the armor HUD.",
   "feature.openorigins.oa_rocket_fuel_bar.desc": "Rocket-boots durability bar replaced with the fuel bar.",
+  "feature.openorigins.oa_block_picker.desc": "Middle-click picks custom blocks by matching inventory items.",
   "feature.openorigins.helmet_cosmetic_slot.desc": "Shows helmet cosmetic in a separate slot, real helmet in the helmet slot.",
   "feature.openorigins.helmet_cosmetic_slot.hint": "If the helmet is missing or wrong, take the item off and put it back on.",
   "feature.openorigins.strict_recipe_match.desc": "Strict recipe-book matching for custom items.",

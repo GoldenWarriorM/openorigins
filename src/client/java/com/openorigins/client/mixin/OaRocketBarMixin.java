@@ -32,7 +32,7 @@ public abstract class OaRocketBarMixin {
     }
   }
 
-  @Inject(method = "isItemBarVisible", at = @At("HEAD"), cancellable = true)
+  @Inject(method = "isBarVisible", at = @At("HEAD"), cancellable = true)
   private void openorigins$fuelVisible(CallbackInfoReturnable<Boolean> cir) {
     if (openorigins$fuelBar() && openorigins$fraction() >= 0.0f) {
       cir.setReturnValue(true);
@@ -40,7 +40,7 @@ public abstract class OaRocketBarMixin {
     }
   }
 
-  @Inject(method = "getItemBarStep", at = @At("HEAD"), cancellable = true)
+  @Inject(method = "getBarWidth", at = @At("HEAD"), cancellable = true)
   private void openorigins$fuelStep(CallbackInfoReturnable<Integer> cir) {
     if (!openorigins$fuelBar()) return;
     float f = openorigins$fraction();
@@ -50,7 +50,7 @@ public abstract class OaRocketBarMixin {
     }
   }
 
-  @Inject(method = "getItemBarColor", at = @At("HEAD"), cancellable = true)
+  @Inject(method = "getBarColor", at = @At("HEAD"), cancellable = true)
   private void openorigins$fuelColor(CallbackInfoReturnable<Integer> cir) {
     if (!openorigins$fuelBar()) return;
     float f = openorigins$fraction();

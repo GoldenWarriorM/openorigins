@@ -20,6 +20,7 @@
     "OaChatEmojiMixin",
     "OaEmojiLearnMixin",
     "OaRocketBarMixin",
+    "OaBlockPickMixin",
     "ContainerHotkeyMixin",
     "RegistryDesyncMixin",
     "HelmetCosmeticSlotMixin",
