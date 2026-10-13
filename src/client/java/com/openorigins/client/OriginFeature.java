@@ -17,6 +17,7 @@ public enum OriginFeature {
   SCOREBOARD_DESYNC_FIX(FeatureCategory.FIXES, "Scoreboard Desync Fix"),
   REGISTRY_DESYNC_FIX(FeatureCategory.FIXES, "Registry Desync Fix"),
   BADGER_TASK_HUD(FeatureCategory.UI, "Badger Task HUD"),
+  EMOJI_PICKER(FeatureCategory.UI, "Emoji Picker"),
   ALLAY_ARMS_FIX(FeatureCategory.FIXES, "Allay Arms Fix"),
   ENTITY_EXTRAPOLATION(FeatureCategory.EXPERIMENTAL, false, "Entity Extrapolation"),
   MOA_FACING_FIX(FeatureCategory.FIXES, "Moa Facing Fix"),
