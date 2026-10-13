@@ -47,8 +47,8 @@ public abstract class ChatEmojiMixin extends net.minecraft.client.gui.screens.Sc
         this.removeWidget(openorigins$emojiPanel);
         openorigins$emojiPanel = null;
       } else {
-        int w = EmojiPanel.COLS * EmojiPanel.CELL + EmojiPanel.PAD * 2;
-        int h = EmojiPanel.HEADER + EmojiPanel.ROWS * EmojiPanel.CELL + EmojiPanel.PAD * 2;
+        int w = EmojiPanel.panelWidth();
+        int h = EmojiPanel.panelHeight();
         int px = btnX;
         if (px + w > this.width - 2) px = this.width - 2 - w;
         if (px < 2) px = 2;

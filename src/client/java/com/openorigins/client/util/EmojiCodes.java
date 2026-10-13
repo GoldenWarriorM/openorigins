@@ -85,11 +85,21 @@ public final class EmojiCodes {
   /** Harvest :code: entries from brigadier suggestion lists (rank-dependent). */
   public static synchronized int harvestTexts(java.util.List<String> texts) {
     int n = 0;
+    StringBuilder probe = new StringBuilder();
     for (String t : texts) {
       String s = t.trim();
-      if (s.startsWith(":")) s = s.substring(1);
+      if (s.startsWith(":")) {
+        if (probe.length() < 200) {
+          if (probe.length() > 0) probe.append(' ');
+          probe.append(s);
+        }
+        s = s.substring(1);
+      }
       if (s.endsWith(":") && s.length() > 1) s = s.substring(0, s.length() - 1);
       if (CODE.matcher(":" + s + ":").matches() && addCodeNoSave(s)) n++;
+    }
+    if (probe.length() > 0) {
+      DebugLog.info("[emoji] suggest probe: " + probe + " -> +" + n);
     }
     if (n > 0) save();
     return n;
