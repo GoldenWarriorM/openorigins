@@ -230,9 +230,9 @@ public class ConfigScreen extends Screen {
     }
     tabHiAlpha += (wantA - tabHiAlpha) * Math.min(1.0, dt * TAB_HI_SPEED * 0.8);
     if (tabHiAlpha < 0.02 || tabHiH < 2 || tw <= 0) return;
-    int a = (int) Math.round(48 * Math.max(0, Math.min(1, tabHiAlpha)));
+    int a = (int) Math.round(72 * Math.max(0, Math.min(1, tabHiAlpha)));
     graphics.fill(tx, (int) Math.round(tabHiY), tx + tw, (int) Math.round(tabHiY + tabHiH),
-        (a << 24) | 0xFFFFFF);
+        (a << 24) | 0xA0A0A0);
   }
 
   @Override
