@@ -19,6 +19,7 @@
     "ChatConfirmMixin",
     "OaChatEmojiMixin",
     "OaEmojiLearnMixin",
+    "OaRocketBarMixin",
     "ContainerHotkeyMixin",
     "RegistryDesyncMixin",
     "HelmetCosmeticSlotMixin",

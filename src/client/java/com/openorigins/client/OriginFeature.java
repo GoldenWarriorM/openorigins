@@ -22,7 +22,9 @@ public enum OriginFeature {
   MOA_FACING_FIX(FeatureCategory.FIXES, "Moa Facing Fix"),
   BREAK_SYNC(FeatureCategory.EXPERIMENTAL, false, "Break Sync", true),
   STRICT_RECIPE_MATCH(FeatureCategory.EXPERIMENTAL, false, "Strict Recipe Match"),
-  OA_EMOJI_PICKER(FeatureCategory.ORIGIN_ADDONS, false, "Emoji Picker");
+  OA_EMOJI_PICKER(FeatureCategory.ORIGIN_ADDONS, false, "Emoji Picker"),
+  OA_ROCKET_FUEL_HUD(FeatureCategory.ORIGIN_ADDONS, false, "Rocket Fuel HUD"),
+  OA_ROCKET_FUEL_BAR(FeatureCategory.ORIGIN_ADDONS, false, "Rocket Fuel Bar");
 
   private final FeatureCategory category;
   private final boolean defaultValue;
