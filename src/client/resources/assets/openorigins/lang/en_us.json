@@ -28,7 +28,6 @@
   "category.openorigins.misc": "Debug",
   "category.openorigins.experimental": "Experimental",
   "category.openorigins.servers": "Servers",
-  "category.openorigins.origin_addons": "OriginAddons",
   "config.openorigins.servers": "Server allowlist",
   "config.openorigins.servers_hint": "One server address per row. Empty list = patches apply on every connected server. Handshake-verified Origin servers always apply.",
   "config.openorigins.servers_add": "Add server",
