@@ -9,7 +9,8 @@ public enum ConfigTab {
   UI("category.openorigins.ui", List.of(FeatureCategory.UI)),
   EXPERIMENTAL("category.openorigins.experimental", List.of(FeatureCategory.EXPERIMENTAL)),
   MISC("category.openorigins.misc", List.of(FeatureCategory.MISC)),
-  SERVERS("category.openorigins.servers", List.of(FeatureCategory.SERVERS));
+  SERVERS("category.openorigins.servers", List.of(FeatureCategory.SERVERS)),
+  ORIGIN_ADDONS("category.openorigins.origin_addons", List.of(FeatureCategory.ORIGIN_ADDONS));
 
   private final String titleKey;
   private final List<FeatureCategory> categories;
