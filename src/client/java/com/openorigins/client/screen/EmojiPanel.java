@@ -1,5 +1,6 @@
 package com.openorigins.client.screen;
 
+import com.openorigins.client.util.EmojiCodes;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
@@ -21,7 +22,7 @@ public class EmojiPanel implements Renderable, GuiEventListener, NarratableEntry
   public static final int HEADER = 16;
   public static final int PAD = 4;
 
-  private final String[] emoji = EmojiData.all();
+  private final java.util.List<String> codes = EmojiCodes.codes();
   private final EditBox target;
   private final int x;
   private final int y;
@@ -39,7 +40,12 @@ public class EmojiPanel implements Renderable, GuiEventListener, NarratableEntry
   }
 
   public int pages() {
-    return Math.max(1, (emoji.length + COLS * ROWS - 1) / (COLS * ROWS));
+    return Math.max(1, (codes.size() + COLS * ROWS - 1) / (COLS * ROWS));
+  }
+
+  private static String label(String code) {
+    String glyph = EmojiCodes.charFor(code);
+    return glyph != null ? glyph : ":" + code + ":";
   }
 
   @Override
@@ -59,12 +65,12 @@ public class EmojiPanel implements Renderable, GuiEventListener, NarratableEntry
     int perPage = COLS * ROWS;
     for (int i = 0; i < perPage; i++) {
       int idx = page * perPage + i;
-      if (idx >= emoji.length) break;
+      if (idx >= codes.size()) break;
       int cx = x + PAD + (i % COLS) * CELL;
       int cy = y + PAD + HEADER + (i / COLS) * CELL;
       boolean hover = mouseX >= cx && mouseX < cx + CELL && mouseY >= cy && mouseY < cy + CELL;
       if (hover) gfx.fill(cx, cy, cx + CELL, cy + CELL, 0x44FFFFFF);
-      String e = emoji[idx];
+      String e = label(codes.get(idx));
       gfx.text(font, e, cx + (CELL - font.width(e)) / 2, cy + (CELL - 8) / 2, 0xFFFFFFFF);
     }
   }
@@ -73,7 +79,7 @@ public class EmojiPanel implements Renderable, GuiEventListener, NarratableEntry
     int perPage = COLS * ROWS;
     for (int i = 0; i < perPage; i++) {
       int idx = page * perPage + i;
-      if (idx >= emoji.length) break;
+      if (idx >= codes.size()) break;
       int cx = x + PAD + (i % COLS) * CELL;
       int cy = y + PAD + HEADER + (i / COLS) * CELL;
       if (mx >= cx && mx < cx + CELL && my >= cy && my < cy + CELL) return idx;
@@ -94,7 +100,7 @@ public class EmojiPanel implements Renderable, GuiEventListener, NarratableEntry
     }
     int idx = cellAt(mx, my);
     if (idx >= 0) {
-      target.insertText(emoji[idx]);
+      target.insertText(":" + codes.get(idx) + ":");
       target.setFocused(true);
       return true;
     }

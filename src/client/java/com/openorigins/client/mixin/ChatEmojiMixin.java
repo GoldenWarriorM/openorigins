@@ -3,6 +3,7 @@ package com.openorigins.client.mixin;
 import com.openorigins.client.OpenOriginsConfig;
 import com.openorigins.client.OriginFeature;
 import com.openorigins.client.screen.EmojiPanel;
+import com.openorigins.client.util.EmojiCodes;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.ChatScreen;
@@ -58,6 +59,38 @@ public abstract class ChatEmojiMixin extends net.minecraft.client.gui.screens.Sc
       }
     }).bounds(btnX, btnY, 20, 20).build();
     this.addRenderableWidget(openorigins$emojiButton);
+  }
+
+  @Unique
+  private boolean openorigins$converting;
+
+  @Inject(method = "onEdited", at = @At("TAIL"))
+  private void openorigins$autoconvert(String value, CallbackInfo ci) {
+    if (openorigins$converting) return;
+    if (!OpenOriginsConfig.getInstance().isEnabled(OriginFeature.EMOJI_PICKER)) return;
+    if (input == null || !input.isFocused()) return;
+    String converted = EmojiCodes.replaceKnown(value);
+    if (converted.equals(value)) return;
+    int cursor = input.getCursorPosition();
+    int delta = 0;
+    java.util.List<String> codes = EmojiCodes.findCodes(value);
+    int searchFrom = 0;
+    for (String code : codes) {
+      String glyph = EmojiCodes.charFor(code);
+      if (glyph == null) continue;
+      String token = ":" + code + ":";
+      int at = value.indexOf(token, searchFrom);
+      if (at < 0) continue;
+      searchFrom = at + token.length();
+      if (at + token.length() <= cursor) delta += token.length() - glyph.length();
+    }
+    openorigins$converting = true;
+    try {
+      input.setValue(converted);
+      input.setCursorPosition(Math.max(0, cursor - delta));
+    } finally {
+      openorigins$converting = false;
+    }
   }
 
   @Inject(method = "keyPressed", at = @At("HEAD"), cancellable = true)
