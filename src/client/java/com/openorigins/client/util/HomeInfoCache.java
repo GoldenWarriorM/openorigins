@@ -301,11 +301,14 @@ public final class HomeInfoCache {
         layout.add("home:" + key(name));
         guiNames.put(key(name), name);
         n++;
-        String lore0 = lore.lines().isEmpty() ? "<no lore>"
-            : lore.lines().get(0).getString();
-        if (lore0.length() > 80) lore0 = lore0.substring(0, 80);
-        com.openorigins.client.util.DebugLog.info("[homes-lore] +home '{}' lore1: '{}'",
-            name, lore0);
+        StringBuilder lb = new StringBuilder();
+        for (net.minecraft.network.chat.Component lc : lore.lines()) {
+          if (lb.length() > 0) lb.append(" // ");
+          lb.append(lc.getString());
+          if (lb.length() > 300) break;
+        }
+        com.openorigins.client.util.DebugLog.info("[homes-lore] +home '{}' lore: '{}'",
+            name, lb.toString());
       } else {
         String lower = name.toLowerCase(java.util.Locale.ROOT);
         if (lower.contains("rank up to unlock")) {
