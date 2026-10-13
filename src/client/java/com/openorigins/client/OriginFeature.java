@@ -23,8 +23,6 @@ public enum OriginFeature {
   BREAK_SYNC(FeatureCategory.EXPERIMENTAL, false, "Break Sync", true),
   STRICT_RECIPE_MATCH(FeatureCategory.EXPERIMENTAL, false, "Strict Recipe Match"),
   OA_EMOJI_PICKER(FeatureCategory.ORIGIN_ADDONS, false, "Emoji Picker"),
-  OA_ROCKET_FUEL_HUD(FeatureCategory.ORIGIN_ADDONS, false, "Rocket Fuel HUD"),
-  OA_ROCKET_FUEL_BAR(FeatureCategory.ORIGIN_ADDONS, false, "Rocket Fuel Bar"),
   OA_BLOCK_PICKER(FeatureCategory.ORIGIN_ADDONS, false, "Block Picker");
 
   private final FeatureCategory category;

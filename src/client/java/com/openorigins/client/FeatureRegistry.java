@@ -18,8 +18,6 @@ public final class FeatureRegistry {
         BadgerHud.ID, new BadgerHud());
     net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry.attachElementAfter(
         BadgerHud.ID, ServerOutboxHud.ID, new ServerOutboxHud());
-    net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry.attachElementAfter(
-        ServerOutboxHud.ID, RocketFuelHud.ID, new RocketFuelHud());
     net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents.END_CLIENT_TICK.register(client -> {
       if (client.level == null) return;
       // Applies tag ops that arrived before their entities were tracked.
