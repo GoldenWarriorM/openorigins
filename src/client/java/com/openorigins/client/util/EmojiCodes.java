@@ -31,6 +31,7 @@ public final class EmojiCodes {
 
   private static long joinTick = -1;
   private static long lastHarvestTick = -1;
+  private static long lastProbeMs = 0;
   private static boolean learnSent;
 
   public static synchronized void registerAuto() {
@@ -53,7 +54,28 @@ public final class EmojiCodes {
             lastHarvestTick = -1;
             bulkLearn(client);
           }
+          // Staggered ":" probe: tests whether the server answers bare
+          // suggestion requests outside chat. At most once per 5 minutes,
+          // only while unlearned codes remain.
+          long nowMs = System.currentTimeMillis();
+          if (now - joinTick > 100 && nowMs - lastProbeMs > 300000 && hasUnlearned()) {
+            lastProbeMs = nowMs;
+            try {
+              client.getConnection().send(
+                  new net.minecraft.network.protocol.game.ServerboundCommandSuggestionPacket(
+                      0xE402, ":"));
+              DebugLog.info("[emoji] staggered probe sent");
+            } catch (Throwable ignored) {
+            }
+          }
         });
+  }
+
+  private static boolean hasUnlearned() {
+    for (String v : codeToChar.values()) {
+      if (v == null || v.isEmpty()) return true;
+    }
+    return false;
   }
 
   private static synchronized void bulkLearn(net.minecraft.client.Minecraft client) {
