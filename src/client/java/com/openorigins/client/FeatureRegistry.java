@@ -8,6 +8,7 @@ public final class FeatureRegistry {
   public static void registerAll() {
     HotkeyFeatures.register();
     com.openorigins.client.util.EmojiCodes.load();
+    com.openorigins.client.util.EmojiCodes.registerAuto();
     AuctionPing.register();
     CosmeticScanner.registerAutoScan();
     com.openorigins.client.util.MobExtrapolation.register();

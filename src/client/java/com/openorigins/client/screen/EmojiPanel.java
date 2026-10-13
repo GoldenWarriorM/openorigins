@@ -12,15 +12,16 @@ import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.client.input.MouseButtonEvent;
 
 /**
- * Clickable emoji list shown above the chat input. Rows show the glyph once
- * learned, otherwise the :code:. Own widget, no third-party code.
+ * Emoji grid above the chat input. Learned codes draw their pack glyphs
+ * through the game font; unknown ones show "?" with the :code: in the header
+ * on hover. Own widget, no third-party code.
  */
 public class EmojiPanel implements Renderable, GuiEventListener, NarratableEntry {
-  public static final int ROWS = 8;
-  public static final int ROW_H = 12;
+  public static final int COLS = 8;
+  public static final int ROWS = 4;
+  public static final int CELL = 20;
   public static final int HEADER = 14;
   public static final int PAD = 4;
-  public static final int W = 150;
 
   private final java.util.List<String> codes = EmojiCodes.codes();
   private final EditBox target;
@@ -30,31 +31,26 @@ public class EmojiPanel implements Renderable, GuiEventListener, NarratableEntry
   private final int h;
   private int page;
   private boolean focused;
+  private int hoverIdx = -1;
 
   public EmojiPanel(EditBox target, int x, int y) {
     this.target = target;
     this.x = x;
     this.y = y;
-    this.w = W;
-    this.h = HEADER + ROWS * ROW_H + PAD;
+    this.w = COLS * CELL + PAD * 2;
+    this.h = HEADER + ROWS * CELL + PAD;
   }
 
   public static int panelWidth() {
-    return W;
+    return COLS * CELL + PAD * 2;
   }
 
   public static int panelHeight() {
-    return HEADER + ROWS * ROW_H + PAD;
+    return HEADER + ROWS * CELL + PAD;
   }
 
   public int pages() {
-    return Math.max(1, (codes.size() + ROWS - 1) / ROWS);
-  }
-
-  private static String label(String code) {
-    String glyph = EmojiCodes.charFor(code);
-    if (glyph != null) return glyph + "  :" + code + ":";
-    return ":" + code + ":";
+    return Math.max(1, (codes.size() + COLS * ROWS - 1) / (COLS * ROWS));
   }
 
   @Override
@@ -65,25 +61,35 @@ public class EmojiPanel implements Renderable, GuiEventListener, NarratableEntry
     gfx.fill(x, y + h - 1, x + w, y + h, 0xFF3A3A3A);
     gfx.fill(x, y, x + 1, y + h, 0xFF3A3A3A);
     gfx.fill(x + w - 1, y, x + w, y + h, 0xFF3A3A3A);
+    hoverIdx = cellAt(mouseX, mouseY);
     gfx.text(font, "<", x + PAD + 1, y + 2, 0xFFFFFFFF);
-    String count = (page + 1) + "/" + pages();
-    gfx.text(font, count, x + w / 2 - font.width(count) / 2, y + 2, 0xFFAAAAAA);
+    String mid = hoverIdx >= 0 ? ":" + codes.get(hoverIdx) + ":"
+        : (page + 1) + "/" + pages();
+    gfx.text(font, mid, x + w / 2 - font.width(mid) / 2, y + 2, 0xFFAAAAAA);
     gfx.text(font, ">", x + w - PAD - 1 - font.width(">"), y + 2, 0xFFFFFFFF);
-    for (int i = 0; i < ROWS; i++) {
-      int idx = page * ROWS + i;
+    int perPage = COLS * ROWS;
+    for (int i = 0; i < perPage; i++) {
+      int idx = page * perPage + i;
       if (idx >= codes.size()) break;
-      int ry = y + HEADER + i * ROW_H;
-      boolean hover = mouseX >= x && mouseX < x + w && mouseY >= ry && mouseY < ry + ROW_H;
-      if (hover) gfx.fill(x + 1, ry, x + w - 1, ry + ROW_H, 0x44FFFFFF);
-      gfx.text(font, label(codes.get(idx)), x + PAD + 2, ry + 2, 0xFFFFFFFF);
+      int cx = x + PAD + (i % COLS) * CELL;
+      int cy = y + HEADER + (i / COLS) * CELL;
+      if (idx == hoverIdx) gfx.fill(cx, cy, cx + CELL, cy + CELL, 0x44FFFFFF);
+      String glyph = EmojiCodes.charFor(codes.get(idx));
+      String e = glyph != null ? glyph : "?";
+      gfx.text(font, e, cx + (CELL - font.width(e)) / 2, cy + (CELL - 9) / 2, 0xFFFFFFFF);
     }
   }
 
-  private int rowAt(double mx, double my) {
-    if (mx < x || mx >= x + w || my < y + HEADER || my >= y + HEADER + ROWS * ROW_H) return -1;
-    int row = (int) ((my - y - HEADER) / ROW_H);
-    int idx = page * ROWS + row;
-    return idx < codes.size() ? idx : -1;
+  private int cellAt(double mx, double my) {
+    int perPage = COLS * ROWS;
+    for (int i = 0; i < perPage; i++) {
+      int idx = page * perPage + i;
+      if (idx >= codes.size()) break;
+      int cx = x + PAD + (i % COLS) * CELL;
+      int cy = y + HEADER + (i / COLS) * CELL;
+      if (mx >= cx && mx < cx + CELL && my >= cy && my < cy + CELL) return idx;
+    }
+    return -1;
   }
 
   @Override
@@ -97,7 +103,7 @@ public class EmojiPanel implements Renderable, GuiEventListener, NarratableEntry
       else if (mx >= x + w / 2 && page + 1 < pages()) page++;
       return true;
     }
-    int idx = rowAt(mx, my);
+    int idx = cellAt(mx, my);
     if (idx >= 0) {
       target.insertText(":" + codes.get(idx) + ":");
       target.setFocused(true);
