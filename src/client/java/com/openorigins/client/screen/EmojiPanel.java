@@ -107,6 +107,11 @@ public class EmojiPanel implements Renderable, GuiEventListener, NarratableEntry
   }
 
   @Override
+  public boolean isMouseOver(double mx, double my) {
+    return mx >= x && mx < x + w && my >= y && my < y + h;
+  }
+
+  @Override
   public void setFocused(boolean focused) {
     this.focused = focused;
   }
