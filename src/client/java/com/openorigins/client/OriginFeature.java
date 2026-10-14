@@ -21,7 +21,7 @@ public enum OriginFeature {
   ENTITY_EXTRAPOLATION(FeatureCategory.EXPERIMENTAL, false, "Entity Extrapolation"),
   MOA_FACING_FIX(FeatureCategory.FIXES, "Moa Facing Fix"),
   BREAK_SYNC(FeatureCategory.EXPERIMENTAL, false, "Break Sync", true),
-  STRICT_RECIPE_MATCH(FeatureCategory.EXPERIMENTAL, false, "Strict Recipe Match"),
+  STRICT_RECIPE_MATCH(FeatureCategory.FIXES, "Strict Recipe Match"),
   OA_EMOJI_PICKER(FeatureCategory.UI, "Server Emoji");
 
   private final FeatureCategory category;
