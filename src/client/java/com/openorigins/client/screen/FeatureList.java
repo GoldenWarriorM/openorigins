@@ -355,8 +355,6 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
             posRow.setCollapseGroup("badger");
             posRow.setSuffix(FeatureList::positionSuffix);
             out.add(posRow);
-            posRow.setCollapseGroup("badger");
-            out.add(posRow);
             ToggleRow backdropRow = new ToggleRow(this, "config.openorigins.badger_backdrop",
                 "config.openorigins.badger_backdrop_hint",
                 () -> OpenOriginsConfig.getInstance().isBadgerHudBackdrop(),
