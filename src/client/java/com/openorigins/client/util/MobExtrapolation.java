@@ -77,7 +77,7 @@ public final class MobExtrapolation {
               if (e == null || e == client.player || e.isRemoved()) {
                 continue;
               }
-              if (carriesPlayer(e, client.player)) {
+              if (carriesPlayer(e, client.player) || sharesMountWithPlayer(e, client.player)) {
                 HIST.remove(e.getId());
                 SMOOTHED_VEL.remove(e.getId());
                 APPLIED.remove(e.getId());
@@ -191,6 +191,20 @@ public final class MobExtrapolation {
     return false;
   }
 
+  /** True if the entity rides (transitively) something carrying the player. */
+  private static boolean sharesMountWithPlayer(Entity e, Entity player) {
+    try {
+      Entity root = e;
+      java.util.Set<Integer> seen = new java.util.HashSet<>();
+      while (root != null && root.getVehicle() != null && seen.add(root.getId())) {
+        root = root.getVehicle();
+      }
+      return root != null && (root == player || carriesPlayer(root, player));
+    } catch (Throwable ignored) {
+      return false;
+    }
+  }
+
   private static boolean hasDisplayPassenger(Entity e) {    try {
       for (Entity p : e.getPassengers()) {
         if (p instanceof Display || p instanceof ArmorStand) {
@@ -210,7 +224,8 @@ public final class MobExtrapolation {
   public static double[] renderOffset(Entity e) {
     try {
       net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
-      if (mc != null && mc.player != null && carriesPlayer(e, mc.player)) {
+      if (mc != null && mc.player != null && (carriesPlayer(e, mc.player)
+          || sharesMountWithPlayer(e, mc.player))) {
         APPLIED.remove(e.getId());
         return null;
       }
