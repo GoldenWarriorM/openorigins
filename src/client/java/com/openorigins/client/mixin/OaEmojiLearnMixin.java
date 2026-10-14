@@ -71,6 +71,8 @@ public abstract class OaEmojiLearnMixin {
           net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket.Action.ADD_PLAYER)) {
         return;
       }
+      int seen = 0;
+      int colon = 0;
       for (net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket.Entry e
           : packet.entries()) {
         String name;
@@ -79,11 +81,17 @@ public abstract class OaEmojiLearnMixin {
         } catch (Throwable t) {
           continue;
         }
+        seen++;
         if (name != null && name.startsWith(":")) {
+          colon++;
           String id = name.substring(1);
           if (id.endsWith(":") && id.length() > 1) id = id.substring(0, id.length() - 1);
           OaEmojiStore.setUnlocked(id);
         }
+      }
+      if (colon > 0 || seen > 0) {
+        com.openorigins.client.util.DebugLog.info("[emoji] tablist add: {} entries, {} colon",
+            seen, colon);
       }
     } catch (Throwable ignored) {
     }

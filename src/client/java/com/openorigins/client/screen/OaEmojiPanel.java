@@ -45,6 +45,11 @@ public class OaEmojiPanel implements Renderable, GuiEventListener, NarratableEnt
     this.x = 4;
     this.y = screenHeight - BOX_H - 34;
     refresh();
+    try {
+      com.openorigins.client.util.DebugLog.info("[emoji] panel opened with {} ids",
+          ids.size());
+    } catch (Throwable ignored) {
+    }
   }
 
   private void refresh() {
