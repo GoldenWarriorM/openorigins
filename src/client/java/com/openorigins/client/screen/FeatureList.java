@@ -328,8 +328,7 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
    * zero-height), so scrollbar, spy and scroll math stay exact.
    */
   private java.util.List<Entry> buildFeed() {
-    java.util.List<Entry> out = new java.util.ArrayList<>();
-    // Single feed: every tab page contains all sections; the opener tab only
+    java.util.List<Entry> out = new java.util.ArrayList<>();    // Single feed: every tab page contains all sections; the opener tab only
     // decides the initial scroll position (tabs teleport, nothing is hidden).
     for (ConfigTab t : ConfigTab.values()) {
       for (com.openorigins.client.FeatureCategory category : t.getCategories()) {
@@ -420,6 +419,14 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
         }
       }
       }
+    }
+    try {
+      StringBuilder sb = new StringBuilder("feed:");
+      for (Entry e : out) {
+        sb.append(' ').append(e.key());
+      }
+      com.openorigins.client.util.DebugLog.info(sb.toString());
+    } catch (Throwable ignored) {
     }
     return out;
   }
