@@ -29,6 +29,7 @@ public final class OpenOriginsConfig {
   private int homeCapacity = 5;
   private int extrapMs = 150;
   private boolean badgerHudVisible = true;
+  private boolean badgerHudBackdrop = true;
   private float allayArmsShiftTexels = 12.0f;
   private int scanKeyType = 0;
   private int scanKeyValue = -1;
@@ -77,6 +78,10 @@ public final class OpenOriginsConfig {
       String vis = props.getProperty("badger.hud.visible");
       if (vis != null) {
         badgerHudVisible = Boolean.parseBoolean(vis.trim());
+      }
+      String backdrop = props.getProperty("badger.hud.backdrop");
+      if (backdrop != null) {
+        badgerHudBackdrop = Boolean.parseBoolean(backdrop.trim());
       }
       String cap = props.getProperty("homes.capacity");
       if (cap != null) {
@@ -147,6 +152,7 @@ public final class OpenOriginsConfig {
     props.setProperty("discord.client.id", discordClientId);
     props.setProperty("badger.hud.corner", badgerHudCorner.name());
     props.setProperty("badger.hud.visible", Boolean.toString(badgerHudVisible));
+    props.setProperty("badger.hud.backdrop", Boolean.toString(badgerHudBackdrop));
     props.setProperty("homes.capacity", Integer.toString(homeCapacity));
     props.setProperty("extrap.ms", Integer.toString(extrapMs));
     props.setProperty("allay.arms.x", Float.toString(allayArmsShiftTexels));
@@ -242,6 +248,11 @@ public final class OpenOriginsConfig {
   public String getDiscordClientId() { return discordClientId; }
   public HudCorner getBadgerHudCorner() { return badgerHudCorner; }
   public boolean isBadgerHudVisible() { return badgerHudVisible; }
+  public boolean isBadgerHudBackdrop() { return badgerHudBackdrop; }
+  public void setBadgerHudBackdrop(boolean v) {
+    badgerHudBackdrop = v;
+    save();
+  }
   public void toggleBadgerHudVisible() {
     badgerHudVisible = !badgerHudVisible;
     save();
@@ -345,6 +356,7 @@ public final class OpenOriginsConfig {
     homeCapacity = 5;
     extrapMs = 150;
     badgerHudVisible = true;
+    badgerHudBackdrop = true;
     allayArmsShiftTexels = 12.0f;
     scanKeyType = 0;
     scanKeyValue = -1;

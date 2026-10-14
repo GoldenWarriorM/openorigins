@@ -8,6 +8,8 @@
   "config.openorigins.corner.bottom_right": "Bottom Right",
   "config.openorigins.capacity_hint": "Max home slots (saved)",
   "config.openorigins.hud_position": "Task HUD position",
+  "config.openorigins.badger_backdrop": "Task HUD backdrop",
+  "config.openorigins.badger_backdrop_hint": "Flat backdrop with cut corners behind the task HUD",
   "config.openorigins.position": "Position",
   "config.openorigins.hud_position_hint": "Which corner shows the task HUD",
   "config.openorigins.title_join_button": "Title join button",

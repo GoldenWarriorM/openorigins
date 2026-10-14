@@ -350,6 +350,14 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
                     == OpenOriginsConfig.HudCorner.TOP_LEFT);
             posRow.setCollapseGroup("badger");
             out.add(posRow);
+            ToggleRow backdropRow = new ToggleRow(this, "config.openorigins.badger_backdrop",
+                "config.openorigins.badger_backdrop_hint",
+                () -> OpenOriginsConfig.getInstance().isBadgerHudBackdrop(),
+                () -> OpenOriginsConfig.getInstance().setBadgerHudBackdrop(
+                    !OpenOriginsConfig.getInstance().isBadgerHudBackdrop()),
+                true, v -> OpenOriginsConfig.getInstance().setBadgerHudBackdrop(v));
+            backdropRow.setCollapseGroup("badger");
+            out.add(backdropRow);
           }
           if (feature == OriginFeature.ENTITY_EXTRAPOLATION) {
             StepperRow extrapRow = new StepperRow(this, "config.openorigins.extrap_ms",

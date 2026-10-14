@@ -79,10 +79,21 @@ public final class BadgerHud implements net.fabricmc.fabric.api.client.rendering
       case BOTTOM_LEFT, BOTTOM_RIGHT -> sh - 4 - totalH;
       default -> 4;
     };
+    if (OpenOriginsConfig.getInstance().isBadgerHudBackdrop()) {
+      int pad = 3;
+      int cut = 2;
+      int bx0 = x - pad;
+      int by0 = y - pad;
+      int bx1 = x + maxW + pad;
+      int by1 = y + totalH + pad;
+      int bg = 0xC0101010;
+      graphics.fill(bx0 + cut, by0, bx1 - cut, by1, bg);
+      graphics.fill(bx0, by0 + cut, bx0 + cut, by1 - cut, bg);
+      graphics.fill(bx1 - cut, by0 + cut, bx1, by1 - cut, bg);
+    }
     graphics.text(font, rows.get(0).text(), x + (rows.get(0).icon() != null ? 19 : 0), y,
         rows.get(0).color());
-    y += 11;
-    for (int i = 1; i < rows.size(); i++) {
+    y += 11;    for (int i = 1; i < rows.size(); i++) {
       Row row = rows.get(i);
       if (row.icon() != null) {
         graphics.item(row.icon(), x, y);
