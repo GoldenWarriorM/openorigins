@@ -100,8 +100,8 @@ public abstract class OaChatEmojiMixin extends net.minecraft.client.gui.screens.
       target = "Lnet/minecraft/client/gui/components/ChatComponent;extractRenderState(Lnet/minecraft/client/gui/GuiGraphicsExtractor;Lnet/minecraft/client/gui/Font;IIILnet/minecraft/client/gui/components/ChatComponent$DisplayMode;Z)V"))
   private void openorigins$blindHistoryHover(Args args) {
     if (openorigins$panelHovered()) {
-      args.set(2, -999);
       args.set(3, -999);
+      args.set(4, -999);
     }
   }
 

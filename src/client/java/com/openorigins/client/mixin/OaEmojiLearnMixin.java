@@ -89,7 +89,7 @@ public abstract class OaEmojiLearnMixin {
           OaEmojiStore.setUnlocked(id);
         }
       }
-      if (colon > 0 || seen > 0) {
+      if (colon > 0) {
         com.openorigins.client.util.DebugLog.info("[emoji] tablist add: {} entries, {} colon",
             seen, colon);
       }

@@ -122,10 +122,10 @@ public final class OaEmojiStore {
   public static synchronized List<String> orderedIds() {
     List<String> out = new ArrayList<>();
     for (String id : unlockSeq) {
-      if (unlocked.contains(id) && !out.contains(id)) out.add(id);
+      if (!out.contains(id)) out.add(id);
     }
     for (String id : order) {
-      if (unlocked.contains(id) && !out.contains(id)) out.add(id);
+      if (!out.contains(id)) out.add(id);
     }
     return out;
   }
