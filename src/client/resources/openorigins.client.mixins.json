@@ -19,7 +19,6 @@
     "ChatConfirmMixin",
     "OaChatEmojiMixin",
     "OaEmojiLearnMixin",
-    "OaBossColorProbeMixin",
     "OaSugProbeMixin",
     "ContainerHotkeyMixin",
     "RegistryDesyncMixin",
