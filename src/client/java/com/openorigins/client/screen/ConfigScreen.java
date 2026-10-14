@@ -188,11 +188,13 @@ public class ConfigScreen extends Screen {
     double dt = Math.min(0.05, Math.max(0, (now - this.tabHiLastNs) / 1_000_000_000.0));
     this.tabHiLastNs = now;
     SideTabButton target = null;
+    boolean hoverTarget = false;
     try {
       for (int i = 0; i < this.tabButtons.size() && i < this.tabs.length; i++) {
         SideTabButton b = this.tabButtons.get(i);
         if (b.isHovered()) {
           target = b;
+          hoverTarget = true;
           break;
         }
       }
@@ -227,8 +229,13 @@ public class ConfigScreen extends Screen {
     }
     double k = Math.min(1.0, dt * TAB_HI_SPEED);
     if (target != null) {
-      tabHiY += (wantY - tabHiY) * k;
-      tabHiH += (wantH - tabHiH) * k;
+      if (hoverTarget) {
+        tabHiY = wantY;
+        tabHiH = wantH;
+      } else {
+        tabHiY += (wantY - tabHiY) * k;
+        tabHiH += (wantH - tabHiH) * k;
+      }
     }
     tabHiAlpha += (wantA - tabHiAlpha) * Math.min(1.0, dt * TAB_HI_SPEED * 0.8);
     if (tabHiAlpha < 0.02 || tabHiH < 2 || tw <= 0) return;
