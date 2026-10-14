@@ -22,7 +22,7 @@ public enum OriginFeature {
   MOA_FACING_FIX(FeatureCategory.FIXES, "Moa Facing Fix"),
   BREAK_SYNC(FeatureCategory.EXPERIMENTAL, false, "Break Sync", true),
   STRICT_RECIPE_MATCH(FeatureCategory.FIXES, "Strict Recipe Match"),
-  OA_EMOJI_PICKER(FeatureCategory.UI, "Server Emoji");
+  OA_EMOJI_PICKER(FeatureCategory.UI, false, "Server Emoji", true);
 
   private final FeatureCategory category;
   private final boolean defaultValue;
