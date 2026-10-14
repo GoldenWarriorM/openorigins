@@ -27,12 +27,18 @@ public final class BadgerHud implements net.fabricmc.fabric.api.client.rendering
     }
     List<Row> rows = new ArrayList<>();
     rows.add(new Row(null, "Badger Task (streak 13)", 0xFFFFFFFF));
-    rows.add(new Row(sampleIcon(net.minecraft.world.item.Items.RED_MUSHROOM),
-        "Red Mushroom 0/2", 0xFFFFFFFF));
-    rows.add(new Row(sampleIcon(net.minecraft.world.item.Items.COAL),
-        "Coal 0/10", 0xFFFFFFFF));
-    rows.add(new Row(sampleIcon(net.minecraft.world.item.Items.LAPIS_LAZULI),
-        "Lapis Lazuli 0/6", 0xFFFFFFFF));
+    ItemStack mushroom = sampleIcon(net.minecraft.world.item.Items.RED_MUSHROOM);
+    ItemStack coal = sampleIcon(net.minecraft.world.item.Items.COAL);
+    ItemStack lapis = sampleIcon(net.minecraft.world.item.Items.LAPIS_LAZULI);
+    if (mushroom.isEmpty() || coal.isEmpty() || lapis.isEmpty()) {
+      rows.add(new Row(null, "Red Mushroom 0/2", 0xFFFFFFFF));
+      rows.add(new Row(null, "Coal 0/10", 0xFFFFFFFF));
+      rows.add(new Row(null, "Lapis Lazuli 0/6", 0xFFFFFFFF));
+    } else {
+      rows.add(new Row(mushroom, "Red Mushroom 0/2", 0xFFFFFFFF));
+      rows.add(new Row(coal, "Coal 0/10", 0xFFFFFFFF));
+      rows.add(new Row(lapis, "Lapis Lazuli 0/6", 0xFFFFFFFF));
+    }
     rows.add(new Row(null, "Time left: 7h 56m", 0xFFAAAAAA));
     rows.add(new Row(null, "Streak resets in 6d", 0xFFAAAAAA));
     return rows;
