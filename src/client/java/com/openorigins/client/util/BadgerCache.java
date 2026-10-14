@@ -227,8 +227,16 @@ public final class BadgerCache {
     if (timeLeft != null) {
       taskTimeLeft = timeLeft;
     }
-    REQUIRED.clear();
-    REQUIRED.addAll(req);
+    if (req.isEmpty() && !REQUIRED.isEmpty()) {
+      com.openorigins.client.util.DebugLog.info("[badger] ignoring empty scan (lag?)");
+    } else if (!REQUIRED.isEmpty() && !req.isEmpty() && req.size() < REQUIRED.size()
+        && req.stream().allMatch(r -> REQUIRED.stream().anyMatch(
+            o -> o.itemId().equals(r.itemId()) && o.displayName().equals(r.displayName())))) {
+      com.openorigins.client.util.DebugLog.info("[badger] ignoring partial scan (lag?)");
+    } else {
+      REQUIRED.clear();
+      REQUIRED.addAll(req);
+    }
     TIERS.clear();
     TIERS.addAll(tiers);
     if (changed) {
