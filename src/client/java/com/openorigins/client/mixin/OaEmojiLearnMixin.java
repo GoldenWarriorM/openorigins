@@ -31,6 +31,15 @@ public abstract class OaEmojiLearnMixin {
       for (ClientboundCommandSuggestionsPacket.Entry e : packet.suggestions()) {
         texts.add(e.text());
       }
+      if (!texts.isEmpty()) {
+        StringBuilder sb = new StringBuilder();
+        for (String t : texts) {
+          if (sb.length() > 300) break;
+          if (sb.length() > 0) sb.append(' ');
+          sb.append('[').append(t).append(']');
+        }
+        com.openorigins.client.util.DebugLog.info("[emoji] sug batch: " + sb);
+      }
       OaEmojiStore.harvestTexts(texts);
     } catch (Throwable ignored) {
     }
