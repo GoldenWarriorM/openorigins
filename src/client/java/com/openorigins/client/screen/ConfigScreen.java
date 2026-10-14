@@ -121,6 +121,15 @@ public class ConfigScreen extends Screen {
       this.addRenderableWidget(button);
     });
     this.selectTab(0);
+    try {
+      if (System.currentTimeMillis() - savedAtMs < SCROLL_KEEP_MS
+          && savedTab >= 0 && savedTab < this.pages.length
+          && this.pages[savedTab] instanceof ConfigTabPage page) {
+        this.selectTab(savedTab);
+        page.list().setScrollAmount(savedScroll);
+      }
+    } catch (Throwable ignored) {
+    }
     this.repositionElements();
   }
 
@@ -283,8 +292,24 @@ public class ConfigScreen extends Screen {
     }
   }
 
+  private static int savedTab = 0;
+  private static double savedScroll = 0;
+  private static long savedAtMs = 0;
+  private static final long SCROLL_KEEP_MS = 15000;
+
   @Override
   public void onClose() {
+    try {
+      savedTab = this.activeTab;
+      if (this.pages != null && this.activeTab >= 0 && this.activeTab < this.pages.length
+          && this.pages[this.activeTab] instanceof ConfigTabPage page) {
+        savedScroll = page.list().scrollAmount();
+      } else {
+        savedScroll = 0;
+      }
+      savedAtMs = System.currentTimeMillis();
+    } catch (Throwable ignored) {
+    }
     com.openorigins.client.screen.FeatureList.setSpyListener(null);
     if (this.minecraft != null) {
       this.minecraft.gui.setScreen(this.parent);
