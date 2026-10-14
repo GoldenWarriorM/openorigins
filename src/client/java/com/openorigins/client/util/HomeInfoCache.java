@@ -276,14 +276,26 @@ public final class HomeInfoCache {
         }
       }
       boolean looksLikeHome = false;
+      boolean looksLikeVisit = false;
       if (hasLore) {
+        boolean hasWorld = false;
+        boolean hasPosition = false;
         for (Component line : lore.lines()) {
           String s = line.getString();
+          if (s.contains("World:")) {
+            hasWorld = true;
+          }
+          if (s.contains("Position:")) {
+            hasPosition = true;
+          }
+          if (s.contains("visit Realm") || s.contains("pin Realm") || s.contains("Players:")) {
+            looksLikeVisit = true;
+          }
           if (s.contains("World:") || s.contains("Position:") || s.contains("Created:")) {
             looksLikeHome = true;
-            break;
           }
         }
+        looksLikeHome = looksLikeHome && hasWorld && hasPosition && !looksLikeVisit;
       }
       if (hasLore) {
         for (Component capLine : lore.lines()) {
