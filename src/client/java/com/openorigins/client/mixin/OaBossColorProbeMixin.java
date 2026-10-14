@@ -12,6 +12,21 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 /** TEMP: logs bossbar name colors via the packet Handler API. */
 @Mixin(ClientPacketListener.class)
 public abstract class OaBossColorProbeMixin {
+  private static void dump(String tag, net.minecraft.network.chat.Component c) {
+    StringBuilder sb = new StringBuilder();
+    dumpInto(c, sb);
+    com.openorigins.client.util.DebugLog.info("[bosscolor] {} '{}'", tag, sb.toString());
+  }
+
+  private static void dumpInto(net.minecraft.network.chat.Component c, StringBuilder sb) {
+    var col = c.getStyle().getColor();
+    sb.append('[').append(c.getContents() instanceof net.minecraft.network.chat.contents.PlainTextContents p
+        ? p.text() : c.getString()).append('|')
+        .append(col == null ? "-" : col.toString()).append(']');
+    for (net.minecraft.network.chat.Component s : c.getSiblings()) {
+      dumpInto(s, sb);
+    }
+  }
   @Inject(method = "handleBossUpdate", at = @At("HEAD"))
   private void openorigins$bossColor(ClientboundBossEventPacket packet, CallbackInfo ci) {
     try {
@@ -21,16 +36,14 @@ public abstract class OaBossColorProbeMixin {
             net.minecraft.world.BossEvent.BossBarColor color,
             net.minecraft.world.BossEvent.BossBarOverlay overlay, boolean darken, boolean music,
             boolean fog) {
-          var c = name.getStyle().getColor();
-          com.openorigins.client.util.DebugLog.info("[bosscolor] add '{}' color={} barcolor={}",
-              name.getString(), c == null ? "none" : c.toString(), color);
+          dump("add", name);
         }
 
         @Override
         public void updateName(UUID id, Component name) {
-          var c = name.getStyle().getColor();
-          com.openorigins.client.util.DebugLog.info("[bosscolor] rename '{}' color={}",
-              name.getString(), c == null ? "none" : c.toString());
+          if (name.getString().contains("Collected")) {
+            dump("rename", name);
+          }
         }
       });
     } catch (Throwable ignored) {
