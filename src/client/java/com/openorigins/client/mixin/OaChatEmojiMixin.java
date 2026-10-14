@@ -80,19 +80,26 @@ public abstract class OaChatEmojiMixin extends net.minecraft.client.gui.screens.
   }
 
   @Unique
+  private int openorigins$mouseX;
+  @Unique
+  private int openorigins$mouseY;
+
+  @Unique
   private boolean openorigins$panelHovered() {
     if (openorigins$emojiPanel == null) return false;
     try {
-      double mx = net.minecraft.client.Minecraft.getInstance().mouseHandler.xpos()
-          * net.minecraft.client.Minecraft.getInstance().getWindow().getGuiScaledWidth()
-          / net.minecraft.client.Minecraft.getInstance().getWindow().getScreenWidth();
-      double my = net.minecraft.client.Minecraft.getInstance().mouseHandler.ypos()
-          * net.minecraft.client.Minecraft.getInstance().getWindow().getGuiScaledHeight()
-          / net.minecraft.client.Minecraft.getInstance().getWindow().getScreenHeight();
-      return openorigins$emojiPanel.isMouseOver(mx, my);
+      return openorigins$emojiPanel.isMouseOver(openorigins$mouseX, openorigins$mouseY);
     } catch (Throwable t) {
       return false;
     }
+  }
+
+  @Inject(method = "extractRenderState(Lnet/minecraft/client/gui/GuiGraphicsExtractor;IIF)V",
+      at = @At("HEAD"))
+  private void openorigins$trackMouse(net.minecraft.client.gui.GuiGraphicsExtractor graphics,
+      int mouseX, int mouseY, float partialTick, CallbackInfo ci) {
+    openorigins$mouseX = mouseX;
+    openorigins$mouseY = mouseY;
   }
 
   /** Blinds chat-history hover while the emoji box is hovered (no bleed-through). */
