@@ -889,6 +889,9 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
     @Override
     public void extractContent(GuiGraphicsExtractor graphics, int mouseX, int mouseY, boolean hovered,
         float partialTick) {
+      if (this.isCollapsed()) {
+        return;
+      }
       this.resetButton.setX(this.list.getRowRight() - this.resetButton.getWidth());
       this.resetButton.setY(this.getContentY());
       this.button.setX(this.resetButton.getX() - 4 - this.button.getWidth());
@@ -913,6 +916,9 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
 
     @Override
     public List<? extends GuiEventListener> children() {
+      if (this.isCollapsed()) {
+        return List.of();
+      }
       if (this.expandButton != null) {
         return List.of(this.expandButton, this.button, this.resetButton);
       }
@@ -921,6 +927,9 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
 
     @Override
     public List<? extends NarratableEntry> narratables() {
+      if (this.isCollapsed()) {
+        return List.of();
+      }
       if (this.expandButton != null) {
         return List.of(this.expandButton, this.button, this.resetButton);
       }
