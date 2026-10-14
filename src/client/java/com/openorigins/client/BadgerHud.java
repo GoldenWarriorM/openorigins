@@ -67,7 +67,6 @@ public final class BadgerHud implements net.fabricmc.fabric.api.client.rendering
     for (int i = 1; i < rows.size(); i++) {
       totalH += rows.get(i).icon() != null ? 20 : 12;
     }
-    totalH += 2;
     int sw = mc.getWindow().getGuiScaledWidth();
     int sh = mc.getWindow().getGuiScaledHeight();
     OpenOriginsConfig.HudCorner corner = OpenOriginsConfig.getInstance().getBadgerHudCorner();
