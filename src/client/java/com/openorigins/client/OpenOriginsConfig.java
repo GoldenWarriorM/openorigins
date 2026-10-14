@@ -26,6 +26,8 @@ public final class OpenOriginsConfig {
   private final Map<OriginFeature, Boolean> enabled = new EnumMap<>(OriginFeature.class);
   private String discordClientId = "";
   private HudCorner badgerHudCorner = HudCorner.TOP_LEFT;
+  private int badgerHudDX = 4;
+  private int badgerHudDY = 4;
   private int homeCapacity = 5;
   private int extrapMs = 150;
   private boolean badgerHudVisible = true;
@@ -77,6 +79,15 @@ public final class OpenOriginsConfig {
       }
       String vis = props.getProperty("badger.hud.visible");
       if (vis != null) {
+        badgerHudVisible = Boolean.parseBoolean(vis.trim());
+      }
+      try {
+        String dx = props.getProperty("badger.hud.dx");
+        if (dx != null) badgerHudDX = Math.max(0, Integer.parseInt(dx.trim()));
+        String dy = props.getProperty("badger.hud.dy");
+        if (dy != null) badgerHudDY = Math.max(0, Integer.parseInt(dy.trim()));
+      } catch (NumberFormatException ignored) {
+      }      if (vis != null) {
         badgerHudVisible = Boolean.parseBoolean(vis.trim());
       }
       String backdrop = props.getProperty("badger.hud.backdrop");
@@ -151,6 +162,8 @@ public final class OpenOriginsConfig {
     }
     props.setProperty("discord.client.id", discordClientId);
     props.setProperty("badger.hud.corner", badgerHudCorner.name());
+    props.setProperty("badger.hud.dx", Integer.toString(badgerHudDX));
+    props.setProperty("badger.hud.dy", Integer.toString(badgerHudDY));
     props.setProperty("badger.hud.visible", Boolean.toString(badgerHudVisible));
     props.setProperty("badger.hud.backdrop", Boolean.toString(badgerHudBackdrop));
     props.setProperty("homes.capacity", Integer.toString(homeCapacity));
@@ -247,6 +260,13 @@ public final class OpenOriginsConfig {
   }
   public String getDiscordClientId() { return discordClientId; }
   public HudCorner getBadgerHudCorner() { return badgerHudCorner; }
+  public int getBadgerHudDX() { return badgerHudDX; }
+  public int getBadgerHudDY() { return badgerHudDY; }
+  public void setBadgerHudOffset(int dx, int dy) {
+    badgerHudDX = Math.max(0, dx);
+    badgerHudDY = Math.max(0, dy);
+    save();
+  }
   public boolean isBadgerHudVisible() { return badgerHudVisible; }
   public boolean isBadgerHudBackdrop() { return badgerHudBackdrop; }
   public void setBadgerHudBackdrop(boolean v) {
@@ -353,6 +373,8 @@ public final class OpenOriginsConfig {
     for (OriginFeature f : OriginFeature.values()) enabled.put(f, f.getDefaultValue());
     discordClientId = "";
     badgerHudCorner = HudCorner.TOP_LEFT;
+    badgerHudDX = 4;
+    badgerHudDY = 4;
     homeCapacity = 5;
     extrapMs = 150;
     badgerHudVisible = true;

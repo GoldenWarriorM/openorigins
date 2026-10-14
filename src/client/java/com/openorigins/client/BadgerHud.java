@@ -16,24 +16,17 @@ import net.minecraft.world.item.ItemStack;
 public final class BadgerHud implements net.fabricmc.fabric.api.client.rendering.v1.hud.HudElement {
   public static final Identifier ID = Identifier.fromNamespaceAndPath("openorigins", "badger_task");
 
-  private record Row(ItemStack icon, String text, int color) {}
+  public record Row(ItemStack icon, String text, int color) {}
 
-  @Override
-  public void extractRenderState(GuiGraphicsExtractor graphics, DeltaTracker delta) {
-    Minecraft mc = Minecraft.getInstance();
-    if (mc == null || !OpenOriginsConfig.getInstance().isEnabled(OriginFeature.BADGER_TASK_HUD)
-        || !OpenOriginsConfig.getInstance().isBadgerHudVisible()) {
-      return;
-    }
-    if (mc.gui.hud.isHidden() || mc.player == null) {
-      return;
-    }
+  /** True while the position editor is open (live HUD stays out of the way). */
+  public static boolean previewActive;
+
+  public static List<Row> buildRows(Minecraft mc, Font font) {
+    List<Row> rows = new ArrayList<>();
     List<BadgerCache.Required> req = BadgerCache.required();
     if (req.isEmpty()) {
-      return;
+      return rows;
     }
-    Font font = mc.font;
-    List<Row> rows = new ArrayList<>();
     rows.add(new Row(null, Component.translatable("hud.openorigins.badger_task",
         BadgerCache.streakScore()).getString(), 0xFFFFFFFF));
     for (BadgerCache.Required r : req) {
@@ -57,6 +50,10 @@ public final class BadgerHud implements net.fabricmc.fabric.api.client.rendering
               com.openorigins.client.util.OpenWorldCache.shortDuration(
                   BadgerCache.taskTimeLeft())).getString(), 0xFFAAAAAA));
     }
+    return rows;
+  }
+
+  public static int maxWidth(Font font, List<Row> rows) {
     int maxW = 0;
     for (Row row : rows) {
       int w = (row.icon() != null ? 19 : 0) + font.width(row.text());
@@ -64,31 +61,39 @@ public final class BadgerHud implements net.fabricmc.fabric.api.client.rendering
         maxW = w;
       }
     }
+    return maxW;
+  }
+
+  public static int totalHeight(List<Row> rows) {
+    if (rows.isEmpty()) {
+      return 0;
+    }
     int totalH = 11;
     for (int i = 1; i < rows.size(); i++) {
       totalH += rows.get(i).icon() != null ? 20 : 12;
     }
-    int sw = mc.getWindow().getGuiScaledWidth();
-    int sh = mc.getWindow().getGuiScaledHeight();
-    OpenOriginsConfig.HudCorner corner = OpenOriginsConfig.getInstance().getBadgerHudCorner();
+    return totalH;
+  }
+
+  /** Box top-left for an anchor corner, offsets and content size. */
+  public static int[] boxAt(OpenOriginsConfig.HudCorner corner, int dx, int dy, int maxW,
+      int totalH, int sw, int sh) {
     int x = switch (corner) {
-      case TOP_RIGHT, BOTTOM_RIGHT -> sw - 4 - maxW;
-      default -> 4;
+      case TOP_RIGHT, BOTTOM_RIGHT -> sw - dx - maxW;
+      default -> dx;
     };
     int y = switch (corner) {
-      case BOTTOM_LEFT, BOTTOM_RIGHT -> sh - 4 - totalH;
-      default -> 4;
+      case BOTTOM_LEFT, BOTTOM_RIGHT -> sh - dy - totalH;
+      default -> dy;
     };
-    if ((corner == OpenOriginsConfig.HudCorner.TOP_LEFT
-        || corner == OpenOriginsConfig.HudCorner.TOP_RIGHT) && 4 + maxW > sw / 2 - 91) {
-      try {
-        int bars = ((BossBarAccessor) mc.gui.hud.getBossOverlay()).openorigins$getBossEvents()
-            .size();
-        if (bars > 0) y = 14 + bars * 19;
-      } catch (Throwable ignored) {
-      }
-    }
-    if (OpenOriginsConfig.getInstance().isBadgerHudBackdrop()) {
+    return new int[]{x, y};
+  }
+
+  public static void drawBox(GuiGraphicsExtractor graphics, Font font, List<Row> rows, int x,
+      int y, boolean backdrop) {
+    if (backdrop) {
+      int maxW = maxWidth(font, rows);
+      int totalH = totalHeight(rows);
       int pad = 3;
       int cut = 1;
       int bx0 = x - pad;
@@ -102,7 +107,8 @@ public final class BadgerHud implements net.fabricmc.fabric.api.client.rendering
     }
     graphics.text(font, rows.get(0).text(), x + (rows.get(0).icon() != null ? 19 : 0), y,
         rows.get(0).color());
-    y += 11;    for (int i = 1; i < rows.size(); i++) {
+    y += 11;
+    for (int i = 1; i < rows.size(); i++) {
       Row row = rows.get(i);
       if (row.icon() != null) {
         graphics.item(row.icon(), x, y);
@@ -113,6 +119,43 @@ public final class BadgerHud implements net.fabricmc.fabric.api.client.rendering
       }
       y += row.icon() != null ? 20 : 12;
     }
+  }
+
+  @Override
+  public void extractRenderState(GuiGraphicsExtractor graphics, DeltaTracker delta) {
+    Minecraft mc = Minecraft.getInstance();
+    if (mc == null || !OpenOriginsConfig.getInstance().isEnabled(OriginFeature.BADGER_TASK_HUD)
+        || !OpenOriginsConfig.getInstance().isBadgerHudVisible()) {
+      return;
+    }
+    if (previewActive || mc.gui.hud.isHidden() || mc.player == null) {
+      return;
+    }
+    Font font = mc.font;
+    List<Row> rows = buildRows(mc, font);
+    if (rows.isEmpty()) {
+      return;
+    }
+    int maxW = maxWidth(font, rows);
+    int totalH = totalHeight(rows);
+    int sw = mc.getWindow().getGuiScaledWidth();
+    int sh = mc.getWindow().getGuiScaledHeight();
+    OpenOriginsConfig.HudCorner corner = OpenOriginsConfig.getInstance().getBadgerHudCorner();
+    int dx = OpenOriginsConfig.getInstance().getBadgerHudDX();
+    int dy = OpenOriginsConfig.getInstance().getBadgerHudDY();
+    int[] box = boxAt(corner, dx, dy, maxW, totalH, sw, sh);
+    int x = box[0];
+    int y = box[1];
+    if ((corner == OpenOriginsConfig.HudCorner.TOP_LEFT
+        || corner == OpenOriginsConfig.HudCorner.TOP_RIGHT) && dx + maxW > sw / 2 - 91) {
+      try {
+        int bars = ((BossBarAccessor) mc.gui.hud.getBossOverlay()).openorigins$getBossEvents()
+            .size();
+        if (bars > 0) y = 14 + bars * 19;
+      } catch (Throwable ignored) {
+      }
+    }
+    drawBox(graphics, font, rows, x, y, OpenOriginsConfig.getInstance().isBadgerHudBackdrop());
   }
 
   private static int countInInventory(Minecraft mc, BadgerCache.Required r) {

@@ -342,12 +342,17 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
           out.add(new FeatureEntry(this, feature, groupFor(feature)));
           if (feature == OriginFeature.BADGER_TASK_HUD) {
             CycleRow posRow = new CycleRow(this, "config.openorigins.position",
-                "config.openorigins.hud_position_hint", FeatureList::cornerName,
-                FeatureList::cycleCorner, true,
-                () -> OpenOriginsConfig.getInstance().setBadgerHudCorner(
-                    OpenOriginsConfig.HudCorner.TOP_LEFT),
+                "config.openorigins.hud_position_hint", FeatureList::positionName,
+                FeatureList::openPositionEditor, true,
+                () -> {
+                  OpenOriginsConfig.getInstance().setBadgerHudCorner(
+                      OpenOriginsConfig.HudCorner.TOP_LEFT);
+                  OpenOriginsConfig.getInstance().setBadgerHudOffset(4, 4);
+                },
                 () -> OpenOriginsConfig.getInstance().getBadgerHudCorner()
-                    == OpenOriginsConfig.HudCorner.TOP_LEFT);
+                    == OpenOriginsConfig.HudCorner.TOP_LEFT
+                    && OpenOriginsConfig.getInstance().getBadgerHudDX() == 4
+                    && OpenOriginsConfig.getInstance().getBadgerHudDY() == 4);
             posRow.setCollapseGroup("badger");
             out.add(posRow);
             ToggleRow backdropRow = new ToggleRow(this, "config.openorigins.badger_backdrop",
@@ -535,14 +540,18 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
     out.add(new ServerAddRow(this));
   }
 
-  private static String cornerName() {
-    OpenOriginsConfig.HudCorner corner = OpenOriginsConfig.getInstance().getBadgerHudCorner();
-    return net.minecraft.network.chat.Component.translatable(
-        "config.openorigins.corner." + corner.name().toLowerCase()).getString();
+  private static String positionName() {
+    OpenOriginsConfig cfg = OpenOriginsConfig.getInstance();
+    String corner = net.minecraft.network.chat.Component.translatable(
+        "config.openorigins.corner." + cfg.getBadgerHudCorner().name().toLowerCase()).getString();
+    return corner + " " + cfg.getBadgerHudDX() + ", " + cfg.getBadgerHudDY();
   }
 
-  private static void cycleCorner() {
-    OpenOriginsConfig.getInstance().cycleBadgerHudCorner();
+  private static void openPositionEditor() {
+    net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
+    if (mc == null) return;
+    net.minecraft.client.gui.screens.Screen parent = mc.gui.screen();
+    mc.gui.setScreen(new HudPositionScreen(parent));
   }
 
   public void refreshEntries() {
