@@ -50,7 +50,7 @@ public final class BadgerHud implements net.fabricmc.fabric.api.client.rendering
       boolean done = have >= r.count();
       String labelName = r.displayName().isEmpty() ? stack.getHoverName().getString() : r.displayName();
       rows.add(new Row(stack, labelName + " " + have + "/" + r.count(),
-          done ? 0xFF55FF55 : 0xFFFFFFFF));
+          done ? 0xFF00AA00 : 0xFFFFFFFF));
     }
     if (BadgerCache.daysUntilReset() > 0) {
       rows.add(new Row(null, Component.translatable("hud.openorigins.badger_reset",
