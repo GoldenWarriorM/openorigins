@@ -1,5 +1,6 @@
 package com.openorigins.client;
 
+import com.openorigins.client.mixin.BossBarAccessor;
 import com.openorigins.client.util.BadgerCache;
 import java.util.ArrayList;
 import java.util.List;
@@ -78,6 +79,15 @@ public final class BadgerHud implements net.fabricmc.fabric.api.client.rendering
       case BOTTOM_LEFT, BOTTOM_RIGHT -> sh - 4 - totalH;
       default -> 4;
     };
+    if ((corner == OpenOriginsConfig.HudCorner.TOP_LEFT
+        || corner == OpenOriginsConfig.HudCorner.TOP_RIGHT) && 4 + maxW > sw / 2 - 91) {
+      try {
+        int bars = ((BossBarAccessor) mc.gui.hud.getBossOverlay()).openorigins$getBossEvents()
+            .size();
+        if (bars > 0) y = 14 + bars * 19;
+      } catch (Throwable ignored) {
+      }
+    }
     if (OpenOriginsConfig.getInstance().isBadgerHudBackdrop()) {
       int pad = 3;
       int cut = 1;

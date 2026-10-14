@@ -39,6 +39,7 @@
     "StandExtrapolationMixin",
     "BreakSyncMixin",
     "BreakSyncAccessor",
+    "BossBarAccessor",
     "MoaFacingFixMixin",
     "EquipSwapMixin",
     "StrictRecipeMatchMixin",
