@@ -812,6 +812,33 @@ public final class HomeInfoCache {
         } catch (Exception ignored) {
         }
       }
+      int purged = 0;
+      java.util.Iterator<Map.Entry<String, Info>> cit = CACHE.entrySet().iterator();
+      while (cit.hasNext()) {
+        Map.Entry<String, Info> ce = cit.next();
+        boolean hasWorld = false;
+        boolean hasPosition = false;
+        try {
+          for (Component line : ce.getValue().lore()) {
+            String s = line.getString();
+            if (s.contains("World:")) hasWorld = true;
+            if (s.contains("Position:")) hasPosition = true;
+          }
+        } catch (Throwable ignored) {
+        }
+        if (!hasWorld || !hasPosition) {
+          cit.remove();
+          String k = ce.getKey();
+          NAMES.removeIf(w -> key(w).equals(k));
+          LAYOUT.removeIf(e -> e.equals("home:" + k));
+          purged++;
+        }
+      }
+      if (purged > 0) {
+        org.slf4j.LoggerFactory.getLogger("openorigins")
+            .info("[homes-lore] purged {} visit entries from disk", purged);
+        save();
+      }
     } catch (Exception ex) {
       org.slf4j.LoggerFactory.getLogger("openorigins")
           .warn("[homes-lore] load failed: {}", ex.toString());
