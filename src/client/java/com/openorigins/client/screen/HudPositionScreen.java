@@ -55,6 +55,9 @@ public class HudPositionScreen extends Screen {
     BadgerHud.previewActive = false;
     OpenOriginsConfig.getInstance().save();
     if (this.minecraft != null) {
+      if (this.parent instanceof ConfigScreen cfg) {
+        cfg.refreshLists();
+      }
       this.minecraft.gui.setScreen(this.parent);
     }
   }

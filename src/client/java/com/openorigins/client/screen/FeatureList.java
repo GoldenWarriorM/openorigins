@@ -342,7 +342,7 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
           out.add(new FeatureEntry(this, feature, groupFor(feature)));
           if (feature == OriginFeature.BADGER_TASK_HUD) {
             CycleRow posRow = new CycleRow(this, "config.openorigins.position",
-                "config.openorigins.hud_position_hint", FeatureList::positionName,
+                "config.openorigins.hud_position_hint", FeatureList::customizeLabel,
                 FeatureList::openPositionEditor, true,
                 () -> {
                   OpenOriginsConfig.getInstance().setBadgerHudCorner(
@@ -353,6 +353,9 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
                     == OpenOriginsConfig.HudCorner.TOP_LEFT
                     && OpenOriginsConfig.getInstance().getBadgerHudDX() == 4
                     && OpenOriginsConfig.getInstance().getBadgerHudDY() == 4);
+            posRow.setCollapseGroup("badger");
+            posRow.setSuffix(FeatureList::positionSuffix);
+            out.add(posRow);
             posRow.setCollapseGroup("badger");
             out.add(posRow);
             ToggleRow backdropRow = new ToggleRow(this, "config.openorigins.badger_backdrop",
@@ -540,11 +543,18 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
     out.add(new ServerAddRow(this));
   }
 
-  private static String positionName() {
+  private static String customizeLabel() {
+    return net.minecraft.network.chat.Component.translatable("config.openorigins.customize")
+        .getString();
+  }
+
+  private static net.minecraft.network.chat.Component positionSuffix() {
     OpenOriginsConfig cfg = OpenOriginsConfig.getInstance();
     String corner = net.minecraft.network.chat.Component.translatable(
         "config.openorigins.corner." + cfg.getBadgerHudCorner().name().toLowerCase()).getString();
-    return corner + " " + cfg.getBadgerHudDX() + ", " + cfg.getBadgerHudDY();
+    return net.minecraft.network.chat.Component.literal(
+        " (" + corner + " " + cfg.getBadgerHudDX() + ", " + cfg.getBadgerHudDY() + ")")
+        .withStyle(net.minecraft.ChatFormatting.GRAY);
   }
 
   private static void openPositionEditor() {
@@ -930,6 +940,7 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
     private final Runnable reset;
     private final java.util.function.BooleanSupplier isDefault;
     private final Button resetButton;
+    private java.util.function.Supplier<net.minecraft.network.chat.Component> suffix;
 
     public CycleRow(FeatureList list, String labelKey, String tooltipKey,
         java.util.function.Supplier<String> value, Runnable cycle, boolean indented) {
@@ -970,6 +981,10 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
       this.resetButton.active = this.reset != null && !this.isDefault.getAsBoolean();
     }
 
+    public void setSuffix(java.util.function.Supplier<net.minecraft.network.chat.Component> suffix) {
+      this.suffix = suffix;
+    }
+
     @Override
     public String key() {
       return "cycle:" + this.labelKey;
@@ -993,6 +1008,12 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
       this.button.extractRenderState(graphics, mouseX, mouseY, partialTick);
       net.minecraft.client.gui.Font font = net.minecraft.client.Minecraft.getInstance().font;
       Component label = Component.translatable(this.labelKey);
+      if (this.suffix != null) {
+        try {
+          label = label.copy().append(this.suffix.get());
+        } catch (Throwable ignored) {
+        }
+      }
       graphics.text(font, label, this.getContentX(),
           this.getContentYMiddle() - 4, 0xFFFFFFFF);
     }

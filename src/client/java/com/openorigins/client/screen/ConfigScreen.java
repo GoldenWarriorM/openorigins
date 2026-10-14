@@ -297,6 +297,17 @@ public class ConfigScreen extends Screen {
   private static long savedAtMs = 0;
   private static final long SCROLL_KEEP_MS = 15000;
 
+  public void refreshLists() {
+    try {
+      for (Tab page : this.pages) {
+        if (page instanceof ConfigTabPage p) {
+          p.list().refreshEntries();
+        }
+      }
+    } catch (Throwable ignored) {
+    }
+  }
+
   @Override
   public void onClose() {
     try {
