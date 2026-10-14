@@ -984,9 +984,6 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
       this.button.extractRenderState(graphics, mouseX, mouseY, partialTick);
       net.minecraft.client.gui.Font font = net.minecraft.client.Minecraft.getInstance().font;
       Component label = Component.translatable(this.labelKey);
-      if (this.indented) {
-        label = Component.literal("    ").append(label);
-      }
       graphics.text(font, label, this.getContentX(),
           this.getContentYMiddle() - 4, 0xFFFFFFFF);
     }
@@ -1140,9 +1137,6 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
       this.resetButton.extractRenderState(graphics, mouseX, mouseY, partialTick);
       net.minecraft.client.gui.Font font = net.minecraft.client.Minecraft.getInstance().font;
       Component label = Component.translatable(this.labelKey);
-      if (this.indented) {
-        label = Component.literal("    ").append(label);
-      }
       graphics.text(font, label, this.getContentX(),
           this.getContentYMiddle() - 4, 0xFFFFFFFF);
     }
