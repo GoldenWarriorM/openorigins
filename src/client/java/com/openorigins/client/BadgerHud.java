@@ -20,6 +20,11 @@ public final class BadgerHud implements net.fabricmc.fabric.api.client.rendering
 
   /** Placeholder layout for the position editor when no task data exists. */
   public static List<Row> sampleRows() {
+    List<Row> template =
+        com.openorigins.client.util.BadgerTemplate.loadTemplate();
+    if (!template.isEmpty()) {
+      return template;
+    }
     List<Row> rows = new ArrayList<>();
     rows.add(new Row(null, "Badger Task (streak 1)", 0xFFFFFFFF));
     rows.add(new Row(null, "Dirt 0/64", 0xFFFFFFFF));
@@ -147,6 +152,7 @@ public final class BadgerHud implements net.fabricmc.fabric.api.client.rendering
     }
     int maxW = maxWidth(font, rows);
     int totalH = totalHeight(rows);
+    com.openorigins.client.util.BadgerTemplate.maybeSnapshot(rows);
     int sw = mc.getWindow().getGuiScaledWidth();
     int sh = mc.getWindow().getGuiScaledHeight();
     OpenOriginsConfig.HudCorner corner = OpenOriginsConfig.getInstance().getBadgerHudCorner();
