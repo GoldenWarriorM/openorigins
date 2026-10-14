@@ -16,7 +16,8 @@ public abstract class ChatConfirmMixin {
     if (!packet.overlay()) {
       String text = packet.content().getString();
       HomeCreationConfirm.onChat(text);
-      if (text.toLowerCase(java.util.Locale.ROOT).contains("task complete!")) {
+      String lower = text.toLowerCase(java.util.Locale.ROOT);
+      if (lower.contains("task complete!") || lower.contains("tasks complete!")) {
         com.openorigins.client.util.BadgerCache.requestRefresh();
       }
     }
