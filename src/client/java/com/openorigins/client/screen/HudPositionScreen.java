@@ -78,6 +78,9 @@ public class HudPositionScreen extends Screen {
       rows = List.of();
     }
     if (rows.isEmpty()) {
+      rows = BadgerHud.sampleRows();
+    }
+    if (rows.isEmpty()) {
       boxW = 120;
       boxH = 40;
     } else {
@@ -189,6 +192,9 @@ public class HudPositionScreen extends Screen {
         rows = BadgerHud.buildRows(mc, font);
       } catch (Throwable t) {
         rows = List.of();
+      }
+      if (rows.isEmpty()) {
+        rows = BadgerHud.sampleRows();
       }
       if (!rows.isEmpty()) {
         boxW = BadgerHud.maxWidth(font, rows);

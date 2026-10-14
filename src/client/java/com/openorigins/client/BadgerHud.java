@@ -18,6 +18,15 @@ public final class BadgerHud implements net.fabricmc.fabric.api.client.rendering
 
   public record Row(ItemStack icon, String text, int color) {}
 
+  /** Placeholder layout for the position editor when no task data exists. */
+  public static List<Row> sampleRows() {
+    List<Row> rows = new ArrayList<>();
+    rows.add(new Row(null, "Badger Task (streak 1)", 0xFFFFFFFF));
+    rows.add(new Row(null, "Dirt 0/64", 0xFFFFFFFF));
+    rows.add(new Row(null, "Time left: 1h 00m", 0xFFAAAAAA));
+    return rows;
+  }
+
   /** True while the position editor is open (live HUD stays out of the way). */
   public static boolean previewActive;
 
