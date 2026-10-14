@@ -45,10 +45,6 @@ public final class OaEmojiStore {
   }
 
   public static synchronized void load() {
-    seed("kekw", "\uB740");
-    seed("kekwhyper", "\uB741");
-    seed("pog", "\uB742");
-    seed("wut", "\uB743");
     Path p = path();
     if (!Files.exists(p)) {
       save();
@@ -80,6 +76,12 @@ public final class OaEmojiStore {
       for (String id : display.keySet()) {
         if (!order.contains(id)) order.add(id);
       }
+      boolean cleaned = false;
+      for (String dead : List.of("kekw", "kekwhyper", "pog", "wut")) {
+        if (display.remove(dead) != null) cleaned = true;
+        if (order.remove(dead)) cleaned = true;
+      }
+      if (cleaned) save();
     } catch (IOException ignored) {
     }
   }
