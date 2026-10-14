@@ -40,8 +40,11 @@ import org.spongepowered.asm.mixin.injection.At;
  */
 @Mixin(RecipeDisplayEntry.class)
 public abstract class StrictRecipeMatchMixin {
-  private record Key(String holder, String poly) {
-  }
+  /**
+   * Single resolved id per stack (polymer id when present, else vanilla id).
+   * Matches polymer's own CompatUtils semantics: holders may drift between
+   * placeholder items across versions, the server id is what counts.
+   */
 
   @ModifyReturnValue(
       method = "canCraft(Lnet/minecraft/world/entity/player/StackedItemContents;)Z",
@@ -69,7 +72,7 @@ public abstract class StrictRecipeMatchMixin {
     if (inputs == null) {
       return plainOnly(self, mc, requirements.get());
     }
-    List<Set<Key>> slots;
+    List<Set<String>> slots;
     boolean anyCustom;
     try {
       ContextMap context = SlotDisplayContext.fromLevel(mc.level);
@@ -80,15 +83,14 @@ public abstract class StrictRecipeMatchMixin {
         if (resolved.isEmpty()) {
           continue;
         }
-        Set<Key> options = new HashSet<>();
+        Set<String> options = new HashSet<>();
         for (ItemStack stack : resolved) {
           if (stack.isEmpty()) {
             continue;
           }
-          String poly = polyKey(stack);
-          options.add(new Key(
-              BuiltInRegistries.ITEM.getKey(stack.getItem()).toString(), poly));
-          if (poly != null) {
+          String id = idKey(stack);
+          options.add(id);
+          if (isCustomId(id)) {
             anyCustom = true;
           }
         }
@@ -102,7 +104,7 @@ public abstract class StrictRecipeMatchMixin {
     if (!anyCustom) {
       return plainOnly(self, mc, requirements.get());
     }
-    Map<Key, Integer> have = new HashMap<>();
+    Map<String, Integer> have = new HashMap<>();
     addInventory(have, mc.player.getInventory().getNonEquipmentItems());
     addInventory(have, List.of(mc.player.containerMenu.getCarried(), mc.player.getOffhandItem()));
     boolean ok = assign(slots, 0, have);
@@ -135,22 +137,21 @@ public abstract class StrictRecipeMatchMixin {
     return plain.canCraft(requirements, null);
   }
 
-  private static void addInventory(Map<Key, Integer> have, Iterable<ItemStack> stacks) {
+  private static void addInventory(Map<String, Integer> have, Iterable<ItemStack> stacks) {
     for (ItemStack stack : stacks) {
       if (stack == null || stack.isEmpty()) {
         continue;
       }
-      Key key = new Key(
-          BuiltInRegistries.ITEM.getKey(stack.getItem()).toString(), polyKey(stack));
+      String key = idKey(stack);
       have.put(key, have.getOrDefault(key, 0) + stack.getCount());
     }
   }
 
-  private static boolean assign(List<Set<Key>> slots, int index, Map<Key, Integer> have) {
+  private static boolean assign(List<Set<String>> slots, int index, Map<String, Integer> have) {
     if (index >= slots.size()) {
       return true;
     }
-    for (Key key : slots.get(index)) {
+    for (String key : slots.get(index)) {
       int left = have.getOrDefault(key, 0);
       if (left <= 0) {
         continue;
@@ -164,7 +165,8 @@ public abstract class StrictRecipeMatchMixin {
     return false;
   }
 
-  private static String polyKey(ItemStack stack) {
+  /** Resolved server id, else vanilla id — never null. */
+  private static String idKey(ItemStack stack) {
     Optional<String> id = CustomItemIds.resolve(stack);
     if (id.isPresent()) {
       return id.get();
@@ -173,7 +175,11 @@ public abstract class StrictRecipeMatchMixin {
     if (cmd != null && !cmd.floats().isEmpty()) {
       return "cmd:" + cmd.floats();
     }
-    return null;
+    return BuiltInRegistries.ITEM.getKey(stack.getItem()).toString();
+  }
+
+  private static boolean isCustomId(String idKey) {
+    return !idKey.startsWith("minecraft:");
   }
 
   private static boolean isCustom(ItemStack stack) {
