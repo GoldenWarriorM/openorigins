@@ -68,7 +68,12 @@ public class HudPositionScreen extends Screen {
     Minecraft mc = Minecraft.getInstance();
     if (mc == null) return;
     OpenOriginsConfig cfg = OpenOriginsConfig.getInstance();
-    List<BadgerHud.Row> rows = BadgerHud.buildRows(mc, mc.font);
+    List<BadgerHud.Row> rows;
+    try {
+      rows = BadgerHud.buildRows(mc, mc.font);
+    } catch (Throwable t) {
+      rows = List.of();
+    }
     if (rows.isEmpty()) {
       boxW = 120;
       boxH = 40;
@@ -176,8 +181,12 @@ public class HudPositionScreen extends Screen {
     Minecraft mc = Minecraft.getInstance();
     if (mc != null) {
       Font font = mc.font;
-      List<BadgerHud.Row> rows =
-          BadgerHud.buildRows(mc, font);
+      List<BadgerHud.Row> rows;
+      try {
+        rows = BadgerHud.buildRows(mc, font);
+      } catch (Throwable t) {
+        rows = List.of();
+      }
       if (!rows.isEmpty()) {
         boxW = BadgerHud.maxWidth(font, rows);
         boxH = BadgerHud.totalHeight(rows);
