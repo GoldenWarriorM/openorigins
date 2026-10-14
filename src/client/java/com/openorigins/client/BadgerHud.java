@@ -20,36 +20,14 @@ public final class BadgerHud implements net.fabricmc.fabric.api.client.rendering
 
   /** Placeholder layout for the position editor when no task data exists. */
   public static List<Row> sampleRows() {
-    List<Row> template =
-        com.openorigins.client.util.BadgerTemplate.loadTemplate();
-    if (!template.isEmpty()) {
-      return template;
-    }
     List<Row> rows = new ArrayList<>();
     rows.add(new Row(null, "Badger Task (streak 13)", 0xFFFFFFFF));
-    ItemStack mushroom = sampleIcon(net.minecraft.world.item.Items.RED_MUSHROOM);
-    ItemStack coal = sampleIcon(net.minecraft.world.item.Items.COAL);
-    ItemStack lapis = sampleIcon(net.minecraft.world.item.Items.LAPIS_LAZULI);
-    if (mushroom.isEmpty() || coal.isEmpty() || lapis.isEmpty()) {
-      rows.add(new Row(null, "Red Mushroom 0/2", 0xFFFFFFFF));
-      rows.add(new Row(null, "Coal 0/10", 0xFFFFFFFF));
-      rows.add(new Row(null, "Lapis Lazuli 0/6", 0xFFFFFFFF));
-    } else {
-      rows.add(new Row(mushroom, "Red Mushroom 0/2", 0xFFFFFFFF));
-      rows.add(new Row(coal, "Coal 0/10", 0xFFFFFFFF));
-      rows.add(new Row(lapis, "Lapis Lazuli 0/6", 0xFFFFFFFF));
-    }
+    rows.add(new Row(null, "Red Mushroom 0/2", 0xFFFFFFFF));
+    rows.add(new Row(null, "Coal 0/10", 0xFFFFFFFF));
+    rows.add(new Row(null, "Lapis Lazuli 0/6", 0xFFFFFFFF));
     rows.add(new Row(null, "Time left: 7h 56m", 0xFFAAAAAA));
     rows.add(new Row(null, "Streak resets in 6d", 0xFFAAAAAA));
     return rows;
-  }
-
-  private static ItemStack sampleIcon(net.minecraft.world.item.Item icon) {
-    try {
-      return new ItemStack(icon);
-    } catch (Throwable t) {
-      return ItemStack.EMPTY;
-    }
   }
 
   /** True while the position editor is open (live HUD stays out of the way). */
@@ -172,7 +150,6 @@ public final class BadgerHud implements net.fabricmc.fabric.api.client.rendering
     }
     int maxW = maxWidth(font, rows);
     int totalH = totalHeight(rows);
-    com.openorigins.client.util.BadgerTemplate.maybeSnapshot(rows);
     int sw = mc.getWindow().getGuiScaledWidth();
     int sh = mc.getWindow().getGuiScaledHeight();
     OpenOriginsConfig.HudCorner corner = OpenOriginsConfig.getInstance().getBadgerHudCorner();
