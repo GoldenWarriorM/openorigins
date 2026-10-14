@@ -77,6 +77,13 @@ public final class MobExtrapolation {
               if (e == null || e == client.player || e.isRemoved()) {
                 continue;
               }
+              if (carriesPlayer(e, client.player)) {
+                HIST.remove(e.getId());
+                SMOOTHED_VEL.remove(e.getId());
+                APPLIED.remove(e.getId());
+                LAST_SEEN.remove(e.getId());
+                continue;
+              }
               if (!(e instanceof Display) && !(e instanceof ArmorStand)
                   && !hasDisplayPassenger(e)) {
                 continue;
@@ -171,8 +178,20 @@ public final class MobExtrapolation {
     }
   }
 
-  private static boolean hasDisplayPassenger(Entity e) {
+  /** Never touch anything carrying the local player (mounts break otherwise). */
+  private static boolean carriesPlayer(Entity e, Entity player) {
     try {
+      for (Entity p : e.getPassengers()) {
+        if (p == player || carriesPlayer(p, player)) {
+          return true;
+        }
+      }
+    } catch (Throwable ignored) {
+    }
+    return false;
+  }
+
+  private static boolean hasDisplayPassenger(Entity e) {    try {
       for (Entity p : e.getPassengers()) {
         if (p instanceof Display || p instanceof ArmorStand) {
           return true;
@@ -190,6 +209,11 @@ public final class MobExtrapolation {
    */
   public static double[] renderOffset(Entity e) {
     try {
+      net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
+      if (mc != null && mc.player != null && carriesPlayer(e, mc.player)) {
+        APPLIED.remove(e.getId());
+        return null;
+      }
       double[] t = offset(e);
       if (t == null) {
         APPLIED.remove(e.getId());
