@@ -81,12 +81,12 @@ public final class BadgerHud implements net.fabricmc.fabric.api.client.rendering
     };
     if (OpenOriginsConfig.getInstance().isBadgerHudBackdrop()) {
       int pad = 3;
-      int cut = 2;
+      int cut = 1;
       int bx0 = x - pad;
       int by0 = y - pad;
       int bx1 = x + maxW + pad;
       int by1 = y + totalH + pad;
-      int bg = 0xC0101010;
+      int bg = 0x80000000;
       graphics.fill(bx0 + cut, by0, bx1 - cut, by1, bg);
       graphics.fill(bx0, by0 + cut, bx0 + cut, by1 - cut, bg);
       graphics.fill(bx1 - cut, by0 + cut, bx1, by1 - cut, bg);
