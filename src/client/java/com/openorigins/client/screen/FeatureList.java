@@ -579,6 +579,21 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
       return 0;
     }
 
+    /** Subgroup children indent automatically. */
+    public static final int GROUP_INDENT = 12;
+
+    @Override
+    public int getContentX() {
+      int x = super.getContentX();
+      try {
+        if (this.collapseGroup != null) {
+          x += GROUP_INDENT;
+        }
+      } catch (Throwable ignored) {
+      }
+      return x;
+    }
+
     @Override
     public boolean isMouseOver(double mouseX, double mouseY) {
       if (super.isMouseOver(mouseX, mouseY)) {
