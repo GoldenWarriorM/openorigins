@@ -30,6 +30,7 @@ public final class OpenOriginsConfig {
   private int badgerHudDY = 4;
   private int homeCapacity = 5;
   private int extrapMs = 150;
+  private String extrapTypes = "";
   private boolean badgerHudVisible = true;
   private boolean badgerHudBackdrop = true;
   private float allayArmsShiftTexels = 12.0f;
@@ -114,6 +115,10 @@ public final class OpenOriginsConfig {
         } catch (NumberFormatException ignored) {
         }
       }
+      String ext = props.getProperty("extrap.types");
+      if (ext != null) {
+        extrapTypes = ext.trim();
+      }
       String scanKey = props.getProperty("scan.key");
       if (scanKey != null) {
         try {
@@ -168,6 +173,7 @@ public final class OpenOriginsConfig {
     props.setProperty("badger.hud.backdrop", Boolean.toString(badgerHudBackdrop));
     props.setProperty("homes.capacity", Integer.toString(homeCapacity));
     props.setProperty("extrap.ms", Integer.toString(extrapMs));
+    props.setProperty("extrap.types", extrapTypes);
     props.setProperty("allay.arms.x", Float.toString(allayArmsShiftTexels));
     props.setProperty("scan.key", scanKeyType + ":" + scanKeyValue);
     props.setProperty("servers", getServersText());
@@ -357,6 +363,16 @@ public final class OpenOriginsConfig {
   public void setExtrapMs(int v) {
     extrapMs = Math.max(0, Math.min(1000, v));
     save();
+  }
+
+  /** Comma-separated entity type ids to extrapolate; empty = all tracked kinds. */
+  public java.util.Set<String> getExtrapTypes() {
+    java.util.Set<String> out = new java.util.LinkedHashSet<>();
+    for (String s : extrapTypes.split(",")) {
+      s = s.trim().toLowerCase(java.util.Locale.ROOT);
+      if (!s.isEmpty()) out.add(s);
+    }
+    return out;
   }
   public void cycleBadgerHudCorner() {
     HudCorner[] values = HudCorner.values();

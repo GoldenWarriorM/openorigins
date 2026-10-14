@@ -77,7 +77,8 @@ public final class MobExtrapolation {
               if (e == null || e == client.player || e.isRemoved()) {
                 continue;
               }
-              if (carriesPlayer(e, client.player) || sharesMountWithPlayer(e, client.player)) {
+              if (carriesPlayer(e, client.player) || sharesMountWithPlayer(e, client.player)
+                  || !typeAllowed(e)) {
                 HIST.remove(e.getId());
                 SMOOTHED_VEL.remove(e.getId());
                 APPLIED.remove(e.getId());
@@ -192,6 +193,19 @@ public final class MobExtrapolation {
   }
 
   /** True if the entity rides (transitively) something carrying the player. */
+  private static boolean typeAllowed(net.minecraft.world.entity.Entity e) {
+    try {
+      java.util.Set<String> only =
+          com.openorigins.client.OpenOriginsConfig.getInstance().getExtrapTypes();
+      if (only.isEmpty()) return true;
+      String id = net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE.getKey(
+          e.getType()).toString().toLowerCase(java.util.Locale.ROOT);
+      return only.contains(id);
+    } catch (Throwable t) {
+      return true;
+    }
+  }
+
   private static boolean sharesMountWithPlayer(Entity e, Entity player) {
     try {
       Entity root = e;
@@ -225,7 +239,7 @@ public final class MobExtrapolation {
     try {
       net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
       if (mc != null && mc.player != null && (carriesPlayer(e, mc.player)
-          || sharesMountWithPlayer(e, mc.player))) {
+          || sharesMountWithPlayer(e, mc.player) || !typeAllowed(e))) {
         APPLIED.remove(e.getId());
         return null;
       }
