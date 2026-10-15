@@ -27,6 +27,7 @@
   "config.openorigins.scan_key": "Scan key",
   "config.openorigins.scan_key_hint": "Debug key for entity dumps (rebind by clicking)",
   "category.openorigins.fixes": "Fixes",
+  "category.openorigins.network_fixes": "Network fixes",
   "category.openorigins.ui": "HUD & Slots",
   "category.openorigins.misc": "Debug",
   "category.openorigins.experimental": "Experimental",

@@ -5,7 +5,8 @@ import java.util.List;
 
 public enum ConfigTab {
   GENERAL("category.openorigins.general", List.of(FeatureCategory.GENERAL)),
-  FIXES("category.openorigins.fixes", List.of(FeatureCategory.FIXES)),
+  FIXES("category.openorigins.fixes",
+      List.of(FeatureCategory.FIXES, FeatureCategory.NETWORK_FIXES)),
   UI("category.openorigins.ui", List.of(FeatureCategory.UI)),
   EXPERIMENTAL("category.openorigins.experimental", List.of(FeatureCategory.EXPERIMENTAL)),
   MISC("category.openorigins.misc", List.of(FeatureCategory.MISC)),
