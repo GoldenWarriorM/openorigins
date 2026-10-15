@@ -23,6 +23,8 @@ public abstract class ChatConfirmMixin {
     }
   }
 
+  private static volatile long lastCannotDoThatMs;
+
   /**
    * Swallows vanilla "unknown command" errors caused by our own background
    * fetches (boss rooms etc. where the commands don't exist). Never touches
@@ -38,6 +40,15 @@ public abstract class ChatConfirmMixin {
     try {
       text = packet.content().getString().toLowerCase(java.util.Locale.ROOT);
     } catch (Throwable t) {
+      return;
+    }
+    if (text.contains("you cannot do that here")) {
+      long now = System.currentTimeMillis();
+      if (now - lastCannotDoThatMs < 10000) {
+        ci.cancel();
+      } else {
+        lastCannotDoThatMs = now;
+      }
       return;
     }
     if (!(text.contains("unknown or incomplete command") || text.contains("unknown command"))) {
