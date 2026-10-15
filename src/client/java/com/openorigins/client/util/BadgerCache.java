@@ -118,6 +118,8 @@ public final class BadgerCache {
 
   private static volatile boolean hadTask;
   private static volatile boolean deliveredRefreshSent;
+  private static volatile boolean refreshPending;
+  private static volatile long forceAcceptUntil;
 
   /** True once when a previously seen task fully empties (all delivered). */
   public static boolean needsDeliveredRefresh() {
@@ -137,8 +139,22 @@ public final class BadgerCache {
   public static void requestRefresh() {
     hadTask = true;
     deliveredRefreshSent = false;
+    // Single deliveries leave REQUIRED non-empty, so the empty-driven fetch
+    // below never fires: schedule an explicit one, and accept its (smaller)
+    // result instead of mistaking it for lag.
+    refreshPending = true;
+    forceAcceptUntil = System.currentTimeMillis() + 60000L;
     com.openorigins.client.util.BackgroundMenu.clearManualCooldown();
     com.openorigins.client.util.DebugLog.info("[badger] refresh requested");
+  }
+
+  /** True once when an explicit refresh fetch should be sent. */
+  public static boolean consumeRefreshPending() {
+    if (!refreshPending) {
+      return false;
+    }
+    refreshPending = false;
+    return true;
   }
 
   /** Scans any open container; parses only when it looks like the streaks menu. */
@@ -232,8 +248,16 @@ public final class BadgerCache {
     } else if (!REQUIRED.isEmpty() && !req.isEmpty() && req.size() < REQUIRED.size()
         && req.stream().allMatch(r -> REQUIRED.stream().anyMatch(
             o -> o.itemId().equals(r.itemId()) && o.displayName().equals(r.displayName())))) {
-      com.openorigins.client.util.DebugLog.info("[badger] ignoring partial scan (lag?)");
+      if (System.currentTimeMillis() < forceAcceptUntil) {
+        forceAcceptUntil = 0;
+        REQUIRED.clear();
+        REQUIRED.addAll(req);
+        com.openorigins.client.util.DebugLog.info("[badger] accepted partial scan after delivery");
+      } else {
+        com.openorigins.client.util.DebugLog.info("[badger] ignoring partial scan (lag?)");
+      }
     } else {
+      forceAcceptUntil = 0;
       REQUIRED.clear();
       REQUIRED.addAll(req);
     }

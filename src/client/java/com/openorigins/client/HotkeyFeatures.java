@@ -205,6 +205,10 @@ public final class HotkeyFeatures {
             && com.openorigins.client.util.BackgroundMenu.tryArm("streaks")) {
           com.openorigins.client.util.BadgerCache.markDeliveredRefreshSent();
         }
+        if (com.openorigins.client.util.BadgerCache.consumeRefreshPending()
+            && !com.openorigins.client.util.BackgroundMenu.isArmed()) {
+          com.openorigins.client.util.BackgroundMenu.tryArm("streaks");
+        }
         if (joinTicks % 100 == 0 && client.player != null
             && !com.openorigins.client.util.BackgroundMenu.isArmed()) {
           if (com.openorigins.client.util.HomeInfoCache.layout().isEmpty()
