@@ -121,6 +121,9 @@ public final class HomeInfoCache {
     Info prev = CACHE.get(k);
     List<Component> copy = List.copyOf(lore);
     long anchor = color == null ? 0 : OpenWorldCache.resetAt(color);
+    if (prev == null && anchor > 0 && anchor <= System.currentTimeMillis()) {
+      anchor = 0;
+    }
     if (prev != null && java.util.Objects.equals(prev.worldColor(), color) && prev.lore().equals(copy)
         && prev.resetAt() == anchor) {
       return;

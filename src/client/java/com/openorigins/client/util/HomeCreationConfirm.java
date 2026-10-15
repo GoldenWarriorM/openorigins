@@ -74,6 +74,7 @@ public final class HomeCreationConfirm {
       com.openorigins.client.util.HomeInfoCache.untomb(name);
       confirmFresh(name);
       com.openorigins.client.util.HomeInfoCache.consumeCmdSlot();
+      com.openorigins.client.util.HomeFetch.requestRefetch();
       if (com.openorigins.client.util.HomeInfoCache.addName(name)) {
         refreshAdd(name);
       } else {
