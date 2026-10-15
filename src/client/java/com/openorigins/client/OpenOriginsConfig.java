@@ -36,7 +36,7 @@ public final class OpenOriginsConfig {
   private boolean badgerHudBackdrop = true;
   private float allayArmsShiftTexels = 12.0f;
   private int scanKeyType = 0;
-  private int scanKeyValue = -1;
+  private int scanKeyValue = com.openorigins.client.util.VersionCompat.unboundValue();
   private boolean useHandshake = true;
   private boolean titleJoinButton = true;
   private boolean pauseConfigButton = true;
@@ -305,7 +305,7 @@ public final class OpenOriginsConfig {
   public void setScanKey(com.mojang.blaze3d.platform.InputConstants.Key key) {
     if (key == null) {
       scanKeyType = 0;
-      scanKeyValue = -1;
+      scanKeyValue = com.openorigins.client.util.VersionCompat.unboundValue();
     } else if (key.getType() == com.mojang.blaze3d.platform.InputConstants.Type.MOUSE) {
       scanKeyType = 1;
       scanKeyValue = key.getValue();
@@ -353,12 +353,13 @@ public final class OpenOriginsConfig {
 
   public synchronized void resetScanKey() {
     scanKeyType = 0;
-    scanKeyValue = -1;
+    scanKeyValue = com.openorigins.client.util.VersionCompat.unboundValue();
     save();
   }
 
   public synchronized boolean isScanKeyDefault() {
-    return scanKeyType == 0 && scanKeyValue == -1;
+    return scanKeyType == 0
+        && scanKeyValue == com.openorigins.client.util.VersionCompat.unboundValue();
   }
   public int getExtrapMs() { return extrapMs; }
   public void setExtrapMs(int v) {

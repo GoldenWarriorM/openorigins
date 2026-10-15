@@ -101,6 +101,15 @@ public final class VersionCompat {
     return keyCode == inputCode("KEY_ESCAPE");
   }
 
+  /** Unbound key value on this version (26.2: -1, 26.3: 0). */
+  public static int unboundValue() {
+    try {
+      return com.mojang.blaze3d.platform.InputConstants.UNKNOWN.getValue();
+    } catch (Throwable t) {
+      return -1;
+    }
+  }
+
   /** Key object behind a KeyMapping via its protected field (no getter on 26.2). */
   public static InputConstants.Key mappingKey(net.minecraft.client.KeyMapping mapping) {
     if (mapping == null) {
