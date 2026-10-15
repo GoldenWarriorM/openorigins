@@ -219,7 +219,17 @@ public final class BackgroundMenu {
     OutboxStats.ackExact("close w" + containerId);
   }
 
+  private static String orphanCommand;
+  private static long orphanUntilMs;
+
   private static synchronized void disarm() {
+    if (armed && attempts > 0 && menu == null && pendingCommand != null) {
+      orphanCommand = pendingCommand;
+      orphanUntilMs = System.currentTimeMillis() + 15000;
+    } else {
+      orphanCommand = null;
+      orphanUntilMs = 0;
+    }
     armed = false;
     menu = null;
     pendingTeleport = null;
@@ -259,25 +269,61 @@ public final class BackgroundMenu {
       }
     }
     if (!armed || menu != null) {
+      boolean adopted = false;
+      if (!armed && menu == null && orphanCommand != null
+          && System.currentTimeMillis() < orphanUntilMs && !userActive()) {
+        try {
+          if (isGenericRows(packet.getType()) && !looksUserFacing(titleStr)) {
+            adopted = true;
+            armed = true;
+            attempts = 1;
+            pendingCommand = orphanCommand;
+            deadline = System.currentTimeMillis() + 30000;
+            contentPackets = 0;
+            lastTopSig = null;
+            orphanCommand = null;
+            orphanUntilMs = 0;
+          } else {
+            orphanCommand = null;
+            orphanUntilMs = 0;
+          }
+        } catch (Throwable t) {
+          orphanCommand = null;
+          orphanUntilMs = 0;
+        }
+      }
+      if (!adopted) {
+        com.openorigins.client.util.DebugLog.info(
+            "[bgmenu] open window={} type={} title='{}' verdict=show (idle)", id, typeStr, titleStr);
+        return false;
+      }
       com.openorigins.client.util.DebugLog.info(
-          "[bgmenu] open window={} type={} title='{}' verdict=show (idle)", id, typeStr, titleStr);
-      return false;
+          "[bgmenu] open window={} type={} title='{}' verdict=adopted-orphan", id, typeStr,
+          titleStr);
     }
     Minecraft mc = Minecraft.getInstance();
     String verdict;
+    boolean skipUserChecks;
+    try {
+      skipUserChecks = armed && attempts > 0 && menu == null
+          && System.currentTimeMillis() - lastManualContainerMs < 15000
+          && openContainerScreenShown(mc);
+    } catch (Throwable t) {
+      skipUserChecks = false;
+    }
     boolean swallow = false;
     if (attempts == 0) {
       verdict = "no-attempts";
-    } else if (userActive()) {
+    } else if (!skipUserChecks && userActive()) {
       verdict = "user-cmd";
       disarm();
-    } else if (lastManualContainerMs > armedAtMs) {
+    } else if (!skipUserChecks && lastManualContainerMs > armedAtMs) {
       verdict = "manual-activity";
       disarm();
     } else if (mc == null || mc.player == null) {
       verdict = "no-player";
       disarm();
-    } else if (openContainerScreenShown(mc)) {
+    } else if (!skipUserChecks && openContainerScreenShown(mc)) {
       // A real server window is on screen: showing the response honestly
       // beats swallowing it (the shown window may already be dead
       // server-side, and clicks into it would all be rejected).
