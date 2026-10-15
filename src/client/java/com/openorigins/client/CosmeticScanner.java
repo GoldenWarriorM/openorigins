@@ -256,4 +256,29 @@ public final class CosmeticScanner {
       mc.gui.hud.getChat().addClientSystemMessage(msg);
     }
   }
+
+  /** Nearby item-display keys for the extrapolation filter (scan key). */
+  public static void reportDisplayKeys() {
+    Minecraft mc = Minecraft.getInstance();
+    if (mc == null || mc.level == null || mc.player == null) return;
+    try {
+      java.util.Map<String, Integer> counts = new java.util.TreeMap<>();
+      for (net.minecraft.world.entity.Entity e : mc.level.entitiesForRendering()) {
+        if (!(e instanceof net.minecraft.world.entity.Display.ItemDisplay d)) continue;
+        try {
+          if (e.distanceToSqr(mc.player) > 96.0 * 96.0) continue;
+        } catch (Throwable ignored) {
+        }
+        try {
+          net.minecraft.world.item.ItemStack s = d.getSlot(0).get();
+          if (s == null || s.isEmpty()) continue;
+          String id = com.openorigins.client.util.MobExtrapolation.displayKey(s);
+          counts.put(id, counts.getOrDefault(id, 0) + 1);
+        } catch (Throwable ignored) {
+        }
+      }
+      com.openorigins.client.util.DebugLog.info("[extrap] display items: {}", counts);
+    } catch (Throwable ignored) {
+    }
+  }
 }

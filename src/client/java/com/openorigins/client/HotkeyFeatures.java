@@ -224,6 +224,7 @@ public final class HotkeyFeatures {
       }
       while (scanKey.consumeClick()) {
         CosmeticScanner.scanAndReport();
+        CosmeticScanner.reportDisplayKeys();
         com.openorigins.client.util.ContainerDump.dump(client);
       }
       while (teleportMenuKey.consumeClick()) {
