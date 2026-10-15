@@ -45,7 +45,8 @@
     "BossBarAccessor",
     "MoaFacingFixMixin",
     "EquipSwapMixin",
-    "StrictRecipeMatchMixin"
+    "StrictRecipeMatchMixin",
+    "KeyStateGuardMixin"
   ],
   "injectors": {
     "defaultRequire": 1
