@@ -477,6 +477,36 @@ public final class HomeInfoCache {
     save();
   }
 
+  /** Bundled server-lore template (decoded lazily) for empty caches. */
+  private static volatile List<Component> defaultTemplate;
+
+  private static List<Component> defaultLoreTemplate() {
+    List<Component> t = defaultTemplate;
+    if (t != null) {
+      return t;
+    }
+    try (var in = HomeInfoCache.class.getResourceAsStream("/default_home_lore.txt")) {
+      if (in != null) {
+        String text = new String(in.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
+        List<Component> out = new ArrayList<>();
+        for (String line : text.split("\n")) {
+          line = line.strip();
+          if (!line.isEmpty()) {
+            out.add(decodeLine(line));
+          }
+        }
+        if (out.size() >= 3) {
+          defaultTemplate = List.copyOf(out);
+          return defaultTemplate;
+        }
+      }
+    } catch (Exception ex) {
+      org.slf4j.LoggerFactory.getLogger("openorigins")
+          .warn("[homes-lore] default template load failed: {}", ex.toString());
+    }
+    return null;
+  }
+
   /** Provisional entry at creation time: position and date are known locally,
    * world comes from the live boss bar. Styles are cloned 1:1 from any cached
    * server lore (same world preferred); the next real capture overwrites this.
@@ -499,6 +529,9 @@ public final class HomeInfoCache {
       if (template == null && e.getValue().lore().size() >= 3) {
         template = e.getValue().lore();
       }
+    }
+    if (template == null) {
+      template = defaultLoreTemplate();
     }
     java.time.LocalDate date = java.time.LocalDate.now();
     String created = date.getMonth().getDisplayName(java.time.format.TextStyle.FULL,
