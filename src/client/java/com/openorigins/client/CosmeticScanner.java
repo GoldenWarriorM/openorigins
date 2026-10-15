@@ -263,21 +263,34 @@ public final class CosmeticScanner {
     if (mc == null || mc.level == null || mc.player == null) return;
     try {
       java.util.Map<String, Integer> counts = new java.util.TreeMap<>();
+      java.util.Map<String, Double> nearest = new java.util.TreeMap<>();
       for (net.minecraft.world.entity.Entity e : mc.level.entitiesForRendering()) {
         if (!(e instanceof net.minecraft.world.entity.Display.ItemDisplay d)) continue;
+        double distSq;
         try {
-          if (e.distanceToSqr(mc.player) > 96.0 * 96.0) continue;
+          distSq = e.distanceToSqr(mc.player);
+          if (distSq > 96.0 * 96.0) continue;
         } catch (Throwable ignored) {
+          continue;
         }
         try {
           net.minecraft.world.item.ItemStack s = d.getSlot(0).get();
           if (s == null || s.isEmpty()) continue;
           String id = com.openorigins.client.util.MobExtrapolation.displayKey(s);
           counts.put(id, counts.getOrDefault(id, 0) + 1);
+          double dist = Math.sqrt(distSq);
+          nearest.merge(id, dist, Math::min);
         } catch (Throwable ignored) {
         }
       }
-      com.openorigins.client.util.DebugLog.info("[extrap] display items: {}", counts);
+      StringBuilder sb = new StringBuilder("{");
+      for (java.util.Map.Entry<String, Integer> en : counts.entrySet()) {
+        if (sb.length() > 1) sb.append(", ");
+        sb.append(en.getKey()).append('=').append(en.getValue()).append('@')
+            .append(Math.round(nearest.getOrDefault(en.getKey(), -1.0))).append('m');
+      }
+      sb.append('}');
+      com.openorigins.client.util.DebugLog.info("[extrap] display items: {}", sb.toString());
     } catch (Throwable ignored) {
     }
   }
