@@ -11,7 +11,9 @@ import net.minecraft.sounds.SoundEvents;
  */
 public final class AuctionPing {
   private static final Pattern SOLD_PATTERN = Pattern.compile(
-      "(?i)(auction.*sold|sold.*auction|auction.*claimed)");
+      "(?i)(auction.*sold|sold.*auction|bought your|auction.*claimed)");
+  private static volatile String lastPingText;
+  private static volatile long lastPingMs;
 
   private AuctionPing() {}
 
@@ -22,6 +24,13 @@ public final class AuctionPing {
       if (!ConnectionUtil.isConnected()) return;
       String text = message.getString().toLowerCase(Locale.ROOT);
       if (SOLD_PATTERN.matcher(text).find()) {
+        // The server re-sends the same sale line a few times; ping once.
+        long now = System.currentTimeMillis();
+        if (text.equals(lastPingText) && now - lastPingMs < 10000) {
+          return;
+        }
+        lastPingText = text;
+        lastPingMs = now;
         var client = net.minecraft.client.Minecraft.getInstance();
         if (client.player != null) {
           client.player.playSound(SoundEvents.EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f);
