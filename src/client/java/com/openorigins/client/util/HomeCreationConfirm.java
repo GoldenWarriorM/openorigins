@@ -110,6 +110,7 @@ public final class HomeCreationConfirm {
     if (SLOW_DOWN.matcher(text).find()) {
       pending = null;
       com.openorigins.client.util.HomeInfoCache.rollback();
+      com.openorigins.client.util.BackgroundMenu.noteCommandError();
       refresh();
     }
   }
