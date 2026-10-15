@@ -857,6 +857,21 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
     }
 
     @Override
+    public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
+      try {
+        com.openorigins.client.util.DebugLog.info("[cfgclick] row={} btn={}",
+            this.key(), event.button());
+      } catch (Throwable ignored) {
+      }
+      if (event.button() == 1 && this.expandButton != null && this.group != null) {
+        EXPANDED.put(group, !isExpanded(group));
+        list.refreshEntries();
+        return true;
+      }
+      return super.mouseClicked(event, doubleClick);
+    }
+
+    @Override
     public List<? extends GuiEventListener> children() {
       if (this.expandButton != null) {
         return List.of(this.expandButton, this.toggleButton, this.resetButton);
@@ -994,6 +1009,11 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
 
     @Override
     public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
+      try {
+        com.openorigins.client.util.DebugLog.info("[cfgclick] row={} btn={}",
+            this.key(), event.button());
+      } catch (Throwable ignored) {
+      }
       if (event.button() == 1 && this.expandButton != null && this.group != null) {
         EXPANDED.put(group, !isExpanded(group));
         list.refreshEntries();
