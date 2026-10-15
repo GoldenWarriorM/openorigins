@@ -54,6 +54,9 @@ public final class MobExtrapolation {
   private static volatile long lastStatMs;
   private static volatile int appliedCount;
   private static volatile boolean itemDumpDone;
+  private static volatile long lastDumpMs;
+  private static final java.util.Set<String> itemDumpSeen =
+      java.util.Collections.synchronizedSet(new java.util.LinkedHashSet<>());
 
   /** Called from the render mixins when an offset actually shifts a state. */
   public static void noteApplied() {
@@ -73,7 +76,8 @@ public final class MobExtrapolation {
           if (client.level == null || client.player == null) {
             return;
           }
-          if (!itemDumpDone) {
+          if (!itemDumpDone && System.currentTimeMillis() - lastDumpMs > 5000) {
+            lastDumpMs = System.currentTimeMillis();
             try {
               java.util.Map<String, Integer> counts = new java.util.TreeMap<>();
               for (Entity e : client.level.entitiesForRendering()) {
@@ -92,8 +96,7 @@ public final class MobExtrapolation {
                 }
                 counts.put(id, counts.getOrDefault(id, 0) + 1);
               }
-              if (!counts.isEmpty()) {
-                itemDumpDone = true;
+              if (!counts.isEmpty() && itemDumpSeen.addAll(counts.keySet())) {
                 com.openorigins.client.util.DebugLog.info("[extrap] display items: {}", counts);
               }
             } catch (Throwable ignored) {
