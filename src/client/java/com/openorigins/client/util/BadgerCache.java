@@ -157,6 +157,11 @@ public final class BadgerCache {
     return true;
   }
 
+  /** Peek without consuming (consume only after tryArm succeeds). */
+  public static boolean hasRefreshPending() {
+    return refreshPending;
+  }
+
   /** Scans any open container; parses only when it looks like the streaks menu. */
   public static void scan(AbstractContainerScreen<?> screen) {
     if (screen == null || screen.getMenu() == null) return;
