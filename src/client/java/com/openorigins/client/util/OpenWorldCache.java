@@ -74,6 +74,10 @@ public final class OpenWorldCache {
   /** Boss bars seen on the last poll (menu-form world bars vs fight bars). */
   private static volatile boolean bossRoomBars;
 
+  /** The boss-room "Lives" line (any case), as a whole word. */
+  private static final java.util.regex.Pattern LIVES =
+      java.util.regex.Pattern.compile("\\blives\\b", java.util.regex.Pattern.CASE_INSENSITIVE);
+
   /** True while a non-open-world boss bar is shown (boss fight / boss room). */
   public static boolean isInBossRoom() {
     return bossRoomBars;
@@ -114,8 +118,8 @@ public final class OpenWorldCache {
             // Event progress outside boss rooms, not a boss-room signal.
             continue;
           }
-          if (lower.contains("live")) {
-            // The "lives" line exists only inside boss rooms.
+          if (LIVES.matcher(name).find()) {
+            // The "Lives" line exists only inside boss rooms.
             lives = true;
           } else {
             fight = true;
