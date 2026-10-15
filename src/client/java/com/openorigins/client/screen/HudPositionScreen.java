@@ -156,7 +156,7 @@ public class HudPositionScreen extends Screen {
 
   @Override
   public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
-    if (event.button() == 0 && event.x() >= boxX && event.x() < boxX + boxW
+    if (event.button() == com.mojang.blaze3d.platform.InputConstants.MOUSE_BUTTON_LEFT && event.x() >= boxX && event.x() < boxX + boxW
         && event.y() >= boxY && event.y() < boxY + boxH) {
       dragging = true;
       dragDX = (int) Math.round(event.x()) - boxX;

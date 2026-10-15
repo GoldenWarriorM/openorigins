@@ -80,7 +80,7 @@ public abstract class TitleScreenMixin extends Screen {
   private void openorigins$rightClickConfig(MouseButtonEvent event, boolean doubleClick,
       CallbackInfoReturnable<Boolean> cir) {
     try {
-      if (event.button() == 1 && this.openorigins$joinButton != null
+      if (event.button() == com.mojang.blaze3d.platform.InputConstants.MOUSE_BUTTON_RIGHT && this.openorigins$joinButton != null
           && this.openorigins$joinButton.isMouseOver(event.x(), event.y())) {
         this.minecraft.gui.setScreen(new ConfigScreen((TitleScreen) (Object) this));
         cir.setReturnValue(true);
