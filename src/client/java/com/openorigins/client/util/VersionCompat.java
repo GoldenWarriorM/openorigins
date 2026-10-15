@@ -101,6 +101,37 @@ public final class VersionCompat {
     return keyCode == inputCode("KEY_ESCAPE");
   }
 
+  /** Key object behind a KeyMapping via its protected field (no getter on 26.2). */
+  public static InputConstants.Key mappingKey(net.minecraft.client.KeyMapping mapping) {
+    if (mapping == null) {
+      return null;
+    }
+    try {
+      java.lang.reflect.Field f = net.minecraft.client.KeyMapping.class.getDeclaredField("key");
+      f.setAccessible(true);
+      Object k = f.get(mapping);
+      return k instanceof InputConstants.Key key ? key : null;
+    } catch (Throwable t) {
+      return null;
+    }
+  }
+
+  /** True for null or UNKNOWN keys (shows vanilla "Not Bound"). */
+  public static boolean isUnbound(InputConstants.Key key) {
+    if (key == null) {
+      return true;
+    }
+    try {
+      return key.equals(InputConstants.UNKNOWN);
+    } catch (Throwable t) {
+      return false;
+    }
+  }
+
+  public static boolean isUnbound(net.minecraft.client.KeyMapping mapping) {
+    return mapping == null || isUnbound(mappingKey(mapping));
+  }
+
   /** Version-correct InputConstants int (key/mouse codes differ: GLFW vs SDL). */
   public static int inputCode(String field) {
     Integer cached;

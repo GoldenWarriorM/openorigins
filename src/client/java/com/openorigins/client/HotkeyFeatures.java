@@ -44,7 +44,14 @@ public final class HotkeyFeatures {
 
   public static String scanKeyName() {
     try {
-      return scanKey == null ? "?" : scanKey.getTranslatedKeyMessage().getString();
+      if (scanKey == null) {
+        return "?";
+      }
+      if (com.openorigins.client.util.VersionCompat.isUnbound(scanKey)) {
+        return net.minecraft.network.chat.Component.translatable("key.keyboard.unknown")
+            .getString();
+      }
+      return scanKey.getTranslatedKeyMessage().getString();
     } catch (Throwable t) {
       return "?";
     }
@@ -68,7 +75,14 @@ public final class HotkeyFeatures {
 
   public static String keyName(KeyMapping mapping) {
     try {
-      return mapping == null ? "?" : mapping.getTranslatedKeyMessage().getString();
+      if (mapping == null) {
+        return "?";
+      }
+      if (com.openorigins.client.util.VersionCompat.isUnbound(mapping)) {
+        return net.minecraft.network.chat.Component.translatable("key.keyboard.unknown")
+            .getString();
+      }
+      return mapping.getTranslatedKeyMessage().getString();
     } catch (Throwable t) {
       return "?";
     }
