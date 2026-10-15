@@ -43,6 +43,9 @@ public abstract class ChatConfirmMixin {
       return;
     }
     if (text.contains("you cannot do that here")) {
+      if (!com.openorigins.client.util.BackgroundMenu.isInDeadZone()) {
+        return;
+      }
       long now = System.currentTimeMillis();
       if (now - lastCannotDoThatMs < 10000) {
         ci.cancel();

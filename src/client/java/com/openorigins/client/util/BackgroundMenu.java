@@ -115,6 +115,10 @@ public final class BackgroundMenu {
     return now - lastOwnSendMs < 3000 && now - lastForeignCmdMs > 3000;
   }
 
+  public static boolean isInDeadZone() {
+    return inDeadZone();
+  }
+
   private static boolean inDeadZone() {
     try {
       if (System.currentTimeMillis() > deadZoneUntil || deadZoneLocation == null) {
