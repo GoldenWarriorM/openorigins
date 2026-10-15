@@ -80,10 +80,8 @@ public class HomeIconButton extends AbstractButton {
     if (this.face) {
       int dx = this.getX();
       int dy = this.getY();
-      graphics.blit(RenderPipelines.GUI_TEXTURED, this.textureId,
-          dx, dy, 8.0F, 8.0F, dw, dh, 8, 8, 64, 64);
-      graphics.blit(RenderPipelines.GUI_TEXTURED, this.textureId,
-          dx, dy, 40.0F, 8.0F, dw, dh, 8, 8, 64, 64);
+      com.openorigins.client.util.VersionCompat.blitFull(graphics, this.textureId, dx, dy, 8.0F, 8.0F, dw, dh, 8, 8, 64, 64);
+      com.openorigins.client.util.VersionCompat.blitFull(graphics, this.textureId, dx, dy, 40.0F, 8.0F, dw, dh, 8, 8, 64, 64);
     } else {
       float aspect = this.texW / (float) this.texH;
       if (aspect >= 1.0F) {
@@ -93,8 +91,7 @@ public class HomeIconButton extends AbstractButton {
       }
       int dx = this.getX() + (this.getWidth() - dw) / 2;
       int dy = this.getY() + (this.getHeight() - dh) / 2;
-      graphics.blit(RenderPipelines.GUI_TEXTURED, this.textureId,
-          dx, dy, 0.0F, 0.0F, dw, dh, this.texW, this.texH, this.texW, this.texH);
+      com.openorigins.client.util.VersionCompat.blitFull(graphics, this.textureId, dx, dy, 0.0F, 0.0F, dw, dh, this.texW, this.texH, this.texW, this.texH);
     }
     if (this.isHoveredOrFocused()) {
       int x0 = this.getX() - 1;

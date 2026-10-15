@@ -153,9 +153,9 @@ public abstract class BackSwagSlotMixin {
     if (stack.isEmpty()) {
       return;
     }
-    graphics.blitSprite(RenderPipelines.GUI_TEXTURED, SLOT_SPRITE, SLOT_X - 1, SLOT_Y - 1, 18, 18);
+    com.openorigins.client.util.VersionCompat.blitSprite(graphics, SLOT_SPRITE, SLOT_X - 1, SLOT_Y - 1, 18, 18);
     if (this.openorigins$isHovering(mouseX, mouseY)) {
-      graphics.blitSprite(RenderPipelines.GUI_TEXTURED, HIGHLIGHT_BACK, SLOT_X - 4, SLOT_Y - 4, 24, 24);
+      com.openorigins.client.util.VersionCompat.blitSprite(graphics, HIGHLIGHT_BACK, SLOT_X - 4, SLOT_Y - 4, 24, 24);
     }
     graphics.item(stack, SLOT_X, SLOT_Y);
     graphics.itemDecorations(Minecraft.getInstance().font, stack, SLOT_X, SLOT_Y);
@@ -170,7 +170,7 @@ public abstract class BackSwagSlotMixin {
     }
     int x = this.leftPos + SLOT_X - 4;
     int y = this.topPos + SLOT_Y - 4;
-    graphics.blitSprite(RenderPipelines.GUI_TEXTURED, HIGHLIGHT_FRONT, x, y, 24, 24);
+    com.openorigins.client.util.VersionCompat.blitSprite(graphics, HIGHLIGHT_FRONT, x, y, 24, 24);
     Minecraft mc = Minecraft.getInstance();
     java.util.List<net.minecraft.network.chat.Component> lines =
         new java.util.ArrayList<>(

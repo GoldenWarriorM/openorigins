@@ -107,6 +107,6 @@ public class ReconnectToast implements Toast {
   }
 
   private static void blit(GuiGraphicsExtractor graphics, int x, int y, int u, int v, int w, int h) {
-    graphics.blit(RenderPipelines.GUI_TEXTURED, TEXTURE, x, y, (float) u, (float) v, w, h, 256, 256);
+    com.openorigins.client.util.VersionCompat.blit(graphics, TEXTURE, x, y, (float) u, (float) v, w, h, 256, 256);
   }
 }

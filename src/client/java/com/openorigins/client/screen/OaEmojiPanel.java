@@ -95,7 +95,7 @@ public class OaEmojiPanel implements Renderable, GuiEventListener, NarratableEnt
   public void extractRenderState(GuiGraphicsExtractor gfx, int mouseX, int mouseY, float partialTick) {
     refresh();
     Font font = Minecraft.getInstance().font;
-    gfx.blit(RenderPipelines.GUI_TEXTURED, TEX, x, y, 0.0f, 0.0f, BOX_W, BOX_H, TEX_W, TEX_H);
+    com.openorigins.client.util.VersionCompat.blit(gfx, TEX, x, y, 0.0f, 0.0f, BOX_W, BOX_H, TEX_W, TEX_H);
     hoverIdx = -1;
     if (isMouseOver(mouseX, mouseY)) hoverIdx = cellIndexAt(mouseX, mouseY);
     gfx.enableScissor(x + SCROLL_X, y + SCROLL_Y, x + SCROLL_X + SCROLL_W, y + SCROLL_Y + SCROLL_H);
@@ -107,7 +107,7 @@ public class OaEmojiPanel implements Renderable, GuiEventListener, NarratableEnt
       int cy = sy + row * UNIT;
       if (cy + UNIT >= y + SCROLL_Y && cy < y + SCROLL_Y + SCROLL_H) {
         float v = (i == hoverIdx) ? 44.0f : 32.0f;
-        gfx.blit(RenderPipelines.GUI_TEXTURED, TEX, cx, cy, 122.0f, v, UNIT, UNIT, TEX_W, TEX_H);
+        com.openorigins.client.util.VersionCompat.blit(gfx, TEX, cx, cy, 122.0f, v, UNIT, UNIT, TEX_W, TEX_H);
         String glyph = OaEmojiStore.displayFor(ids.get(i));
         String e = glyph != null ? glyph : "?";
         gfx.text(font, e, cx + 1, cy + 2, 0xFFFFFFFF);

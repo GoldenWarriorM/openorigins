@@ -130,6 +130,86 @@ public final class VersionCompat {
     return inputCode("MOUSE_BUTTON_RIGHT");
   }
 
+  private static volatile Object guiTexturedPipeline;
+  private static final java.util.Map<String, Method> blitMethods =
+      new java.util.concurrent.ConcurrentHashMap<>();
+
+  /** GUI_TEXTURED pipeline object (type moved packages in 26.3). */
+  public static Object guiTexturedPipeline() {
+    Object p = guiTexturedPipeline;
+    if (p == null) {
+      synchronized (VersionCompat.class) {
+        p = guiTexturedPipeline;
+        if (p == null) {
+          try {
+            p = Class.forName("net.minecraft.client.renderer.RenderPipelines")
+                .getField("GUI_TEXTURED").get(null);
+          } catch (Throwable t) {
+            return null;
+          }
+          guiTexturedPipeline = p;
+        }
+      }
+    }
+    return p;
+  }
+
+  private static Method blitMethod(Object gfx, String name, int totalArgs) {
+    String key = name + "#" + totalArgs;
+    Method m = blitMethods.get(key);
+    if (m != null) {
+      return m;
+    }
+    Object pipe = guiTexturedPipeline();
+    if (pipe == null) {
+      return null;
+    }
+    for (Method cand : gfx.getClass().getMethods()) {
+      if (!cand.getName().equals(name)
+          || cand.getParameterCount() != totalArgs + 1) {
+        continue;
+      }
+      if (!cand.getParameterTypes()[0].isInstance(pipe)) {
+        continue;
+      }
+      blitMethods.put(key, cand);
+      return cand;
+    }
+    return null;
+  }
+
+  private static void invokeBlit(String name, Object gfx, Object[] args) {
+    try {
+      Object pipe = guiTexturedPipeline();
+      Method m = blitMethod(gfx, name, args.length);
+      if (pipe == null || m == null) {
+        return;
+      }
+      Object[] full = new Object[args.length + 1];
+      full[0] = pipe;
+      System.arraycopy(args, 0, full, 1, args.length);
+      m.invoke(gfx, full);
+    } catch (Throwable ignored) {
+    }
+  }
+
+  public static void blitSprite(net.minecraft.client.gui.GuiGraphicsExtractor gfx,
+      net.minecraft.resources.Identifier sprite, int x, int y, int w, int h) {
+    invokeBlit("blitSprite", gfx, new Object[]{sprite, x, y, w, h});
+  }
+
+  public static void blit(net.minecraft.client.gui.GuiGraphicsExtractor gfx,
+      net.minecraft.resources.Identifier texture, int x, int y, float u, float v,
+      int w, int h, int texW, int texH) {
+    invokeBlit("blit", gfx, new Object[]{texture, x, y, u, v, w, h, texW, texH});
+  }
+
+  public static void blitFull(net.minecraft.client.gui.GuiGraphicsExtractor gfx,
+      net.minecraft.resources.Identifier texture, int x, int y, float u, float v,
+      int w, int h, int a, int b, int c, int d) {
+    invokeBlit("blit", gfx, new Object[]{texture, x, y, u, v, w, h, a, b, c, d});
+  }
+
   /** Auxiliary event code: scancode() on 26.2, keycode() on 26.3. */
   public static int auxCode(net.minecraft.client.input.KeyEvent event) {
     try {

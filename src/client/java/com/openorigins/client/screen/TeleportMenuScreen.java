@@ -411,8 +411,7 @@ public class TeleportMenuScreen extends Screen implements HomePanelHost {
       }
       int dx = this.getX() + (this.getWidth() - dw) / 2;
       int dy = this.getY() + (this.getHeight() - dh) / 2;
-      graphics.blit(RenderPipelines.GUI_TEXTURED, this.textureId,
-          dx, dy, 0.0F, 0.0F, dw, dh, this.texW, this.texH, this.texW, this.texH);
+      com.openorigins.client.util.VersionCompat.blitFull(graphics, this.textureId, dx, dy, 0.0F, 0.0F, dw, dh, this.texW, this.texH, this.texW, this.texH);
       if (this.isHoveredOrFocused()) {
         int x0 = this.getX() - 1;
         int y0 = this.getY() - 1;

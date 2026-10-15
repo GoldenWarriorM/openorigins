@@ -127,20 +127,20 @@ public abstract class HelmetCosmeticSlotMixin {
     if (cosmetic.isEmpty()) {
       return;
     }
-    graphics.blitSprite(RenderPipelines.GUI_TEXTURED, SLOT_SPRITE, COSMETIC_X - 1, COSMETIC_Y - 1, 18, 18);
+    com.openorigins.client.util.VersionCompat.blitSprite(graphics, SLOT_SPRITE, COSMETIC_X - 1, COSMETIC_Y - 1, 18, 18);
     if (this.openorigins$isHoveringCosmetic(mouseX, mouseY)) {
-      graphics.blitSprite(RenderPipelines.GUI_TEXTURED, HIGHLIGHT_BACK, COSMETIC_X - 4, COSMETIC_Y - 4, 24, 24);
+      com.openorigins.client.util.VersionCompat.blitSprite(graphics, HIGHLIGHT_BACK, COSMETIC_X - 4, COSMETIC_Y - 4, 24, 24);
     }
     graphics.item(cosmetic, COSMETIC_X, COSMETIC_Y);
     graphics.itemDecorations(Minecraft.getInstance().font, cosmetic, COSMETIC_X, COSMETIC_Y);
-    graphics.blitSprite(RenderPipelines.GUI_TEXTURED, SLOT_SPRITE, HELMET_X - 1, HELMET_Y - 1, 18, 18);
+    com.openorigins.client.util.VersionCompat.blitSprite(graphics, SLOT_SPRITE, HELMET_X - 1, HELMET_Y - 1, 18, 18);
     ItemStack shown = HelmetCosmeticTracker.displayHelmet(cosmetic);
     boolean showReal = !shown.isEmpty() && !this.openorigins$heldOnCursor();
     if (showReal) {
       graphics.item(shown, HELMET_X, HELMET_Y);
       graphics.itemDecorations(Minecraft.getInstance().font, shown, HELMET_X, HELMET_Y);
     } else {
-      graphics.blitSprite(RenderPipelines.GUI_TEXTURED, EMPTY_HELMET, HELMET_X, HELMET_Y, 16, 16);
+      com.openorigins.client.util.VersionCompat.blitSprite(graphics, EMPTY_HELMET, HELMET_X, HELMET_Y, 16, 16);
     }
   }
 
@@ -191,7 +191,7 @@ public abstract class HelmetCosmeticSlotMixin {
     } else if (this.openorigins$isHoveringCosmetic(mouseX, mouseY)) {
       int x = this.leftPos + COSMETIC_X - 4;
       int y = this.topPos + COSMETIC_Y - 4;
-      graphics.blitSprite(RenderPipelines.GUI_TEXTURED, HIGHLIGHT_FRONT, x, y, 24, 24);
+      com.openorigins.client.util.VersionCompat.blitSprite(graphics, HIGHLIGHT_FRONT, x, y, 24, 24);
       String key = HelmetCosmeticTracker.cosmeticKey(cosmetic);
       if (cosmeticTip == null || !key.equals(cosmeticTipKey)) {
         java.util.List<net.minecraft.network.chat.Component> memo =

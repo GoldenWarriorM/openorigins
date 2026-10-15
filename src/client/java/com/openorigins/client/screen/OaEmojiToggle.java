@@ -24,8 +24,7 @@ public class OaEmojiToggle implements Renderable, GuiEventListener, NarratableEn
 
   @Override
   public void extractRenderState(GuiGraphicsExtractor gfx, int mouseX, int mouseY, float partialTick) {
-    gfx.blit(RenderPipelines.GUI_TEXTURED, OaEmojiPanel.TEX, x, y,
-        122.0f, 0.0f, 16, 16, OaEmojiPanel.TEX_W, OaEmojiPanel.TEX_H);
+    com.openorigins.client.util.VersionCompat.blit(gfx, OaEmojiPanel.TEX, x, y, 122.0f, 0.0f, 16, 16, OaEmojiPanel.TEX_W, OaEmojiPanel.TEX_H);
   }
 
   @Override
