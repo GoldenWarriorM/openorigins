@@ -174,6 +174,7 @@ public final class BadgerCache {
     int high = -1;
     int days = -1;
     String timeLeft = null;
+    int delivered = 0;
     for (Slot slot : menu.slots) {
       if (!slot.hasItem()) {
         continue;
@@ -186,6 +187,9 @@ public final class BadgerCache {
       ItemLore lore = stack.get(DataComponents.LORE);
       List<Component> lines = lore == null ? List.of() : lore.lines();
       String lower = name.toLowerCase(Locale.ROOT);
+      if (lower.equals("delivered!")) {
+        delivered++;
+      }
       Matcher m = SCORE.matcher(lower);
       if (m.find()) {
         score = Integer.parseInt(m.group(1));
@@ -244,11 +248,25 @@ public final class BadgerCache {
       taskTimeLeft = timeLeft;
     }
     if (req.isEmpty() && !REQUIRED.isEmpty()) {
-      com.openorigins.client.util.DebugLog.info("[badger] ignoring empty scan (lag?)");
+      if (delivered > 0) {
+        // Everything turned in: the shrinkage is real (Delivered! markers),
+        // not a half-loaded menu. Clearing schedules a fresh-task fetch.
+        forceAcceptUntil = 0;
+        REQUIRED.clear();
+        com.openorigins.client.util.DebugLog.info("[badger] all delivered, task cleared");
+      } else {
+        com.openorigins.client.util.DebugLog.info("[badger] ignoring empty scan (lag?)");
+      }
     } else if (!REQUIRED.isEmpty() && !req.isEmpty() && req.size() < REQUIRED.size()
         && req.stream().allMatch(r -> REQUIRED.stream().anyMatch(
             o -> o.itemId().equals(r.itemId()) && o.displayName().equals(r.displayName())))) {
-      if (System.currentTimeMillis() < forceAcceptUntil) {
+      if (delivered > 0) {
+        forceAcceptUntil = 0;
+        REQUIRED.clear();
+        REQUIRED.addAll(req);
+        com.openorigins.client.util.DebugLog.info("[badger] accepted delivery scan ({} delivered)",
+            delivered);
+      } else if (System.currentTimeMillis() < forceAcceptUntil) {
         forceAcceptUntil = 0;
         REQUIRED.clear();
         REQUIRED.addAll(req);
