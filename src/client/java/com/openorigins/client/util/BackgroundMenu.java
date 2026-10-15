@@ -84,6 +84,10 @@ public final class BackgroundMenu {
    * commands there.
    */
   public static synchronized void noteCommandError() {
+    noteCommandError(DEAD_ZONE_MS);
+  }
+
+  public static synchronized void noteCommandError(long cooldownMs) {
     lastSuppressedErrorMs = System.currentTimeMillis();
     if (armed) {
       com.openorigins.client.util.DebugLog.info("[bgmenu] command failed in this area, disarming '{}'",
@@ -93,9 +97,9 @@ public final class BackgroundMenu {
     try {
       String loc = com.openorigins.client.server.OriginStateTracker.INSTANCE.getLocation();
       deadZoneLocation = loc;
-      deadZoneUntil = System.currentTimeMillis() + DEAD_ZONE_MS;
+      deadZoneUntil = System.currentTimeMillis() + cooldownMs;
       com.openorigins.client.util.DebugLog.info("[bgmenu] dead zone '{}' for {}s", loc,
-          DEAD_ZONE_MS / 1000);
+          cooldownMs / 1000);
     } catch (Throwable ignored) {
     }
   }
