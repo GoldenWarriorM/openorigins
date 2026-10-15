@@ -197,7 +197,7 @@ public final class VersionCompat {
   }
 
   private static Method blitMethod(Object gfx, String name, int totalArgs) {
-    String key = name + "#" + totalArgs;
+    String key = name + "#" + totalArgs + "@" + gfx.getClass().getName();
     Method m = blitMethods.get(key);
     if (m != null) {
       return m;
@@ -215,6 +215,11 @@ public final class VersionCompat {
         continue;
       }
       blitMethods.put(key, cand);
+      // TEMP diagnostic for invisible slot overlays.
+      if (blitMissLogged.add("ok:" + key)) {
+        com.openorigins.client.util.DebugLog.info("[blitprobe] matched {} -> {}", key,
+            cand.toString());
+      }
       return cand;
     }
     // TEMP diagnostic for invisible slot overlays.
@@ -241,8 +246,23 @@ public final class VersionCompat {
     } catch (Throwable t) {
       // TEMP diagnostic for invisible slot overlays.
       if (blitMissLogged.add("exc:" + name)) {
-        com.openorigins.client.util.DebugLog.info("[blitprobe] invoke {} failed: {}", name,
-            t.toString());
+        StringBuilder sig = new StringBuilder();
+        try {
+          Method mm = blitMethod(gfx, name, args.length);
+          if (mm != null) {
+            sig.append("method=").append(mm.toString());
+          }
+          sig.append(" argTypes=[");
+          for (Object a : args) {
+            sig.append(a == null ? "null" : a.getClass().getName()).append(',');
+          }
+          sig.append(']');
+        } catch (Throwable ignored) {
+        }
+        com.openorigins.client.util.DebugLog.info("[blitprobe] invoke {} failed: {} {}pipe={}",
+            name, t.toString(), sig,
+            guiTexturedPipeline() == null ? "<null>"
+                : guiTexturedPipeline().getClass().getName());
       }
     }
   }
