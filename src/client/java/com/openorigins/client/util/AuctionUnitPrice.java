@@ -19,7 +19,6 @@ public final class AuctionUnitPrice {
 
   private static final Pattern PRICE =
       Pattern.compile("(?i)^price:\\s*([\\d,]+(?:\\.\\d+)?)");
-  private static volatile boolean structureLogged;
 
   /** @return true when a line was added. */
   public static boolean apply(ItemStack stack, List<Component> lines) {
@@ -51,7 +50,6 @@ public final class AuctionUnitPrice {
       formatted = String.format(Locale.US, "%,.2f", unit);
     }
     Component priceLine = lines.get(priceIdx);
-    logStructureOnce(priceLine);
     String prefix = Component.translatable("tooltip.openorigins.per_item_prefix").getString();
     lines.add(priceIdx + 1, buildUnitLine(priceLine, prefix, formatted));
     return true;
@@ -104,35 +102,5 @@ public final class AuctionUnitPrice {
       out.append(t.copy());
     }
     return out;
-  }
-
-  private static void logStructureOnce(Component priceLine) {
-    if (structureLogged) {
-      return;
-    }
-    structureLogged = true;
-    try {
-      StringBuilder sb = new StringBuilder();
-      dump(priceLine, 0, sb);
-      DebugLog.info("[ahprice] price line structure:\n{}", sb.toString());
-    } catch (Throwable ignored) {
-    }
-  }
-
-  private static void dump(Component c, int depth, StringBuilder sb) {
-    var s = c.getStyle();
-    String text;
-    try {
-      var contents = c.getContents();
-      text = contents.toString();
-    } catch (Throwable t) {
-      text = "?";
-    }
-    sb.append("  ".repeat(depth)).append("text=").append(text).append(" color=")
-        .append(s.getColor()).append(" italic=").append(s.isItalic()).append(" font=")
-        .append(s.getFont()).append('\n');
-    for (Component sib : c.getSiblings()) {
-      dump(sib, depth + 1, sb);
-    }
   }
 }
