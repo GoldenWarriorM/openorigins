@@ -12,16 +12,23 @@ import org.spongepowered.asm.mixin.injection.At;
 
 /**
  * getBoundingBoxForCulling is declared on EntityRenderer (superclass),
- * so the mixin targets it with filters. Only ArmorStand; skip passenger
- * stands (worn cosmetics on players) — the vehicle controls their visibility,
- * so inflating the box (4.5) is pointless.
+ * so the mixin targets it with filters. ArmorStands and model Display parts
+ * (block/item); skip passenger stands (worn cosmetics on players) — the
+ * vehicle controls their visibility, so inflating the box (4.5) is pointless.
+ * Text displays are vanilla's own business.
  */
 @Mixin(net.minecraft.client.renderer.entity.EntityRenderer.class)
 public abstract class EntityCullingMixin {
   @ModifyReturnValue(method = "getBoundingBoxForCulling", at = @At("RETURN"))
   private AABB openorigins$expandCullingBox(AABB original, Entity entity) {
-    if (!(entity instanceof ArmorStand stand)) return original;
-    if (stand.getVehicle() != null) return original;
+    if (entity instanceof ArmorStand stand) {
+      if (stand.getVehicle() != null) {
+        return original;
+      }
+    } else if (!(entity instanceof net.minecraft.world.entity.Display.BlockDisplay)
+        && !(entity instanceof net.minecraft.world.entity.Display.ItemDisplay)) {
+      return original;
+    }
     if (!OpenOriginsConfig.getInstance().isEnabled(OriginFeature.EXPAND_MODEL_BOUNDING_BOX)) return original;
     if (!ConnectionUtil.isConnected()) return original;
     return original.inflate(4.5);

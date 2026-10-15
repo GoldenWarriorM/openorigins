@@ -21,7 +21,12 @@ public abstract class EntityDistanceMixin {
   @Inject(method = "shouldRenderAtSqrDistance", at = @At("HEAD"), cancellable = true)
   private void openorigins$expandRenderDistance(double distance, CallbackInfoReturnable<Boolean> cir) {
     Entity self = (Entity) (Object) this;
-    if (!(self instanceof ArmorStand stand) || stand.getVehicle() != null) {
+    if (self instanceof ArmorStand stand) {
+      if (stand.getVehicle() != null) {
+        return;
+      }
+    } else if (!(self instanceof net.minecraft.world.entity.Display.BlockDisplay)
+        && !(self instanceof net.minecraft.world.entity.Display.ItemDisplay)) {
       return;
     }
     if (!OpenOriginsConfig.getInstance().isEnabled(OriginFeature.EXPAND_MODEL_BOUNDING_BOX)
