@@ -121,8 +121,8 @@ public class SetHomeScreen extends Screen {
 
   @Override
   public boolean keyPressed(net.minecraft.client.input.KeyEvent event) {
-    if (event.key() == com.mojang.blaze3d.platform.InputConstants.KEY_RETURN
-        || event.key() == com.mojang.blaze3d.platform.InputConstants.KEY_NUMPADENTER) {
+    if (event.key() == com.openorigins.client.util.VersionCompat.inputCode("KEY_RETURN")
+        || event.key() == com.openorigins.client.util.VersionCompat.inputCode("KEY_NUMPADENTER")) {
       this.doDone();
       return true;
     }

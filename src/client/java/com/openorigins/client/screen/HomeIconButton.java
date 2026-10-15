@@ -56,7 +56,7 @@ public class HomeIconButton extends AbstractButton {
 
   @Override
   public void onClick(MouseButtonEvent event, boolean doubleClick) {
-    if (event.button() == com.mojang.blaze3d.platform.InputConstants.MOUSE_BUTTON_RIGHT) {
+    if (event.button() == com.openorigins.client.util.VersionCompat.mouseRight()) {
       this.rightAction.run();
     } else {
       super.onClick(event, doubleClick);
@@ -65,7 +65,7 @@ public class HomeIconButton extends AbstractButton {
 
   @Override
   protected boolean isValidClickButton(MouseButtonInfo buttonInfo) {
-    return buttonInfo.button() == com.mojang.blaze3d.platform.InputConstants.MOUSE_BUTTON_LEFT || buttonInfo.button() == com.mojang.blaze3d.platform.InputConstants.MOUSE_BUTTON_RIGHT;
+    return buttonInfo.button() == com.openorigins.client.util.VersionCompat.mouseLeft() || buttonInfo.button() == com.openorigins.client.util.VersionCompat.mouseRight();
   }
 
   @Override

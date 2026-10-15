@@ -138,9 +138,9 @@ public final class HotkeyFeatures {
     KeyMapping.Category category =
         KeyMapping.Category.register(Identifier.fromNamespaceAndPath("openorigins", "keys"));
     navigatorKey = KeyMappingHelper.registerKeyMapping(
-        new KeyMapping("key.openorigins.navigator", InputConstants.KEY_N, category));
+        new KeyMapping("key.openorigins.navigator", com.openorigins.client.util.VersionCompat.inputCode("KEY_N"), category));
     gestureKey = KeyMappingHelper.registerKeyMapping(
-        new KeyMapping("key.openorigins.gesture_menu", InputConstants.KEY_G, category));
+        new KeyMapping("key.openorigins.gesture_menu", com.openorigins.client.util.VersionCompat.inputCode("KEY_G"), category));
     spawnKey = KeyMappingHelper.registerKeyMapping(
         new KeyMapping("key.openorigins.spawn", InputConstants.UNKNOWN.getValue(), category));
     realmKey = KeyMappingHelper.registerKeyMapping(

@@ -850,7 +850,7 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
 
     @Override
     public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
-      if (event.button() == com.mojang.blaze3d.platform.InputConstants.MOUSE_BUTTON_RIGHT && this.expandButton != null && this.group != null) {
+      if (event.button() == com.openorigins.client.util.VersionCompat.mouseRight() && this.expandButton != null && this.group != null) {
         EXPANDED.put(group, !isExpanded(group));
         list.refreshEntries();
         return true;
@@ -996,7 +996,7 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
 
     @Override
     public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
-      if (event.button() == com.mojang.blaze3d.platform.InputConstants.MOUSE_BUTTON_RIGHT && this.expandButton != null && this.group != null) {
+      if (event.button() == com.openorigins.client.util.VersionCompat.mouseRight() && this.expandButton != null && this.group != null) {
         EXPANDED.put(group, !isExpanded(group));
         list.refreshEntries();
         return true;

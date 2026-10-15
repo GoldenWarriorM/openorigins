@@ -98,7 +98,36 @@ public final class VersionCompat {
   }
 
   public static boolean isEscape(int keyCode) {
-    return keyCode == InputConstants.KEY_ESCAPE;
+    return keyCode == inputCode("KEY_ESCAPE");
+  }
+
+  /** Version-correct InputConstants int (key/mouse codes differ: GLFW vs SDL). */
+  public static int inputCode(String field) {
+    Integer cached;
+    synchronized (VersionCompat.class) {
+      cached = codeCache.get(field);
+      if (cached == null) {
+        int v = -1;
+        try {
+          v = InputConstants.class.getField(field).getInt(null);
+        } catch (Throwable ignored) {
+        }
+        cached = v;
+        codeCache.put(field, v);
+      }
+    }
+    return cached;
+  }
+
+  private static final java.util.Map<String, Integer> codeCache =
+      new java.util.HashMap<>();
+
+  public static int mouseLeft() {
+    return inputCode("MOUSE_BUTTON_LEFT");
+  }
+
+  public static int mouseRight() {
+    return inputCode("MOUSE_BUTTON_RIGHT");
   }
 
   /** Auxiliary event code: scancode() on 26.2, keycode() on 26.3. */
