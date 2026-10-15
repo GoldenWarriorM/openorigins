@@ -477,6 +477,26 @@ public final class HomeInfoCache {
     save();
   }
 
+  /** Provisional entry at creation time: position and date are known locally,
+   * world and timer arrive with the next lore capture (which overwrites this). */
+  public static synchronized void provisional(String name, net.minecraft.core.BlockPos pos) {
+    if (name == null || name.isBlank() || pos == null) {
+      return;
+    }
+    String k = key(name);
+    if (CACHE.containsKey(k)) {
+      return;
+    }
+    java.time.LocalDate date = java.time.LocalDate.now();
+    String created = date.getMonth().getDisplayName(java.time.format.TextStyle.FULL,
+        java.util.Locale.US) + " " + date.getDayOfMonth() + ", " + date.getYear();
+    java.util.List<Component> lore = java.util.List.of(
+        Component.literal("Created: " + created),
+        Component.literal("Position: " + pos.getX() + ", " + pos.getY() + ", " + pos.getZ()));
+    CACHE.put(k, new Info(List.copyOf(lore), null, 0));
+    save();
+  }
+
   /** Drops cached lore/timer for a name (re-created homes start fresh). */
   public static synchronized void dropCache(String name) {
     if (CACHE.remove(key(name)) != null) {

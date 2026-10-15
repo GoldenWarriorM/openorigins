@@ -73,6 +73,13 @@ public final class HomeCreationConfirm {
       BLOCKED.remove(norm(name));
       com.openorigins.client.util.HomeInfoCache.untomb(name);
       com.openorigins.client.util.HomeInfoCache.dropCache(name);
+      try {
+        net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
+        if (mc != null && mc.player != null) {
+          com.openorigins.client.util.HomeInfoCache.provisional(name, mc.player.blockPosition());
+        }
+      } catch (Throwable ignored) {
+      }
       confirmFresh(name);
       com.openorigins.client.util.HomeInfoCache.consumeCmdSlot();
       com.openorigins.client.util.HomeFetch.requestRefetch();
