@@ -1,5 +1,6 @@
 package com.openorigins.client.util;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.regex.Matcher;
@@ -51,16 +52,58 @@ public final class AuctionUnitPrice {
     }
     Component priceLine = lines.get(priceIdx);
     logStructureOnce(priceLine);
-    List<Component> sibs = priceLine.getSiblings();
     String prefix = Component.translatable("tooltip.openorigins.per_item_prefix").getString();
-    MutableComponent out = Component.literal(prefix).withStyle(priceLine.getStyle());
-    if (sibs.isEmpty()) {
-      out.append(Component.literal(formatted).withStyle(priceLine.getStyle()));
-    } else {
-      out.append(Component.literal(formatted).withStyle(sibs.get(0).getStyle()));
-    }
-    lines.add(priceIdx + 1, out);
+    lines.add(priceIdx + 1, buildUnitLine(priceLine, prefix, formatted));
     return true;
+  }
+
+  /**
+   * Rebuilds the two-part server line 1:1: gray "Price: " prefix style for
+   * our label, white number style for the value, trailing parts (gap + gem
+   * icon) copied verbatim.
+   */
+  private static Component buildUnitLine(Component priceLine, String prefix, String value) {
+    Component container = priceLine;
+    if (!priceLine.getSiblings().isEmpty()) {
+      // Server wraps parts in one empty container sibling.
+      for (Component s : priceLine.getSiblings()) {
+        if (!s.getSiblings().isEmpty()) {
+          container = s;
+          break;
+        }
+      }
+      if (container == priceLine) {
+        container = priceLine.getSiblings().get(0);
+      }
+    }
+    List<Component> parts = container == priceLine
+        ? List.of(priceLine)
+        : container.getSiblings();
+    Component prefixStyle = null;
+    Component numberStyle = null;
+    List<Component> trailing = new ArrayList<>();
+    boolean pastNumber = false;
+    for (Component p : parts) {
+      String t = p.getString();
+      if (!pastNumber && t.toLowerCase(Locale.ROOT).contains("price:")) {
+        prefixStyle = p;
+      } else if (!pastNumber && t.matches(".*[\\d,]+.*")) {
+        numberStyle = p;
+        pastNumber = true;
+      } else if (pastNumber) {
+        trailing.add(p);
+      }
+    }
+    if (prefixStyle == null) {
+      prefixStyle = priceLine;
+    }
+    MutableComponent out = Component.literal(prefix).withStyle(prefixStyle.getStyle());
+    out.append(Component.literal(value)
+        .withStyle(numberStyle == null ? prefixStyle.getStyle() : numberStyle.getStyle()));
+    for (Component t : trailing) {
+      out.append(t.copy());
+    }
+    return out;
   }
 
   private static void logStructureOnce(Component priceLine) {
