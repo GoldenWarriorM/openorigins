@@ -18,6 +18,10 @@ import net.minecraft.network.chat.Component;
 public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry> {
   private static final Identifier RESET_ICON =
       Identifier.fromNamespaceAndPath("openorigins", "reset");
+  private static final net.minecraft.client.gui.components.WidgetSprites RESET_SPRITES =
+      new net.minecraft.client.gui.components.WidgetSprites(
+          Identifier.fromNamespaceAndPath("openorigins", "reset"),
+          Identifier.fromNamespaceAndPath("openorigins", "reset_disabled"));
   private static final int ROW_H = 24;
   private ConfigTab jumpTab;
   private double jumpScroll;
@@ -170,8 +174,59 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
     this.advanceSmoothScroll(dt);
     this.advanceHoverHighlight(graphics, mouseX, mouseY, dt);
     super.extractWidgetRenderState(graphics, mouseX, mouseY, partialTick);
+    this.drawGroupTrees(graphics);
   }
 
+  /** Subtle tree lines linking subgroup rows to the parent +/- glyph. */
+  private void drawGroupTrees(GuiGraphicsExtractor graphics) {
+    java.util.List<Entry> kids;
+    try {
+      kids = new java.util.ArrayList<>(this.children());
+    } catch (Throwable t) {
+      return;
+    }
+    for (int i = 0; i < kids.size(); i++) {
+      Entry e = kids.get(i);
+      String group;
+      try {
+        group = e.collapseGroup();
+        if (group == null || e.getHeight() < 4) {
+          continue;
+        }
+      } catch (Throwable t) {
+        continue;
+      }
+      boolean last = true;
+      for (int j = i + 1; j < kids.size(); j++) {
+        try {
+          if (group.equals(kids.get(j).collapseGroup())) {
+            last = false;
+            break;
+          }
+        } catch (Throwable ignored) {
+        }
+      }
+      try {
+        int lineX;
+        int labelX;
+        int y0 = e.getY();
+        int y1 = y0 + e.getHeight();
+        try {
+          labelX = e.getContentX();
+        } catch (Throwable t) {
+          continue;
+        }
+        lineX = labelX - 24;
+        int yStart = Math.max(0, y0 - 10);
+        int yEnd = last ? (y0 + y1) / 2 : y1;
+        int mid = (y0 + y1) / 2;
+        int gray = 0xFF555555;
+        graphics.fill(lineX, yStart, lineX + 1, yEnd, gray);
+        graphics.fill(lineX, mid, labelX - 2, mid + 1, gray);
+      } catch (Throwable ignored) {
+      }
+    }
+  }
   /** Cloth-style gliding row highlight, own math, no dependency. */
   private void advanceHoverHighlight(GuiGraphicsExtractor graphics, int mouseX, int mouseY,
       double dt) {
@@ -710,7 +765,7 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
         config.setEnabled(feature, feature.getDefaultValue());
         list.refreshEntries();
       }, true)
-          .width(20).sprite(RESET_ICON, 8, 8).withTootip().build();
+          .width(20).sprite(RESET_SPRITES, 8, 8).withTootip().build();
       if (group != null) {
         this.expandButton = new GlyphToggleButton(() -> {
           EXPANDED.put(group, !isExpanded(group));
@@ -781,7 +836,6 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
       }
       this.toggleButton.extractRenderState(graphics, mouseX, mouseY, partialTick);
       this.resetButton.extractRenderState(graphics, mouseX, mouseY, partialTick);
-      dimInactiveReset(graphics, this.resetButton);
       net.minecraft.client.gui.Font font = net.minecraft.client.Minecraft.getInstance().font;
       graphics.text(font, Component.literal(this.feature.getName()), labelX,
           this.getContentYMiddle() - 4, 0xFFFFFFFF);
@@ -801,18 +855,6 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
         return List.of(this.expandButton, this.toggleButton, this.resetButton);
       }
       return List.of(this.toggleButton, this.resetButton);
-    }
-  }
-
-  /** Dims the white reset glyph when inactive (vanilla grays text; textures need this). */
-  private static void dimInactiveReset(GuiGraphicsExtractor graphics,
-      net.minecraft.client.gui.components.AbstractWidget button) {
-    try {
-      if (button != null && !button.active) {
-        graphics.fill(button.getX() + 6, button.getY() + 6, button.getX() + 14,
-            button.getY() + 14, 0xAA000000);
-      }
-    } catch (Throwable ignored) {
     }
   }
 
@@ -867,7 +909,7 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
         this.set.accept(this.defaultValue);
         this.list.refreshEntries();
       }, true)
-          .width(20).sprite(RESET_ICON, 8, 8).withTootip().build();
+          .width(20).sprite(RESET_SPRITES, 8, 8).withTootip().build();
       if (group != null) {
         this.expandButton = new GlyphToggleButton(() -> {
           EXPANDED.put(group, !isExpanded(group));
@@ -926,7 +968,6 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
       }
       this.button.extractRenderState(graphics, mouseX, mouseY, partialTick);
       this.resetButton.extractRenderState(graphics, mouseX, mouseY, partialTick);
-      dimInactiveReset(graphics, this.resetButton);
       net.minecraft.client.gui.Font font = net.minecraft.client.Minecraft.getInstance().font;
       graphics.text(font, Component.translatable(this.labelKey), labelX,
           this.getContentYMiddle() - 4, 0xFFFFFFFF);
@@ -999,7 +1040,7 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
         }
         this.list.refreshEntries();
       }, true)
-          .width(20).sprite(RESET_ICON, 8, 8).withTootip().build();
+          .width(20).sprite(RESET_SPRITES, 8, 8).withTootip().build();
       this.refreshEntry();
     }
 
@@ -1027,7 +1068,6 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
         this.resetButton.setX(this.list.getRowRight() - this.resetButton.getWidth());
         this.resetButton.setY(this.getContentY());
         this.resetButton.extractRenderState(graphics, mouseX, mouseY, partialTick);
-      dimInactiveReset(graphics, this.resetButton);
         this.button.setX(this.resetButton.getX() - 4 - this.button.getWidth());
       } else {
         this.button.setX(this.list.getRowRight() - this.button.getWidth());
@@ -1115,7 +1155,7 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
         this.set.accept(this.defaultValue);
         this.list.refreshEntries();
       }, true)
-          .width(20).sprite(RESET_ICON, 8, 8).withTootip().build();
+          .width(20).sprite(RESET_SPRITES, 8, 8).withTootip().build();
     }
 
     public void refreshEntry() {
@@ -1193,7 +1233,6 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
       this.plusButton.extractRenderState(graphics, mouseX, mouseY, partialTick);
       this.minusButton.extractRenderState(graphics, mouseX, mouseY, partialTick);
       this.resetButton.extractRenderState(graphics, mouseX, mouseY, partialTick);
-      dimInactiveReset(graphics, this.resetButton);
       net.minecraft.client.gui.Font font = net.minecraft.client.Minecraft.getInstance().font;
       Component label = Component.translatable(this.labelKey);
       graphics.text(font, label, this.getContentX(),
