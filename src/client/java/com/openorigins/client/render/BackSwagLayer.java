@@ -31,7 +31,7 @@ public class BackSwagLayer extends RenderLayer<AvatarRenderState, PlayerModel> {
     HumanoidModel<?> model = this.getParentModel();
     model.body.translateAndRotate(poseStack);
     poseStack.translate(0.0F, -2.075F, 0.0F);
-    poseStack.mulPose(Axis.YP.rotationDegrees(180.0F));
+    com.openorigins.client.util.VersionCompat.rotate(poseStack, Axis.YP.rotationDegrees(180.0F));
     poseStack.scale(0.625F, -0.625F, -0.625F);
     item.submit(poseStack, collector, lightCoords, OverlayTexture.NO_OVERLAY, state.outlineColor);
     poseStack.popPose();

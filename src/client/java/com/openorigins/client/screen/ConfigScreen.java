@@ -169,9 +169,9 @@ public class ConfigScreen extends Screen {
     if (com.openorigins.client.HotkeyFeatures.isScanCaptureArmed()
         || com.openorigins.client.HotkeyFeatures.isCapturingAny()) {
       if (com.openorigins.client.HotkeyFeatures.isScanCaptureArmed()) {
-        com.openorigins.client.HotkeyFeatures.confirmScanCapture(event.key(), event.scancode());
+        com.openorigins.client.HotkeyFeatures.confirmScanCapture(event.key(), com.openorigins.client.util.VersionCompat.auxCode(event));
       } else {
-        com.openorigins.client.HotkeyFeatures.confirmCapture(event.key(), event.scancode());
+        com.openorigins.client.HotkeyFeatures.confirmCapture(event.key(), com.openorigins.client.util.VersionCompat.auxCode(event));
       }
       net.minecraft.client.gui.components.tabs.Tab t = this.tabManager.getCurrentTab();
       if (t instanceof ConfigTabPage page) {

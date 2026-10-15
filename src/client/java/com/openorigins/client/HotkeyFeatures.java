@@ -94,14 +94,14 @@ public final class HotkeyFeatures {
     if (target == null) {
       return;
     }
-    if (keyCode == org.lwjgl.glfw.GLFW.GLFW_KEY_ESCAPE) {
+    if (com.openorigins.client.util.VersionCompat.isEscape(keyCode)) {
       return;
     }
     try {
       com.mojang.blaze3d.platform.InputConstants.Key key =
           keyCode != com.mojang.blaze3d.platform.InputConstants.UNKNOWN.getValue()
-              ? com.mojang.blaze3d.platform.InputConstants.Type.KEYSYM.getOrCreate(keyCode)
-              : com.mojang.blaze3d.platform.InputConstants.Type.SCANCODE.getOrCreate(scanCode);
+              ? com.openorigins.client.util.VersionCompat.makeKey(keyCode)
+              : com.openorigins.client.util.VersionCompat.makeFallbackKey(scanCode);
       target.setKey(key);
     } catch (Throwable ignored) {
     }
@@ -110,14 +110,14 @@ public final class HotkeyFeatures {
   /** Rebinds the hidden scan key. ESC cancels. */
   public static void confirmScanCapture(int keyCode, int scanCode) {
     scanCaptureArmed = false;
-    if (keyCode == org.lwjgl.glfw.GLFW.GLFW_KEY_ESCAPE) {
+    if (com.openorigins.client.util.VersionCompat.isEscape(keyCode)) {
       return;
     }
     try {
       com.mojang.blaze3d.platform.InputConstants.Key key =
           keyCode != com.mojang.blaze3d.platform.InputConstants.UNKNOWN.getValue()
-              ? com.mojang.blaze3d.platform.InputConstants.Type.KEYSYM.getOrCreate(keyCode)
-              : com.mojang.blaze3d.platform.InputConstants.Type.SCANCODE.getOrCreate(scanCode);
+              ? com.openorigins.client.util.VersionCompat.makeKey(keyCode)
+              : com.openorigins.client.util.VersionCompat.makeFallbackKey(scanCode);
       scanKey = new KeyMapping("key.openorigins.scan_cosmetics", key.getType(),
           key.getValue(), scanCategory);
       OpenOriginsConfig.getInstance().setScanKey(key);

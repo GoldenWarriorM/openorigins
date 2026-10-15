@@ -292,17 +292,15 @@ public final class OpenOriginsConfig {
   public int getHomeCapacity() { return homeCapacity; }
   public float getAllayArmsShiftTexels() { return allayArmsShiftTexels; }
   public com.mojang.blaze3d.platform.InputConstants.Key getScanKey() {
-    com.mojang.blaze3d.platform.InputConstants.Type type;
-    switch (scanKeyType) {
-      case 1 -> type = com.mojang.blaze3d.platform.InputConstants.Type.MOUSE;
-      case 2 -> type = com.mojang.blaze3d.platform.InputConstants.Type.SCANCODE;
-      default -> type = com.mojang.blaze3d.platform.InputConstants.Type.KEYSYM;
+    if (scanKeyType == 1) {
+      try {
+        return com.mojang.blaze3d.platform.InputConstants.Type.MOUSE.getOrCreate(scanKeyValue);
+      } catch (Throwable t) {
+        return com.mojang.blaze3d.platform.InputConstants.UNKNOWN;
+      }
     }
-    try {
-      return type.getOrCreate(scanKeyValue);
-    } catch (Throwable t) {
-      return com.mojang.blaze3d.platform.InputConstants.UNKNOWN;
-    }
+    // type 0/2 (legacy scancode included): keyboard on both versions.
+    return com.openorigins.client.util.VersionCompat.makeKey(scanKeyValue);
   }
   public void setScanKey(com.mojang.blaze3d.platform.InputConstants.Key key) {
     if (key == null) {
@@ -310,9 +308,6 @@ public final class OpenOriginsConfig {
       scanKeyValue = -1;
     } else if (key.getType() == com.mojang.blaze3d.platform.InputConstants.Type.MOUSE) {
       scanKeyType = 1;
-      scanKeyValue = key.getValue();
-    } else if (key.getType() == com.mojang.blaze3d.platform.InputConstants.Type.SCANCODE) {
-      scanKeyType = 2;
       scanKeyValue = key.getValue();
     } else {
       scanKeyType = 0;
