@@ -219,7 +219,7 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
         int mid = (y0 + y1) / 2;
         int gray = 0xFF555555;
         graphics.fill(lineX, yStart, lineX + 1, yEnd, gray);
-        graphics.fill(lineX, mid, labelX - 2, mid + 1, gray);
+        graphics.fill(lineX, mid, labelX - 4, mid + 1, gray);
       } catch (Throwable ignored) {
       }
     }
