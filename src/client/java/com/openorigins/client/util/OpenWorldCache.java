@@ -93,22 +93,41 @@ public final class OpenWorldCache {
     try {
       var events = ((com.openorigins.client.mixin.BossBarAccessor) mc.gui.hud.getBossOverlay())
           .openorigins$getBossEvents().values();
+      boolean lives = false;
       boolean fight = false;
+      StringBuilder names = new StringBuilder();
       for (var e : events) {
         try {
           String name = e.getName().getString();
           if (noteBossBar(name)) {
             continue;
           }
-          if (!name.isBlank()) {
+          if (name.isBlank()) {
+            continue;
+          }
+          if (names.length() > 0) {
+            names.append(" | ");
+          }
+          names.append(name);
+          String lower = name.toLowerCase(java.util.Locale.ROOT);
+          if (lower.contains("lives collected")) {
+            // Event progress outside boss rooms, not a boss-room signal.
+            continue;
+          }
+          if (lower.contains("live")) {
+            // The "lives" line exists only inside boss rooms.
+            lives = true;
+          } else {
             fight = true;
           }
         } catch (Throwable ignored) {
         }
       }
-      if (fight != bossRoomBars) {
-        bossRoomBars = fight;
-        com.openorigins.client.util.DebugLog.info("[openworld] boss-room bars: {}", fight);
+      boolean room = lives || fight;
+      if (room != bossRoomBars) {
+        bossRoomBars = room;
+        com.openorigins.client.util.DebugLog.info("[openworld] boss-room bars: {} [{}]", room,
+            names.toString());
       }
     } catch (Throwable ignored) {
     }
