@@ -189,7 +189,7 @@ public final class OpenOriginsConfig {
     try {
       Files.createDirectories(configPath().getParent());
       try (OutputStream out = Files.newOutputStream(configPath())) {
-        props.store(out, "OpenOrigins 26.2 from scratch config");
+        props.store(out, "OpenOrigins 26.2 config");
       }
     } catch (IOException ignored) {
     }
