@@ -59,7 +59,13 @@ public final class MobExtrapolation {
     appliedCount++;
   }
 
+  private static volatile boolean typeDumpDone;
+
   public static void register() {
+    net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents.JOIN.register(
+        (handler, sender, client) -> {
+          typeDumpDone = false;
+        });
     net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents.DISCONNECT
         .register((handler, client) -> {
           HIST.clear();
@@ -71,6 +77,31 @@ public final class MobExtrapolation {
         .register(client -> {
           if (client.level == null || client.player == null) {
             return;
+          }
+          if (!typeDumpDone) {
+            try {
+              java.util.Map<String, Integer> counts = new java.util.TreeMap<>();
+              for (Entity e : client.level.entitiesForRendering()) {
+                if (e == null || e == client.player) continue;
+                try {
+                  if (e.distanceToSqr(client.player) > TRACK_DIST_SQ) continue;
+                } catch (Throwable ignored) {
+                }
+                String id;
+                try {
+                  id = net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE
+                      .getKey(e.getType()).toString();
+                } catch (Throwable t) {
+                  id = e.getClass().getSimpleName();
+                }
+                counts.put(id, counts.getOrDefault(id, 0) + 1);
+              }
+              if (!counts.isEmpty()) {
+                typeDumpDone = true;
+                com.openorigins.client.util.DebugLog.info("[extrap] nearby types: {}", counts);
+              }
+            } catch (Throwable ignored) {
+            }
           }
           try {
             if (!com.openorigins.client.OpenOriginsConfig.getInstance()
