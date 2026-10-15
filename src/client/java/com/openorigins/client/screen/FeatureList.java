@@ -781,6 +781,7 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
       }
       this.toggleButton.extractRenderState(graphics, mouseX, mouseY, partialTick);
       this.resetButton.extractRenderState(graphics, mouseX, mouseY, partialTick);
+      dimInactiveReset(graphics, this.resetButton);
       net.minecraft.client.gui.Font font = net.minecraft.client.Minecraft.getInstance().font;
       graphics.text(font, Component.literal(this.feature.getName()), labelX,
           this.getContentYMiddle() - 4, 0xFFFFFFFF);
@@ -800,6 +801,18 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
         return List.of(this.expandButton, this.toggleButton, this.resetButton);
       }
       return List.of(this.toggleButton, this.resetButton);
+    }
+  }
+
+  /** Dims the white reset glyph when inactive (vanilla grays text; textures need this). */
+  private static void dimInactiveReset(GuiGraphicsExtractor graphics,
+      net.minecraft.client.gui.components.AbstractWidget button) {
+    try {
+      if (button != null && !button.active) {
+        graphics.fill(button.getX() + 6, button.getY() + 6, button.getX() + 14,
+            button.getY() + 14, 0xAA000000);
+      }
+    } catch (Throwable ignored) {
     }
   }
 
@@ -913,6 +926,7 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
       }
       this.button.extractRenderState(graphics, mouseX, mouseY, partialTick);
       this.resetButton.extractRenderState(graphics, mouseX, mouseY, partialTick);
+      dimInactiveReset(graphics, this.resetButton);
       net.minecraft.client.gui.Font font = net.minecraft.client.Minecraft.getInstance().font;
       graphics.text(font, Component.translatable(this.labelKey), labelX,
           this.getContentYMiddle() - 4, 0xFFFFFFFF);
@@ -1013,6 +1027,7 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
         this.resetButton.setX(this.list.getRowRight() - this.resetButton.getWidth());
         this.resetButton.setY(this.getContentY());
         this.resetButton.extractRenderState(graphics, mouseX, mouseY, partialTick);
+      dimInactiveReset(graphics, this.resetButton);
         this.button.setX(this.resetButton.getX() - 4 - this.button.getWidth());
       } else {
         this.button.setX(this.list.getRowRight() - this.button.getWidth());
@@ -1178,6 +1193,7 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
       this.plusButton.extractRenderState(graphics, mouseX, mouseY, partialTick);
       this.minusButton.extractRenderState(graphics, mouseX, mouseY, partialTick);
       this.resetButton.extractRenderState(graphics, mouseX, mouseY, partialTick);
+      dimInactiveReset(graphics, this.resetButton);
       net.minecraft.client.gui.Font font = net.minecraft.client.Minecraft.getInstance().font;
       Component label = Component.translatable(this.labelKey);
       graphics.text(font, label, this.getContentX(),
