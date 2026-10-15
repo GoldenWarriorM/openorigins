@@ -25,6 +25,24 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 @Mixin(ItemStack.class)
 public abstract class ItemTooltipMixin {
   @Inject(method = "getTooltipLines", at = @At("TAIL"))
+  private void openorigins$unitPrice(Item.TooltipContext context, Player player,
+      TooltipFlag tooltipFlag, CallbackInfoReturnable<List<Component>> cir) {
+    if (!OpenOriginsConfig.getInstance().isEnabled(OriginFeature.PER_ITEM_PRICE)) {
+      return;
+    }
+    if (!ConnectionUtil.isConnected()) {
+      return;
+    }
+    try {
+      List<Component> lines = cir.getReturnValue();
+      if (lines != null) {
+        com.openorigins.client.util.AuctionUnitPrice.apply((ItemStack) (Object) this, lines);
+      }
+    } catch (Throwable ignored) {
+    }
+  }
+
+  @Inject(method = "getTooltipLines", at = @At("TAIL"))
   private void openorigins$customId(Item.TooltipContext context, Player player,
       TooltipFlag tooltipFlag, CallbackInfoReturnable<List<Component>> cir) {
     if (tooltipFlag == null || !tooltipFlag.isAdvanced()) {
