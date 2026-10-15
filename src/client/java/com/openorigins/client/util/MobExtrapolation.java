@@ -59,13 +59,7 @@ public final class MobExtrapolation {
     appliedCount++;
   }
 
-  private static volatile boolean typeDumpDone;
-
   public static void register() {
-    net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents.JOIN.register(
-        (handler, sender, client) -> {
-          typeDumpDone = false;
-        });
     net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents.DISCONNECT
         .register((handler, client) -> {
           HIST.clear();
@@ -77,31 +71,6 @@ public final class MobExtrapolation {
         .register(client -> {
           if (client.level == null || client.player == null) {
             return;
-          }
-          if (!typeDumpDone) {
-            try {
-              java.util.Map<String, Integer> counts = new java.util.TreeMap<>();
-              for (Entity e : client.level.entitiesForRendering()) {
-                if (e == null || e == client.player) continue;
-                try {
-                  if (e.distanceToSqr(client.player) > TRACK_DIST_SQ) continue;
-                } catch (Throwable ignored) {
-                }
-                String id;
-                try {
-                  id = net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE
-                      .getKey(e.getType()).toString();
-                } catch (Throwable t) {
-                  id = e.getClass().getSimpleName();
-                }
-                counts.put(id, counts.getOrDefault(id, 0) + 1);
-              }
-              if (!counts.isEmpty()) {
-                typeDumpDone = true;
-                com.openorigins.client.util.DebugLog.info("[extrap] nearby types: {}", counts);
-              }
-            } catch (Throwable ignored) {
-            }
           }
           try {
             if (!com.openorigins.client.OpenOriginsConfig.getInstance()
@@ -116,7 +85,7 @@ public final class MobExtrapolation {
                 continue;
               }
               if (carriesPlayer(e, client.player) || sharesMountWithPlayer(e, client.player)
-                  || !typeAllowed(e)) {
+                  || !typeAllowed(e) || !displayAllowed(e)) {
                 HIST.remove(e.getId());
                 SMOOTHED_VEL.remove(e.getId());
                 APPLIED.remove(e.getId());
@@ -254,6 +223,23 @@ public final class MobExtrapolation {
     }
   }
 
+  /** Custom-mob parts only: item displays showing custom-model items. */
+  private static boolean displayAllowed(net.minecraft.world.entity.Entity e) {
+    try {
+      if (e instanceof net.minecraft.world.entity.Display.ItemDisplay d) {
+        net.minecraft.world.item.ItemStack s = d.getSlot(0).get();
+        if (s == null || s.isEmpty()) return false;
+        if (CustomItemIds.resolve(s).isPresent()) return true;
+        net.minecraft.world.item.component.CustomModelData cmd =
+            s.get(net.minecraft.core.component.DataComponents.CUSTOM_MODEL_DATA);
+        return cmd != null && !cmd.floats().isEmpty();
+      }
+    } catch (Throwable ignored) {
+      return false;
+    }
+    return true;
+  }
+
   private static boolean sharesMountWithPlayer(Entity e, Entity player) {
     try {
       Entity root = e;
@@ -287,7 +273,7 @@ public final class MobExtrapolation {
     try {
       net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
       if (mc != null && mc.player != null && (carriesPlayer(e, mc.player)
-          || sharesMountWithPlayer(e, mc.player) || !typeAllowed(e))) {
+          || sharesMountWithPlayer(e, mc.player) || !typeAllowed(e) || !displayAllowed(e))) {
         APPLIED.remove(e.getId());
         return null;
       }
