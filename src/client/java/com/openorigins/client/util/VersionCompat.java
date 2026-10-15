@@ -173,6 +173,8 @@ public final class VersionCompat {
   private static volatile Object guiTexturedPipeline;
   private static final java.util.Map<String, Method> blitMethods =
       new java.util.concurrent.ConcurrentHashMap<>();
+  private static final java.util.Set<String> blitMissLogged =
+      java.util.Collections.newSetFromMap(new java.util.concurrent.ConcurrentHashMap<>());
 
   /** GUI_TEXTURED pipeline object (type moved packages in 26.3). */
   public static Object guiTexturedPipeline() {
@@ -214,6 +216,13 @@ public final class VersionCompat {
       }
       blitMethods.put(key, cand);
       return cand;
+    }
+    // TEMP diagnostic for invisible slot overlays.
+    if (blitMissLogged.add(key)) {
+      com.openorigins.client.util.DebugLog.info(
+          "[blitprobe] no match for {} with {} args on {} (pipe {})", name, totalArgs,
+          gfx.getClass().getName(),
+          pipe == null ? "<null>" : pipe.getClass().getName());
     }
     return null;
   }
