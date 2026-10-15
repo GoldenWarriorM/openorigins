@@ -12,6 +12,7 @@ import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.resources.Identifier;
 import net.minecraft.client.gui.components.ContainerObjectSelectionList;
 import net.minecraft.client.gui.components.events.GuiEventListener;
+import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.client.gui.narration.NarratableEntry;
 import net.minecraft.network.chat.Component;
 
@@ -989,6 +990,16 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
       net.minecraft.client.gui.Font font = net.minecraft.client.Minecraft.getInstance().font;
       graphics.text(font, Component.translatable(this.labelKey), labelX,
           this.getContentYMiddle() - 4, 0xFFFFFFFF);
+    }
+
+    @Override
+    public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
+      if (event.button() == 1 && this.expandButton != null && this.group != null) {
+        EXPANDED.put(group, !isExpanded(group));
+        list.refreshEntries();
+        return true;
+      }
+      return super.mouseClicked(event, doubleClick);
     }
 
     @Override
