@@ -477,6 +477,13 @@ public final class HomeInfoCache {
     save();
   }
 
+  /** Drops cached lore/timer for a name (re-created homes start fresh). */
+  public static synchronized void dropCache(String name) {
+    if (CACHE.remove(key(name)) != null) {
+      save();
+    }
+  }
+
   /** Drops a name immediately (e.g. server confirmed deletion). @return true if changed. */
   public static synchronized boolean removeName(String name) {
     String k = key(name);

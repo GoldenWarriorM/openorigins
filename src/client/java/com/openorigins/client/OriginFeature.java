@@ -11,7 +11,7 @@ public enum OriginFeature {
   HIDE_NAMES(FeatureCategory.GENERAL, "Hide Names"),
   AUCTION_PING(FeatureCategory.UI, "Auction Ping"),
   CUTSCENE_ENHANCEMENTS(FeatureCategory.GENERAL, "Cutscene Enhancements"),
-  CUSTOM_ITEM_IDS(FeatureCategory.FIXES, "Custom Item IDs"),
+  CUSTOM_ITEM_IDS(FeatureCategory.NETWORK_FIXES, "Custom Item IDs"),
   DEBUG_LOGGING(FeatureCategory.MISC, false, "Debug Logging"),
   OUTBOX_HUD(FeatureCategory.MISC, false, "Outbox Monitor"),
   SCOREBOARD_DESYNC_FIX(FeatureCategory.NETWORK_FIXES, "Scoreboard Desync Fix"),
@@ -21,7 +21,7 @@ public enum OriginFeature {
   ENTITY_EXTRAPOLATION(FeatureCategory.EXPERIMENTAL, false, "Entity Extrapolation"),
   MOA_FACING_FIX(FeatureCategory.FIXES, "Moa Facing Fix"),
   BREAK_SYNC(FeatureCategory.EXPERIMENTAL, false, "Break Sync", true),
-  STRICT_RECIPE_MATCH(FeatureCategory.FIXES, "Strict Recipe Match"),
+  STRICT_RECIPE_MATCH(FeatureCategory.NETWORK_FIXES, "Strict Recipe Match"),
   OA_EMOJI_PICKER(FeatureCategory.UI, false, "Server Emoji", true);
 
   private final FeatureCategory category;

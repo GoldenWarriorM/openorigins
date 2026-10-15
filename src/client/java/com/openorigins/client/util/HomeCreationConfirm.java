@@ -72,6 +72,7 @@ public final class HomeCreationConfirm {
       }
       BLOCKED.remove(norm(name));
       com.openorigins.client.util.HomeInfoCache.untomb(name);
+      com.openorigins.client.util.HomeInfoCache.dropCache(name);
       confirmFresh(name);
       com.openorigins.client.util.HomeInfoCache.consumeCmdSlot();
       com.openorigins.client.util.HomeFetch.requestRefetch();
