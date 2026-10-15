@@ -86,9 +86,7 @@ public final class MobExtrapolation {
                 try {
                   net.minecraft.world.item.ItemStack s = d.getSlot(0).get();
                   if (s == null || s.isEmpty()) continue;
-                  java.util.Optional<String> r = CustomItemIds.resolve(s);
-                  id = r.isPresent() ? r.get() : net.minecraft.core.registries.BuiltInRegistries.ITEM
-                      .getKey(s.getItem()).toString();
+                  id = displayKey(s);
                 } catch (Throwable t) {
                   continue;
                 }
@@ -252,22 +250,35 @@ public final class MobExtrapolation {
     }
   }
 
+  /** Composite display key: resolved/vanilla id plus custom-model floats. */
+  static String displayKey(net.minecraft.world.item.ItemStack s) {
+    java.util.Optional<String> resolved = CustomItemIds.resolve(s);
+    String id = resolved.isPresent() ? resolved.get()
+        : net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(s.getItem()).toString();
+    try {
+      net.minecraft.world.item.component.CustomModelData cmd =
+          s.get(net.minecraft.core.component.DataComponents.CUSTOM_MODEL_DATA);
+      if (cmd != null && !cmd.floats().isEmpty()) {
+        id = id + "|cmd" + cmd.floats();
+      }
+    } catch (Throwable ignored) {
+    }
+    return id.toLowerCase(java.util.Locale.ROOT);
+  }
+
   /** Custom-mob parts only: item displays showing custom-model items. */
   private static boolean displayAllowed(net.minecraft.world.entity.Entity e) {
     try {
       if (e instanceof net.minecraft.world.entity.Display.ItemDisplay d) {
         net.minecraft.world.item.ItemStack s = d.getSlot(0).get();
         if (s == null || s.isEmpty()) return false;
-        java.util.Optional<String> resolved = CustomItemIds.resolve(s);
-        String id = resolved.isPresent() ? resolved.get()
-            : net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(s.getItem()).toString();
-        id = id.toLowerCase(java.util.Locale.ROOT);
+        String id = displayKey(s);
         java.util.Set<String> only =
             com.openorigins.client.OpenOriginsConfig.getInstance().getExtrapItems();
         if (!only.isEmpty()) {
           return only.contains(id);
         }
-        if (resolved.isPresent()) return true;
+        if (CustomItemIds.resolve(s).isPresent()) return true;
         net.minecraft.world.item.component.CustomModelData cmd =
             s.get(net.minecraft.core.component.DataComponents.CUSTOM_MODEL_DATA);
         return cmd != null && !cmd.floats().isEmpty();
