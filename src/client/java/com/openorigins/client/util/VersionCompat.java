@@ -173,8 +173,6 @@ public final class VersionCompat {
   private static volatile Object guiTexturedPipeline;
   private static final java.util.Map<String, Method> blitMethods =
       new java.util.concurrent.ConcurrentHashMap<>();
-  private static final java.util.Set<String> blitMissLogged =
-      java.util.Collections.newSetFromMap(new java.util.concurrent.ConcurrentHashMap<>());
 
   /** GUI_TEXTURED pipeline object (type moved packages in 26.3). */
   public static Object guiTexturedPipeline() {
@@ -196,8 +194,8 @@ public final class VersionCompat {
     return p;
   }
 
-  private static Method blitMethod(Object gfx, String name, int totalArgs) {
-    String key = name + "#" + totalArgs + "@" + gfx.getClass().getName();
+  private static Method blitMethod(Object gfx, String name, Object[] args) {
+    String key = name + "#" + args.length + "@" + gfx.getClass().getName();
     Method m = blitMethods.get(key);
     if (m != null) {
       return m;
@@ -208,34 +206,54 @@ public final class VersionCompat {
     }
     for (Method cand : gfx.getClass().getMethods()) {
       if (!cand.getName().equals(name)
-          || cand.getParameterCount() != totalArgs + 1) {
+          || cand.getParameterCount() != args.length + 1) {
         continue;
       }
       if (!cand.getParameterTypes()[0].isInstance(pipe)) {
         continue;
       }
-      blitMethods.put(key, cand);
-      // TEMP diagnostic for invisible slot overlays.
-      if (blitMissLogged.add("ok:" + key)) {
-        com.openorigins.client.util.DebugLog.info("[blitprobe] matched {} -> {}", key,
-            cand.toString());
+      if (!matchesRest(cand.getParameterTypes(), args)) {
+        continue;
       }
+      blitMethods.put(key, cand);
       return cand;
     }
-    // TEMP diagnostic for invisible slot overlays.
-    if (blitMissLogged.add(key)) {
-      com.openorigins.client.util.DebugLog.info(
-          "[blitprobe] no match for {} with {} args on {} (pipe {})", name, totalArgs,
-          gfx.getClass().getName(),
-          pipe == null ? "<null>" : pipe.getClass().getName());
-    }
     return null;
+  }
+
+  private static boolean matchesRest(Class<?>[] params, Object[] args) {
+    for (int i = 0; i < args.length; i++) {
+      Class<?> p = params[i + 1];
+      Object a = args[i];
+      if (a == null) {
+        if (p.isPrimitive()) {
+          return false;
+        }
+        continue;
+      }
+      if (p.isInstance(a)) {
+        continue;
+      }
+      if (!p.isPrimitive()) {
+        return false;
+      }
+      if ((p == int.class && a instanceof Integer)
+          || (p == float.class && (a instanceof Float || a instanceof Integer))
+          || (p == double.class && (a instanceof Double || a instanceof Float
+              || a instanceof Integer))
+          || (p == long.class && (a instanceof Long || a instanceof Integer))
+          || (p == boolean.class && a instanceof Boolean)) {
+        continue;
+      }
+      return false;
+    }
+    return true;
   }
 
   private static void invokeBlit(String name, Object gfx, Object[] args) {
     try {
       Object pipe = guiTexturedPipeline();
-      Method m = blitMethod(gfx, name, args.length);
+      Method m = blitMethod(gfx, name, args);
       if (pipe == null || m == null) {
         return;
       }
@@ -243,27 +261,7 @@ public final class VersionCompat {
       full[0] = pipe;
       System.arraycopy(args, 0, full, 1, args.length);
       m.invoke(gfx, full);
-    } catch (Throwable t) {
-      // TEMP diagnostic for invisible slot overlays.
-      if (blitMissLogged.add("exc:" + name)) {
-        StringBuilder sig = new StringBuilder();
-        try {
-          Method mm = blitMethod(gfx, name, args.length);
-          if (mm != null) {
-            sig.append("method=").append(mm.toString());
-          }
-          sig.append(" argTypes=[");
-          for (Object a : args) {
-            sig.append(a == null ? "null" : a.getClass().getName()).append(',');
-          }
-          sig.append(']');
-        } catch (Throwable ignored) {
-        }
-        com.openorigins.client.util.DebugLog.info("[blitprobe] invoke {} failed: {} {}pipe={}",
-            name, t.toString(), sig,
-            guiTexturedPipeline() == null ? "<null>"
-                : guiTexturedPipeline().getClass().getName());
-      }
+    } catch (Throwable ignored) {
     }
   }
 
