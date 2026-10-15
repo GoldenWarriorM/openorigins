@@ -53,6 +53,7 @@ public final class MobExtrapolation {
       new ConcurrentHashMap<>();
   private static volatile long lastStatMs;
   private static volatile int appliedCount;
+  private static volatile boolean itemDumpDone;
 
   /** Called from the render mixins when an offset actually shifts a state. */
   public static void noteApplied() {
@@ -71,6 +72,34 @@ public final class MobExtrapolation {
         .register(client -> {
           if (client.level == null || client.player == null) {
             return;
+          }
+          if (!itemDumpDone) {
+            try {
+              java.util.Map<String, Integer> counts = new java.util.TreeMap<>();
+              for (Entity e : client.level.entitiesForRendering()) {
+                if (!(e instanceof net.minecraft.world.entity.Display.ItemDisplay d)) continue;
+                try {
+                  if (e.distanceToSqr(client.player) > TRACK_DIST_SQ) continue;
+                } catch (Throwable ignored) {
+                }
+                String id;
+                try {
+                  net.minecraft.world.item.ItemStack s = d.getSlot(0).get();
+                  if (s == null || s.isEmpty()) continue;
+                  java.util.Optional<String> r = CustomItemIds.resolve(s);
+                  id = r.isPresent() ? r.get() : net.minecraft.core.registries.BuiltInRegistries.ITEM
+                      .getKey(s.getItem()).toString();
+                } catch (Throwable t) {
+                  continue;
+                }
+                counts.put(id, counts.getOrDefault(id, 0) + 1);
+              }
+              if (!counts.isEmpty()) {
+                itemDumpDone = true;
+                com.openorigins.client.util.DebugLog.info("[extrap] display items: {}", counts);
+              }
+            } catch (Throwable ignored) {
+            }
           }
           try {
             if (!com.openorigins.client.OpenOriginsConfig.getInstance()
@@ -229,7 +258,16 @@ public final class MobExtrapolation {
       if (e instanceof net.minecraft.world.entity.Display.ItemDisplay d) {
         net.minecraft.world.item.ItemStack s = d.getSlot(0).get();
         if (s == null || s.isEmpty()) return false;
-        if (CustomItemIds.resolve(s).isPresent()) return true;
+        java.util.Optional<String> resolved = CustomItemIds.resolve(s);
+        String id = resolved.isPresent() ? resolved.get()
+            : net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(s.getItem()).toString();
+        id = id.toLowerCase(java.util.Locale.ROOT);
+        java.util.Set<String> only =
+            com.openorigins.client.OpenOriginsConfig.getInstance().getExtrapItems();
+        if (!only.isEmpty()) {
+          return only.contains(id);
+        }
+        if (resolved.isPresent()) return true;
         net.minecraft.world.item.component.CustomModelData cmd =
             s.get(net.minecraft.core.component.DataComponents.CUSTOM_MODEL_DATA);
         return cmd != null && !cmd.floats().isEmpty();

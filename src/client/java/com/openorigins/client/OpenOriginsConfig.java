@@ -31,6 +31,7 @@ public final class OpenOriginsConfig {
   private int homeCapacity = 5;
   private int extrapMs = 150;
   private String extrapTypes = "";
+  private String extrapItems = "";
   private boolean badgerHudVisible = true;
   private boolean badgerHudBackdrop = true;
   private float allayArmsShiftTexels = 12.0f;
@@ -119,6 +120,10 @@ public final class OpenOriginsConfig {
       if (ext != null) {
         extrapTypes = ext.trim();
       }
+      String eit = props.getProperty("extrap.items");
+      if (eit != null) {
+        extrapItems = eit.trim();
+      }
       String scanKey = props.getProperty("scan.key");
       if (scanKey != null) {
         try {
@@ -174,6 +179,7 @@ public final class OpenOriginsConfig {
     props.setProperty("homes.capacity", Integer.toString(homeCapacity));
     props.setProperty("extrap.ms", Integer.toString(extrapMs));
     props.setProperty("extrap.types", extrapTypes);
+    props.setProperty("extrap.items", extrapItems);
     props.setProperty("allay.arms.x", Float.toString(allayArmsShiftTexels));
     props.setProperty("scan.key", scanKeyType + ":" + scanKeyValue);
     props.setProperty("servers", getServersText());
@@ -372,6 +378,21 @@ public final class OpenOriginsConfig {
 
   public String getExtrapTypesRaw() {
     return extrapTypes;
+  }
+
+  /** Comma-separated item ids (resolved or vanilla) for display filtering. */
+  public java.util.Set<String> getExtrapItems() {
+    java.util.Set<String> out = new java.util.LinkedHashSet<>();
+    if (extrapItems == null) return out;
+    for (String s : extrapItems.split(",")) {
+      s = s.trim().toLowerCase(java.util.Locale.ROOT);
+      if (!s.isEmpty()) out.add(s);
+    }
+    return out;
+  }
+
+  public String getExtrapItemsRaw() {
+    return extrapItems == null ? "" : extrapItems;
   }
 
   public static java.util.Set<String> parseExtrapTypes(String raw) {    java.util.Set<String> out = new java.util.LinkedHashSet<>();
