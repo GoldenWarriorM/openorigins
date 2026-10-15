@@ -217,7 +217,12 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
         } catch (Throwable t) {
           continue;
         }
-        lineX = labelX - 24;
+        lineX = labelX - 12 - 20;
+        try {
+          lineX = Math.max(lineX, this.getX() + 2) + 8;
+        } catch (Throwable ignored) {
+          lineX += 8;
+        }
         int yStart = Math.max(0, y0 - 10);
         int yEnd = last ? (y0 + y1) / 2 : y1;
         int mid = (y0 + y1) / 2;
@@ -832,7 +837,11 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
       if (this.expandButton != null) {
         int gx = labelX - 20;
         try {
-          gx = Math.max(gx, this.list.getX() + 2);
+          int minGx = this.list.getX() + 2;
+          if (gx < minGx) {
+            labelX += minGx - gx;
+            gx = minGx;
+          }
         } catch (Throwable ignored) {
         }
         this.expandButton.setX(gx);
@@ -964,7 +973,11 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
       if (this.expandButton != null) {
         int gx = labelX - 20;
         try {
-          gx = Math.max(gx, this.list.getX() + 2);
+          int minGx = this.list.getX() + 2;
+          if (gx < minGx) {
+            labelX += minGx - gx;
+            gx = minGx;
+          }
         } catch (Throwable ignored) {
         }
         this.expandButton.setX(gx);
