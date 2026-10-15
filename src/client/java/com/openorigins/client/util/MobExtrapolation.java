@@ -53,10 +53,43 @@ public final class MobExtrapolation {
       new ConcurrentHashMap<>();
   private static volatile long lastStatMs;
   private static volatile int appliedCount;
-  private static volatile boolean itemDumpDone;
   private static volatile long lastDumpMs;
   private static final java.util.Set<String> itemDumpSeen =
       java.util.Collections.synchronizedSet(new java.util.LinkedHashSet<>());
+  private static volatile boolean itemDumpLoaded;
+
+  private static java.nio.file.Path seenPath() {
+    try {
+      return net.fabricmc.loader.api.FabricLoader.getInstance().getConfigDir()
+          .resolve("openorigins-extrap-seen.json");
+    } catch (Throwable t) {
+      return null;
+    }
+  }
+
+  private static void loadSeen() {
+    try {
+      java.nio.file.Path p = seenPath();
+      if (p == null || !java.nio.file.Files.exists(p)) return;
+      String s = java.nio.file.Files.readString(p);
+      for (String line : s.split("\n")) {
+        line = line.trim();
+        if (!line.isEmpty()) itemDumpSeen.add(line);
+      }
+    } catch (Throwable ignored) {
+    }
+  }
+
+  private static void saveSeen() {
+    try {
+      java.nio.file.Path p = seenPath();
+      if (p == null) return;
+      StringBuilder sb = new StringBuilder();
+      for (String k : itemDumpSeen) sb.append(k).append('\n');
+      java.nio.file.Files.writeString(p, sb.toString());
+    } catch (Throwable ignored) {
+    }
+  }
 
   /** Called from the render mixins when an offset actually shifts a state. */
   public static void noteApplied() {
@@ -76,8 +109,12 @@ public final class MobExtrapolation {
           if (client.level == null || client.player == null) {
             return;
           }
-          if (!itemDumpDone && System.currentTimeMillis() - lastDumpMs > 5000) {
+          if (System.currentTimeMillis() - lastDumpMs > 5000) {
             lastDumpMs = System.currentTimeMillis();
+            if (!itemDumpLoaded) {
+              itemDumpLoaded = true;
+              loadSeen();
+            }
             try {
               java.util.Map<String, Integer> counts = new java.util.TreeMap<>();
               for (Entity e : client.level.entitiesForRendering()) {
@@ -97,6 +134,7 @@ public final class MobExtrapolation {
                 counts.put(id, counts.getOrDefault(id, 0) + 1);
               }
               if (!counts.isEmpty() && itemDumpSeen.addAll(counts.keySet())) {
+                saveSeen();
                 com.openorigins.client.util.DebugLog.info("[extrap] display items: {}", counts);
               }
             } catch (Throwable ignored) {
