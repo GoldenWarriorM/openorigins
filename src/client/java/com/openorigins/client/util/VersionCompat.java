@@ -116,13 +116,13 @@ public final class VersionCompat {
     }
   }
 
-  /** True for null or UNKNOWN keys (shows vanilla "Not Bound"). */
+  /** True for null or UNKNOWN-valued keys (shows vanilla "Not Bound"). */
   public static boolean isUnbound(InputConstants.Key key) {
     if (key == null) {
       return true;
     }
     try {
-      return key.equals(InputConstants.UNKNOWN);
+      return key.getValue() == InputConstants.UNKNOWN.getValue();
     } catch (Throwable t) {
       return false;
     }
