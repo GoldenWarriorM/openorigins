@@ -484,14 +484,6 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
       }
       }
     }
-    try {
-      StringBuilder sb = new StringBuilder("feed:");
-      for (Entry e : out) {
-        sb.append(' ').append(e.key());
-      }
-      com.openorigins.client.util.DebugLog.info(sb.toString());
-    } catch (Throwable ignored) {
-    }
     return out;
   }
 
@@ -858,11 +850,6 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
 
     @Override
     public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
-      try {
-        com.openorigins.client.util.DebugLog.info("[cfgclick] row={} btn={}",
-            this.key(), event.button());
-      } catch (Throwable ignored) {
-      }
       if (event.button() == 1 && this.expandButton != null && this.group != null) {
         EXPANDED.put(group, !isExpanded(group));
         list.refreshEntries();
@@ -1009,11 +996,6 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
 
     @Override
     public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
-      try {
-        com.openorigins.client.util.DebugLog.info("[cfgclick] row={} btn={}",
-            this.key(), event.button());
-      } catch (Throwable ignored) {
-      }
       if (event.button() == 1 && this.expandButton != null && this.group != null) {
         EXPANDED.put(group, !isExpanded(group));
         list.refreshEntries();
