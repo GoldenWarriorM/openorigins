@@ -73,6 +73,13 @@ public final class MobExtrapolation {
             return;
           }
           try {
+            if (!com.openorigins.client.OpenOriginsConfig.getInstance()
+                .isEnabled(com.openorigins.client.OriginFeature.ENTITY_EXTRAPOLATION)) {
+              return;
+            }
+          } catch (Throwable ignored) {
+          }
+          try {
             for (Entity e : client.level.entitiesForRendering()) {
               if (e == null || e == client.player || e.isRemoved()) {
                 continue;
@@ -193,10 +200,20 @@ public final class MobExtrapolation {
   }
 
   /** True if the entity rides (transitively) something carrying the player. */
+  private static volatile String cachedTypesRaw;
+  private static volatile java.util.Set<String> cachedTypes = java.util.Set.of();
+
   private static boolean typeAllowed(net.minecraft.world.entity.Entity e) {
     try {
-      java.util.Set<String> only =
-          com.openorigins.client.OpenOriginsConfig.getInstance().getExtrapTypes();
+      String raw =
+          com.openorigins.client.OpenOriginsConfig.getInstance().getExtrapTypesRaw();
+      java.util.Set<String> only = cachedTypes;
+      if (raw == null) raw = "";
+      if (!raw.equals(cachedTypesRaw)) {
+        only = com.openorigins.client.OpenOriginsConfig.parseExtrapTypes(raw);
+        cachedTypes = only;
+        cachedTypesRaw = raw;
+      }
       if (only.isEmpty()) return true;
       String id = net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE.getKey(
           e.getType()).toString().toLowerCase(java.util.Locale.ROOT);

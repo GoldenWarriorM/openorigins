@@ -367,8 +367,16 @@ public final class OpenOriginsConfig {
 
   /** Comma-separated entity type ids to extrapolate; empty = all tracked kinds. */
   public java.util.Set<String> getExtrapTypes() {
-    java.util.Set<String> out = new java.util.LinkedHashSet<>();
-    for (String s : extrapTypes.split(",")) {
+    return parseExtrapTypes(extrapTypes);
+  }
+
+  public String getExtrapTypesRaw() {
+    return extrapTypes;
+  }
+
+  public static java.util.Set<String> parseExtrapTypes(String raw) {    java.util.Set<String> out = new java.util.LinkedHashSet<>();
+    if (raw == null) return out;
+    for (String s : raw.split(",")) {
       s = s.trim().toLowerCase(java.util.Locale.ROOT);
       if (!s.isEmpty()) out.add(s);
     }
