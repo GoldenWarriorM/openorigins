@@ -182,6 +182,10 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
     } catch (Throwable t) {
       return;
     }
+    try {
+      this.enableScissor(graphics);
+    } catch (Throwable ignored) {
+    }
     for (int i = 0; i < kids.size(); i++) {
       Entry e = kids.get(i);
       String group;
@@ -222,6 +226,10 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
         graphics.fill(lineX, mid, labelX - 4, mid + 1, gray);
       } catch (Throwable ignored) {
       }
+    }
+    try {
+      graphics.disableScissor();
+    } catch (Throwable ignored) {
     }
   }
   /** Cloth-style gliding row highlight, own math, no dependency. */
