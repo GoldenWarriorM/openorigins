@@ -18,10 +18,7 @@ import net.minecraft.network.chat.Component;
 public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry> {
   private static final Identifier RESET_ICON =
       Identifier.fromNamespaceAndPath("openorigins", "reset");
-  private static final net.minecraft.client.gui.components.WidgetSprites RESET_SPRITES =
-      new net.minecraft.client.gui.components.WidgetSprites(
-          Identifier.fromNamespaceAndPath("openorigins", "reset"),
-          Identifier.fromNamespaceAndPath("openorigins", "reset_disabled"));
+
   private static final int ROW_H = 24;
   private ConfigTab jumpTab;
   private double jumpScroll;
@@ -765,7 +762,7 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
         config.setEnabled(feature, feature.getDefaultValue());
         list.refreshEntries();
       }, true)
-          .width(20).sprite(RESET_SPRITES, 8, 8).withTootip().build();
+          .width(20).sprite(RESET_ICON, 8, 8).withTootip().build();
       if (group != null) {
         this.expandButton = new GlyphToggleButton(() -> {
           EXPANDED.put(group, !isExpanded(group));
@@ -909,7 +906,7 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
         this.set.accept(this.defaultValue);
         this.list.refreshEntries();
       }, true)
-          .width(20).sprite(RESET_SPRITES, 8, 8).withTootip().build();
+          .width(20).sprite(RESET_ICON, 8, 8).withTootip().build();
       if (group != null) {
         this.expandButton = new GlyphToggleButton(() -> {
           EXPANDED.put(group, !isExpanded(group));
@@ -1040,7 +1037,7 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
         }
         this.list.refreshEntries();
       }, true)
-          .width(20).sprite(RESET_SPRITES, 8, 8).withTootip().build();
+          .width(20).sprite(RESET_ICON, 8, 8).withTootip().build();
       this.refreshEntry();
     }
 
@@ -1155,7 +1152,7 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
         this.set.accept(this.defaultValue);
         this.list.refreshEntries();
       }, true)
-          .width(20).sprite(RESET_SPRITES, 8, 8).withTootip().build();
+          .width(20).sprite(RESET_ICON, 8, 8).withTootip().build();
     }
 
     public void refreshEntry() {
