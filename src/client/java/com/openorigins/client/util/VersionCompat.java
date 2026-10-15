@@ -238,7 +238,12 @@ public final class VersionCompat {
       full[0] = pipe;
       System.arraycopy(args, 0, full, 1, args.length);
       m.invoke(gfx, full);
-    } catch (Throwable ignored) {
+    } catch (Throwable t) {
+      // TEMP diagnostic for invisible slot overlays.
+      if (blitMissLogged.add("exc:" + name)) {
+        com.openorigins.client.util.DebugLog.info("[blitprobe] invoke {} failed: {}", name,
+            t.toString());
+      }
     }
   }
 
