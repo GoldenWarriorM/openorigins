@@ -71,6 +71,20 @@ public final class OpenWorldCache {
     return Character.toUpperCase(color.charAt(0)) + color.substring(1) + " Open World";
   }
 
+  /** Boss bars seen on the last poll (menu-form world bars vs fight bars). */
+  private static volatile boolean bossRoomBars;
+
+  /** True while a non-open-world boss bar is shown (boss fight / boss room). */
+  public static boolean isInBossRoom() {
+    return bossRoomBars;
+  }
+
+  /** Clears boss-room state on disconnect (bars vanish with the world). */
+  public static void noteDisconnect() {
+    bossRoomBars = false;
+    currentWorldColor = null;
+  }
+
   /** Scans live boss bars for world phrasing (throttle by caller). */
   public static void pollBossBars(net.minecraft.client.Minecraft mc) {
     if (mc == null || mc.gui == null || mc.gui.hud == null) {
@@ -79,13 +93,22 @@ public final class OpenWorldCache {
     try {
       var events = ((com.openorigins.client.mixin.BossBarAccessor) mc.gui.hud.getBossOverlay())
           .openorigins$getBossEvents().values();
+      boolean fight = false;
       for (var e : events) {
         try {
-          if (noteBossBar(e.getName().getString())) {
-            return;
+          String name = e.getName().getString();
+          if (noteBossBar(name)) {
+            continue;
+          }
+          if (!name.isBlank()) {
+            fight = true;
           }
         } catch (Throwable ignored) {
         }
+      }
+      if (fight != bossRoomBars) {
+        bossRoomBars = fight;
+        com.openorigins.client.util.DebugLog.info("[openworld] boss-room bars: {}", fight);
       }
     } catch (Throwable ignored) {
     }

@@ -43,7 +43,11 @@ public abstract class ChatConfirmMixin {
       return;
     }
     if (text.contains("you cannot do that here")) {
-      if (!com.openorigins.client.util.BackgroundMenu.isInDeadZone()) {
+      // Bow-spam in boss rooms: the action denial itself repeats, no command
+      // of ours is involved, so dead zones never get recorded there. Boss
+      // bars (non-open-world ones) are the direct signal instead.
+      if (!com.openorigins.client.util.BackgroundMenu.isInDeadZone()
+          && !com.openorigins.client.util.OpenWorldCache.isInBossRoom()) {
         return;
       }
       long now = System.currentTimeMillis();
