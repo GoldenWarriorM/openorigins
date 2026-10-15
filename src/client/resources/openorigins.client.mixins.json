@@ -38,13 +38,14 @@
     "ItemDisplayArmsFixMixin",
     "ItemInHandArmsFixMixin",
     "DisplayExtrapolationMixin",
+    "DisplayCullingMixin",
     "StandExtrapolationMixin",
     "BreakSyncMixin",
     "BreakSyncAccessor",
     "BossBarAccessor",
     "MoaFacingFixMixin",
     "EquipSwapMixin",
-    "StrictRecipeMatchMixin",
+    "StrictRecipeMatchMixin"
   ],
   "injectors": {
     "defaultRequire": 1
