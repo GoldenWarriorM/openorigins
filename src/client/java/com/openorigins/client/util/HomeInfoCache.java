@@ -478,7 +478,9 @@ public final class HomeInfoCache {
   }
 
   /** Provisional entry at creation time: position and date are known locally,
-   * world and timer arrive with the next lore capture (which overwrites this). */
+   * world comes from the live boss bar. Styles are cloned 1:1 from any cached
+   * server lore (same world preferred); the next real capture overwrites this.
+   * No parsing of /homes is needed for the tooltip to look final. */
   public static synchronized void provisional(String name, net.minecraft.core.BlockPos pos) {
     if (name == null || name.isBlank() || pos == null) {
       return;
@@ -487,14 +489,73 @@ public final class HomeInfoCache {
     if (CACHE.containsKey(k)) {
       return;
     }
+    String color = com.openorigins.client.util.OpenWorldCache.currentWorldColor();
+    List<Component> template = null;
+    for (Map.Entry<String, Info> e : CACHE.entrySet()) {
+      if (color != null && color.equals(e.getValue().worldColor())) {
+        template = e.getValue().lore();
+        break;
+      }
+      if (template == null && e.getValue().lore().size() >= 3) {
+        template = e.getValue().lore();
+      }
+    }
     java.time.LocalDate date = java.time.LocalDate.now();
     String created = date.getMonth().getDisplayName(java.time.format.TextStyle.FULL,
         java.util.Locale.US) + " " + date.getDayOfMonth() + ", " + date.getYear();
-    java.util.List<Component> lore = java.util.List.of(
-        Component.literal("Created: " + created),
-        Component.literal("Position: " + pos.getX() + ", " + pos.getY() + ", " + pos.getZ()));
-    CACHE.put(k, new Info(List.copyOf(lore), null, 0));
+    String coords = pos.getX() + ", " + pos.getY() + ", " + pos.getZ();
+    List<Component> lore;
+    if (template != null && template.size() >= 3) {
+      List<Component> built = new ArrayList<>(template.size());
+      built.add(styled(template.get(0), "Created: ", created));
+      String worldName = color == null
+          ? template.get(1).getString().replaceFirst("(?i)^world:\\s*", "")
+          : com.openorigins.client.util.OpenWorldCache.worldName(color);
+      built.add(styled(template.get(1), "World: ", worldName));
+      built.add(styled(template.get(2), "Position: ", coords));
+      for (int i = 3; i < template.size(); i++) {
+        built.add(template.get(i).copy());
+      }
+      lore = List.copyOf(built);
+    } else {
+      lore = List.of(
+          Component.literal("Created: " + created),
+          Component.literal("World: "
+              + (color == null ? "" : com.openorigins.client.util.OpenWorldCache.worldName(color))),
+          Component.literal("Position: " + coords));
+    }
+    long anchor = color == null ? 0 : OpenWorldCache.resetAt(color);
+    if (anchor <= System.currentTimeMillis()) {
+      anchor = 0;
+    }
+    CACHE.put(k, new Info(List.copyOf(lore), color, anchor));
     save();
+  }
+
+  /** Rebuilds a two-part lore line (fixed prefix + variable value), keeping
+   * the template's root and value styles 1:1. Extra lines are copied as-is. */
+  private static Component styled(Component template, String prefix, String value) {
+    MutableComponent out = Component.literal(prefix).withStyle(template.getStyle());
+    List<Component> sibs = template.getSiblings();
+    if (sibs.isEmpty()) {
+      // Single-part line: whole text is the old value.
+      return out.append(Component.literal(value).withStyle(template.getStyle()));
+    }
+    boolean first = true;
+    for (Component s : sibs) {
+      if (first) {
+        // First sibling holds the variable part (date / world / coords).
+        MutableComponent val = Component.literal(value).withStyle(s.getStyle());
+        for (Component sub : s.getSiblings()) {
+          val.append(sub.copy());
+        }
+        out.append(val);
+        first = false;
+      } else {
+        out.append(s.copy());
+      }
+    }
+    return out;
   }
 
   /** Drops cached lore/timer for a name (re-created homes start fresh). */

@@ -27,6 +27,10 @@ public final class FeatureRegistry {
       if (client.level.getGameTime() % 10 == 0) {
         EntityData.flushPendingTags();
       }
+      // Remembers the current open world from its boss bar ("Open World Yellow").
+      if (client.level.getGameTime() % 20 == 0) {
+        com.openorigins.client.util.OpenWorldCache.pollBossBars(client);
+      }
     });
     // Entity-bound server data (nametags) must die with the entity object:
     // the server re-sends full tag state on every re-track, and a global

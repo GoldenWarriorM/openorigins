@@ -29,9 +29,66 @@ public final class OpenWorldCache {
   private static final Map<String, String> NAMES = new ConcurrentHashMap<>();
   private static final Map<String, Integer> SLOTS = new ConcurrentHashMap<>();
   private static final String[] COLORS = {"blue", "green", "yellow", "red", "orange", "purple"};
+  private static volatile String currentWorldColor;
 
   public static ResetInfo resetFor(String worldColor) {
     return worldColor == null ? null : RESETS.get(worldColor);
+  }
+
+  /** World color seen in the boss bar ("Open World Yellow" or "Yellow Open World"). */
+  public static String currentWorldColor() {
+    return currentWorldColor;
+  }
+
+  /**
+   * Matches boss-bar text against known world phrasing. Boss bars say
+   * "Open World &lt;color&gt;", menus say "&lt;color&gt; Open World".
+   */
+  public static synchronized boolean noteBossBar(String text) {
+    if (text == null) return false;
+    String lower = text.toLowerCase(java.util.Locale.ROOT);
+    if (!lower.contains("open world")) return false;
+    for (String c : COLORS) {
+      if (lower.contains(c)) {
+        if (!c.equals(currentWorldColor)) {
+          currentWorldColor = c;
+        }
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /** Menu-form world name ("Yellow Open World"), or a capitalized fallback. */
+  public static String worldName(String color) {
+    if (color == null) {
+      return null;
+    }
+    String n = NAMES.get(color);
+    if (n != null && !n.isBlank()) {
+      return n;
+    }
+    return Character.toUpperCase(color.charAt(0)) + color.substring(1) + " Open World";
+  }
+
+  /** Scans live boss bars for world phrasing (throttle by caller). */
+  public static void pollBossBars(net.minecraft.client.Minecraft mc) {
+    if (mc == null || mc.gui == null || mc.gui.hud == null) {
+      return;
+    }
+    try {
+      var events = ((com.openorigins.client.mixin.BossBarAccessor) mc.gui.hud.getBossOverlay())
+          .openorigins$getBossEvents().values();
+      for (var e : events) {
+        try {
+          if (noteBossBar(e.getName().getString())) {
+            return;
+          }
+        } catch (Throwable ignored) {
+        }
+      }
+    } catch (Throwable ignored) {
+    }
   }
 
   /** Known worlds in stable color order. */
