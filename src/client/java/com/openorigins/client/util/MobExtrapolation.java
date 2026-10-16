@@ -81,11 +81,21 @@ public final class MobExtrapolation {
           } catch (Throwable ignored) {
           }
           try {
+            java.util.List<double[]> hooks = new java.util.ArrayList<>(2);
+            try {
+              for (Entity h : client.level.entitiesForRendering()) {
+                if (h instanceof net.minecraft.world.entity.projectile.FishingHook) {
+                  hooks.add(new double[]{h.getX(), h.getY(), h.getZ()});
+                }
+              }
+            } catch (Throwable ignored) {
+            }
             for (Entity e : client.level.entitiesForRendering()) {
               if (e == null || e == client.player || e.isRemoved()) {
                 continue;
               }
               if (carriesPlayer(e, client.player) || sharesMountWithPlayer(e, client.player)
+                  || nearHook(e, hooks)
                   || !typeAllowed(e) || !displayAllowed(e)) {
                 HIST.remove(e.getId());
                 SMOOTHED_VEL.remove(e.getId());
@@ -118,24 +128,6 @@ public final class MobExtrapolation {
               }
               ArrayDeque<double[]> q = HIST.computeIfAbsent(e.getId(),
                   id -> new ArrayDeque<>(WINDOW));
-              // TEMP: identify non-Grimm tracked entities (bobber splash?).
-              if (q.isEmpty()) {
-                try {
-                  String type = net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE
-                      .getKey(e.getType()).toString();
-                  String key = "-";
-                  if (e instanceof net.minecraft.world.entity.Display.ItemDisplay d) {
-                    try {
-                      key = displayKey(d.getSlot(0).get());
-                    } catch (Throwable ignored) {
-                    }
-                  }
-                  com.openorigins.client.util.DebugLog.info(
-                      "[extrap] +track id={} type={} key={} vehicle={}", e.getId(), type, key,
-                      e.getVehicle() == null ? "-" : e.getVehicle().getType().getDescriptionId());
-                } catch (Throwable ignored) {
-                }
-              }
               synchronized (q) {
                 q.addLast(new double[] {e.getX(), e.getY(), e.getZ()});
                 while (q.size() > WINDOW) {
@@ -279,6 +271,28 @@ public final class MobExtrapolation {
       return false;
     }
     return true;
+  }
+
+  /** Fishing rigs (bobber splash displays/stands) must never be smoothed. */
+  private static boolean nearHook(Entity e, java.util.List<double[]> hooks) {
+    if (hooks.isEmpty()) {
+      return false;
+    }
+    try {
+      double x = e.getX();
+      double y = e.getY();
+      double z = e.getZ();
+      for (double[] h : hooks) {
+        double dx = x - h[0];
+        double dy = y - h[1];
+        double dz = z - h[2];
+        if (dx * dx + dy * dy + dz * dz < 16.0) {
+          return true;
+        }
+      }
+    } catch (Throwable ignored) {
+    }
+    return false;
   }
 
   private static boolean sharesMountWithPlayer(Entity e, Entity player) {
