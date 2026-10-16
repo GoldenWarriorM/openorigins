@@ -22,6 +22,7 @@ public final class AuctionDbScreen extends Screen {
   private int exclHintX;
   private int exclHintY;
   private AuctionPriceDb.Entry detail;
+  private java.util.List<String> detailLines = List.of();
   private final List<net.minecraft.client.gui.components.Button> rarityButtons =
       new java.util.ArrayList<>();
 
@@ -132,6 +133,35 @@ public final class AuctionDbScreen extends Screen {
 
   void showDetail(AuctionPriceDb.Entry entry) {
     this.detail = entry;
+    this.detailLines = List.of();
+    if (entry != null) {
+      String desc = AuctionPriceDb.descText(entry.key);
+      if (!desc.isEmpty()) {
+        List<String> lines = new java.util.ArrayList<>();
+        for (String dl : desc.split("\n")) {
+          if (lines.size() >= 4) {
+            break;
+          }
+          String line = dl.strip();
+          if (line.isEmpty()) {
+            continue;
+          }
+          lines.add(line.length() > 30 ? line.substring(0, 30) : line);
+        }
+        this.detailLines = List.copyOf(lines);
+      }
+    }
+    int y = 30 + 22;
+    if (!this.detailLines.isEmpty()) {
+      y += this.detailLines.size() * 10 + 2;
+    }
+    if (entry != null && AuctionPriceDb.stats(entry.key) != null) {
+      y += 14;
+    }
+    if (this.detailList != null) {
+      this.detailList.setY(y + 6);
+      this.detailList.setHeight(Math.max(40, this.height - 44 - (y + 6)));
+    }
     refreshDetailList();
   }
 
@@ -170,7 +200,7 @@ public final class AuctionDbScreen extends Screen {
       return;
     }
     int x = (this.width / 2 - 308 + 288);
-    int y = 56;
+    int y = 30;
     net.minecraft.client.gui.Font font = this.minecraft.font;
     ItemStack icon = AuctionPriceDb.iconFor(e.key);
     if (!icon.isEmpty()) {
@@ -181,24 +211,11 @@ public final class AuctionDbScreen extends Screen {
     graphics.text(font, titleName != null ? titleName
         : net.minecraft.network.chat.Component.literal(e.name), x, y + 4, 0xFFFFFFFF);
     y += 22;
-    String desc = AuctionPriceDb.descText(e.key);
-    if (!desc.isEmpty()) {
-      int drawn = 0;
-      for (String dl : desc.split("\n")) {
-        if (drawn >= 4) {
-          break;
-        }
-        String line = dl.strip();
-        if (line.isEmpty()) {
-          continue;
-        }
-        if (line.length() > 30) {
-          line = line.substring(0, 30);
-        }
-        graphics.text(font, line, (this.width / 2 - 308 + 288), y, 0xFFAAAAAA);
-        y += 10;
-        drawn++;
-      }
+    for (String line : this.detailLines) {
+      graphics.text(font, line, (this.width / 2 - 308 + 288), y, 0xFFAAAAAA);
+      y += 10;
+    }
+    if (!this.detailLines.isEmpty()) {
       y += 2;
     }
     AuctionPriceDb.Stats st = AuctionPriceDb.stats(e.key);
