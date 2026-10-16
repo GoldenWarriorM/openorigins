@@ -110,6 +110,41 @@ public final class AuctionPriceDb {
   private static final int MAX_SAMPLES = 2000;
   private static final long MAX_AGE_MS = 120L * 24 * 60 * 60 * 1000;
 
+  /** Normalized seller nicks excluded from stats. */
+  private static final java.util.Set<String> EXCLUDED =
+      java.util.Collections.newSetFromMap(new ConcurrentHashMap<>());
+
+  /** Nick without the rank badge prefix ("… Zoltraq" -> "zoltraq"). */
+  public static String sellerNick(String seller) {
+    if (seller == null) {
+      return "";
+    }
+    String s = seller.strip();
+    int sp = s.lastIndexOf(' ');
+    if (sp >= 0) {
+      s = s.substring(sp + 1);
+    }
+    return s.toLowerCase(Locale.ROOT);
+  }
+
+  public static boolean isExcluded(String seller) {
+    String nick = sellerNick(seller);
+    return !nick.isEmpty() && EXCLUDED.contains(nick);
+  }
+
+  public static synchronized void setExcluded(String seller, boolean excluded) {
+    String nick = sellerNick(seller);
+    if (nick.isEmpty()) {
+      return;
+    }
+    if (excluded) {
+      EXCLUDED.add(nick);
+    } else {
+      EXCLUDED.remove(nick);
+    }
+    save();
+  }
+
   private static final Pattern TIME_LEFT_NUM =
       Pattern.compile("(\\d+)\\s*(day|hour|min)", Pattern.CASE_INSENSITIVE);
 
@@ -404,12 +439,18 @@ public final class AuctionPriceDb {
     long totalW = 0;
     double totalV = 0;
     for (Sample s : e.samples) {
+      if (isExcluded(s.seller())) {
+        continue;
+      }
       long w = Math.max(1, s.count());
       vals.add(new double[]{s.unit(), w});
       totalW += w;
       totalV += s.unit() * w;
     }
     vals.sort(java.util.Comparator.comparingDouble(a -> a[0]));
+    if (vals.isEmpty() || totalW <= 0) {
+      return null;
+    }
     long half = (totalW + 1) / 2;
     long acc = 0;
     double med = vals.get(vals.size() - 1)[0];
@@ -561,6 +602,11 @@ public final class AuctionPriceDb {
       var ops = (mc != null && mc.level != null) ? net.minecraft.resources.RegistryOps.create(
           com.mojang.serialization.JsonOps.INSTANCE, mc.level.registryAccess()) : null;
       JsonObject root = new JsonObject();
+      JsonArray excl = new JsonArray();
+      for (String nick : EXCLUDED) {
+        excl.add(nick);
+      }
+      root.add("excluded", excl);
       for (Entry e : ITEMS.values()) {
         if (e.samples.isEmpty()) {
           continue;
@@ -618,7 +664,21 @@ public final class AuctionPriceDb {
           JsonParser.parseString(Files.readString(f, StandardCharsets.UTF_8)).getAsJsonObject();
       long now = System.currentTimeMillis();
       int n = 0;
+      if (root.has("excluded")) {
+        try {
+          for (JsonElement el : root.getAsJsonArray("excluded")) {
+            String nick = el.getAsString().strip().toLowerCase(Locale.ROOT);
+            if (!nick.isEmpty()) {
+              EXCLUDED.add(nick);
+            }
+          }
+        } catch (Exception ignored) {
+        }
+      }
       for (Map.Entry<String, JsonElement> en : root.entrySet()) {
+        if (en.getKey().equals("excluded")) {
+          continue;
+        }
         try {
           JsonObject o = en.getValue().getAsJsonObject();
           Entry e = new Entry(en.getKey(), o.has("name") ? o.get("name").getAsString() : en.getKey(),

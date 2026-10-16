@@ -14,6 +14,7 @@ import net.minecraft.world.item.ItemStack;
 public final class AuctionDbScreen extends Screen {
   private EditBox search;
   private DbList list;
+  private SaleList detailList;
   private String rarity = "ALL";
   private net.minecraft.client.gui.components.Button clearBtn;
   private long clearArmedAt;
@@ -56,6 +57,9 @@ public final class AuctionDbScreen extends Screen {
     this.list = new DbList(this, this.minecraft, 230, this.height - 136, 56, 24);
     this.list.setX(cx - 260);
     this.addRenderableWidget(this.list);
+    this.detailList = new SaleList(this.minecraft, 192, this.height - 186, 112, 22);
+    this.detailList.setX(cx - 260 + 238);
+    this.addRenderableWidget(this.detailList);
     net.minecraft.client.gui.components.Button delBtn =
         net.minecraft.client.gui.components.Button.builder(
             Component.translatable("menu.openorigins.ahdb.delete"), b -> {
@@ -115,16 +119,31 @@ public final class AuctionDbScreen extends Screen {
 
   void showDetail(AuctionPriceDb.Entry entry) {
     this.detail = entry;
+    refreshDetailList();
+  }
+
+  private void refreshDetailList() {
+    if (this.detailList == null) {
+      return;
+    }
+    if (this.detail == null) {
+      this.detailList.replaceEntries(List.of());
+      return;
+    }
+    java.util.List<AuctionPriceDb.Sample> samples =
+        new java.util.ArrayList<>(AuctionPriceDb.samples(this.detail.key));
+    samples.sort((a, b) -> Long.compare(b.ts(), a.ts()));
+    this.detailList.replaceEntries(samples.stream().map(s -> new SaleRow(this, s)).toList());
   }
 
   @Override
   public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY,
       float partialTick) {
     super.extractRenderState(graphics, mouseX, mouseY, partialTick);
-    drawDetail(graphics);
+    drawDetailHeader(graphics);
   }
 
-  private void drawDetail(GuiGraphicsExtractor graphics) {
+  private void drawDetailHeader(GuiGraphicsExtractor graphics) {
     AuctionPriceDb.Entry e = this.detail;
     if (e == null || this.minecraft == null) {
       return;
@@ -151,26 +170,60 @@ public final class AuctionDbScreen extends Screen {
           "Avg " + AuctionPriceDb.format(st.avg()) + "  Med " + AuctionPriceDb.format(st.med())
               + "  (" + st.n() + ")",
           this.width / 2 - 260 + 238, y, 0xFFAAAAAA);
-      y += 14;
     }
-    java.util.List<AuctionPriceDb.Sample> samples =
-        new java.util.ArrayList<>(AuctionPriceDb.samples(e.key));
-    samples.sort((a, b) -> Long.compare(b.ts(), a.ts()));
-    int shown = 0;
-    for (AuctionPriceDb.Sample s : samples) {
-      if (shown >= 8 || y > this.height - 44) {
-        break;
+  }
+
+  private static final class SaleList extends ObjectSelectionList<SaleRow> {
+    SaleList(Minecraft mc, int width, int height, int y, int itemHeight) {
+      super(mc, width, height, y, itemHeight);
+    }
+  }
+
+  private static final class SaleRow extends ObjectSelectionList.Entry<SaleRow> {
+    private final AuctionDbScreen parent;
+    private final AuctionPriceDb.Sample sample;
+
+    SaleRow(AuctionDbScreen parent, AuctionPriceDb.Sample sample) {
+      this.parent = parent;
+      this.sample = sample;
+    }
+
+    @Override
+    public Component getNarration() {
+      return Component.literal(this.sample.seller());
+    }
+
+    @Override
+    public boolean mouseClicked(net.minecraft.client.input.MouseButtonEvent event,
+        boolean doubleClick) {
+      if (event.button() != com.openorigins.client.util.VersionCompat.mouseLeft()) {
+        return false;
       }
+      AuctionPriceDb.setExcluded(this.sample.seller(),
+          !AuctionPriceDb.isExcluded(this.sample.seller()));
+      this.parent.refreshDetailList();
+      this.parent.refresh();
+      return true;
+    }
+
+    @Override
+    public void extractContent(GuiGraphicsExtractor graphics, int mouseX, int mouseY,
+        boolean hovered, float partialTick) {
+      Minecraft mc = Minecraft.getInstance();
+      boolean out = AuctionPriceDb.isExcluded(this.sample.seller());
+      int main = out ? 0xFF777777 : 0xFFFFFFFF;
       String when = java.time.LocalDateTime
-          .ofInstant(java.time.Instant.ofEpochMilli(s.ts()), java.time.ZoneId.systemDefault())
+          .ofInstant(java.time.Instant.ofEpochMilli(this.sample.ts()),
+              java.time.ZoneId.systemDefault())
           .format(java.time.format.DateTimeFormatter.ofPattern("MM-dd HH:mm"));
-      graphics.text(font, when + "  " + s.count() + "x @ " + AuctionPriceDb.format(s.unit()),
-          this.width / 2 - 260 + 238, y, 0xFFFFFFFF);
-      y += 10;
-      graphics.text(font, s.seller().isEmpty() ? "-" : s.seller(),
-          this.width / 2 - 260 + 246, y, 0xFFAAAAAA);
-      y += 12;
-      shown++;
+      String mark = out ? "✕ " : "";
+      graphics.text(mc.font,
+          mark + when + "  " + this.sample.count() + "x @ "
+              + AuctionPriceDb.format(this.sample.unit()),
+          this.getContentX() + 2, this.getContentY() + 1, main);
+      graphics.text(mc.font,
+          this.sample.seller().isEmpty() ? "-" : this.sample.seller(),
+          this.getContentX() + 10, this.getContentY() + 11, out ? 0xFF777777 : 0xFFAAAAAA);
     }
   }
 
