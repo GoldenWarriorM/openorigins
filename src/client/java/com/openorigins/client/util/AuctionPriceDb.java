@@ -215,6 +215,7 @@ public final class AuctionPriceDb {
    */
   static String[] variantOf(String name, List<Component> loreLines) {
     List<String> desc = new ArrayList<>();
+    boolean enchanted = false;
     for (Component line : loreLines) {
       String s = line.getString().strip();
       if (s.isEmpty()) {
@@ -230,6 +231,18 @@ public final class AuctionPriceDb {
       }
       if (noise) {
         continue;
+      }
+      // Enchant sockets and everything below are cut: only enchanted-vs-
+      // clean matters (socket combos are unbounded).
+      if (lower.contains("enchant slot")) {
+        for (Component rest : loreLines.subList(loreLines.indexOf(line) + 1, loreLines.size())) {
+          String rs = rest.getString().strip();
+          if (rs.startsWith("+") && !rs.toLowerCase(Locale.ROOT).contains("available slot")) {
+            enchanted = true;
+            break;
+          }
+        }
+        break;
       }
       // Fill-state counters change over time ("Enchant Slots: (0/2)" vs
       // "(2/2)"): same item, not a new variant.
@@ -262,7 +275,19 @@ public final class AuctionPriceDb {
       } catch (Throwable ignored) {
       }
     }
+    if (hasEnchantSection(loreLines)) {
+      suffix += enchanted ? "|e=1" : "|e=0";
+    }
     return new String[]{suffix, label, String.join("\n", desc)};
+  }
+
+  private static boolean hasEnchantSection(List<Component> loreLines) {
+    for (Component line : loreLines) {
+      if (line.getString().toLowerCase(Locale.ROOT).contains("enchant slot")) {
+        return true;
+      }
+    }
+    return false;
   }
 
   /** Scans a menu (background or visible) for auction listings. */
