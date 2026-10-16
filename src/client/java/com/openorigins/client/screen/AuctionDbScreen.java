@@ -284,6 +284,7 @@ public final class AuctionDbScreen extends Screen {
       AuctionPriceDb.setExcluded(this.sample.seller(),
           !AuctionPriceDb.isExcluded(this.sample.seller()));
       this.parent.refreshDetailList();
+      this.parent.refreshExcluded();
       this.parent.refresh();
       return true;
     }
