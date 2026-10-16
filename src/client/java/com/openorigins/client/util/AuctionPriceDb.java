@@ -33,7 +33,7 @@ import net.minecraft.world.item.component.ItemLore;
 public final class AuctionPriceDb {
   private AuctionPriceDb() {}
 
-  public record Sample(double unit, long ts, String seller) {}
+  public record Sample(double unit, long ts, String seller, long endsAt) {}
 
   public record Stats(double avg, double med, int n) {}
 
@@ -95,8 +95,43 @@ public final class AuctionPriceDb {
   /** A row counts as new when unseen for this long (re-lists pass through). */
   private static final long REOBSERVE_MS = 30L * 60 * 1000;
 
-  private static final int MAX_SAMPLES = 100;
+  private static final int MAX_SAMPLES = 2000;
   private static final long MAX_AGE_MS = 120L * 24 * 60 * 60 * 1000;
+
+  private static final Pattern TIME_LEFT_NUM =
+      Pattern.compile("(\\d+)\\s*(day|hour|min)", Pattern.CASE_INSENSITIVE);
+
+  /** Listing end instant from "Time left: 17 hours and 50 minutes", else -1. */
+  static long parseEndsAt(List<Component> lines, long now) {
+    try {
+      for (Component line : lines) {
+        String s = line.getString().strip().toLowerCase(Locale.ROOT);
+        if (!s.startsWith("time left:")) {
+          continue;
+        }
+        Matcher m = TIME_LEFT_NUM.matcher(s);
+        long ms = 0;
+        boolean any = false;
+        while (m.find()) {
+          long v = Long.parseLong(m.group(1));
+          String unit = m.group(2).toLowerCase(Locale.ROOT);
+          if (unit.startsWith("day")) {
+            ms += v * 24L * 60 * 60 * 1000;
+          } else if (unit.startsWith("hour")) {
+            ms += v * 60L * 60 * 1000;
+          } else {
+            ms += v * 60L * 1000;
+          }
+          any = true;
+        }
+        if (any && ms > 0) {
+          return now + ms;
+        }
+      }
+    } catch (Throwable ignored) {
+    }
+    return -1;
+  }
 
   private static final Pattern PRICE =
       Pattern.compile("(?i)^price:\\s*([\\d,]+(?:\\.\\d+)?)");
@@ -134,7 +169,8 @@ public final class AuctionPriceDb {
         }
         Double total = null;
         String seller = null;
-        for (Component line : lore.lines()) {
+        List<Component> loreLines = lore.lines();
+        for (Component line : loreLines) {
           String s = line.getString().strip();
           Matcher m = PRICE.matcher(s);
           if (m.find()) {
@@ -152,16 +188,21 @@ public final class AuctionPriceDb {
         if (total == null || total <= 0 || seller == null) {
           continue;
         }
+        long endsAt = parseEndsAt(loreLines, now);
+        long endBucket = endsAt < 0 ? -1 : endsAt / 300000L;
         String key = itemKey(stack);
         String row = windowId + "|" + idx + "|" + key + "|" + total + "|" + stack.getCount()
-            + "|" + seller.toLowerCase(Locale.ROOT);
+            + "|" + seller.toLowerCase(Locale.ROOT) + "|" + endBucket;
         Long last = SEEN.get(row);
-        if (last != null && now - last < REOBSERVE_MS) {
+        // Same computed end: the same standing lot, no matter how old.
+        // No end: fall back to the re-observation window.
+        if (last != null && (endBucket != -1 || now - last < REOBSERVE_MS)) {
           continue;
         }
         SEEN.put(row, now);
         double unit = total / stack.getCount();
-        record(key, stack.getHoverName().getString(), vanillaId(stack), unit, seller, now);
+        record(key, stack.getHoverName().getString(), vanillaId(stack), unit, seller, now,
+            endsAt);
         try {
           Entry e = ITEMS.get(key);
           if (e != null) {
@@ -213,7 +254,7 @@ public final class AuctionPriceDb {
   }
 
   static synchronized void record(String key, String name, String vanillaId, double unit,
-      String seller, long now) {
+      String seller, long now, long endsAt) {
     if (key == null || key.isEmpty() || !(unit > 0)) {
       return;
     }
@@ -224,7 +265,7 @@ public final class AuctionPriceDb {
     } else if (name != null && !name.isBlank()) {
       e.name = name;
     }
-    e.samples.add(new Sample(unit, now, seller == null ? "" : seller));
+    e.samples.add(new Sample(unit, now, seller == null ? "" : seller, endsAt));
     while (e.samples.size() > MAX_SAMPLES) {
       e.samples.remove(0);
     }
@@ -343,6 +384,7 @@ public final class AuctionPriceDb {
           tuple.add(s.unit());
           tuple.add(s.ts());
           tuple.add(s.seller());
+          tuple.add(s.endsAt());
           arr.add(tuple);
         }
         o.add("samples", arr);
@@ -396,8 +438,9 @@ public final class AuctionPriceDb {
               double unit = tuple.get(0).getAsDouble();
               long ts = tuple.get(1).getAsLong();
               String seller = tuple.size() > 2 ? tuple.get(2).getAsString() : "";
+              long endsAt = tuple.size() > 3 ? tuple.get(3).getAsLong() : -1;
               if (unit > 0 && now - ts < MAX_AGE_MS) {
-                e.samples.add(new Sample(unit, ts, seller));
+                e.samples.add(new Sample(unit, ts, seller, endsAt));
               }
             }
           }
