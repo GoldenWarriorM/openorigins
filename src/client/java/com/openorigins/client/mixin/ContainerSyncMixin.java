@@ -33,6 +33,8 @@ public abstract class ContainerSyncMixin {
       }
       OpenWorldCache.scan(container);
       com.openorigins.client.util.BadgerCache.scan(container);
+      com.openorigins.client.util.AuctionPriceDb.scanMenu(container.getMenu(),
+          container.getMenu().containerId);
       com.openorigins.client.util.CosmeticCatalogCache.scan(container);
       com.openorigins.client.util.CosmeticCatalogCache.profilePoll(container);
       try {

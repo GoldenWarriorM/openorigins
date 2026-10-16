@@ -36,7 +36,9 @@ public abstract class ItemTooltipMixin {
     try {
       List<Component> lines = cir.getReturnValue();
       if (lines != null) {
-        com.openorigins.client.util.AuctionUnitPrice.apply((ItemStack) (Object) this, lines);
+        ItemStack self = (ItemStack) (Object) this;
+        com.openorigins.client.util.AuctionUnitPrice.applyDb(self, lines);
+        com.openorigins.client.util.AuctionUnitPrice.apply(self, lines);
       }
     } catch (Throwable ignored) {
     }

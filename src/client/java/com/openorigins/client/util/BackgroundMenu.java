@@ -554,6 +554,7 @@ public final class BackgroundMenu {
         progress = true;
       }
       BadgerCache.scanMenu(menu);
+      com.openorigins.client.util.AuctionPriceDb.scanMenu(menu, windowId);
       CosmeticCatalogCache.scanMenu(menu);
       if (CosmeticCatalogCache.profilePollMenu(menu)) {
         progress = true;

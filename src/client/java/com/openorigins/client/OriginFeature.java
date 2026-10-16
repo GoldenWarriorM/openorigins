@@ -11,6 +11,7 @@ public enum OriginFeature {
   HIDE_NAMES(FeatureCategory.GENERAL, "Hide Names"),
   AUCTION_PING(FeatureCategory.UI, "Auction Ping"),
   PER_ITEM_PRICE(FeatureCategory.UI, "Show Per-Item Price"),
+  AH_PRICE_DB(FeatureCategory.UI, "Auction Price Database"),
   CUTSCENE_ENHANCEMENTS(FeatureCategory.GENERAL, "Cutscene Enhancements"),
   CUSTOM_ITEM_IDS(FeatureCategory.NETWORK_FIXES, "Custom Item IDs"),
   DEBUG_LOGGING(FeatureCategory.MISC, false, "Debug Logging"),

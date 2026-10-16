@@ -21,6 +21,7 @@ public final class HotkeyFeatures {
   private static KeyMapping redBalloonKey;
   private static KeyMapping badgerHudKey;
   private static KeyMapping auctionHouseKey;
+  private static KeyMapping auctionDbKey;
   private static KeyMapping extrapolationKey;
   private static boolean joinFetchDone;
   private static boolean badgerFetchDone;
@@ -177,6 +178,8 @@ public final class HotkeyFeatures {
         new KeyMapping("key.openorigins.badger_hud", InputConstants.UNKNOWN.getValue(), category));
     auctionHouseKey = KeyMappingHelper.registerKeyMapping(
         new KeyMapping("key.openorigins.auction_house", InputConstants.UNKNOWN.getValue(), category));
+    auctionDbKey = KeyMappingHelper.registerKeyMapping(
+        new KeyMapping("key.openorigins.auction_db", InputConstants.UNKNOWN.getValue(), category));
     extrapolationKey = KeyMappingHelper.registerKeyMapping(
         new KeyMapping("key.openorigins.extrapolation", InputConstants.UNKNOWN.getValue(), scanCategory));
 
@@ -278,6 +281,11 @@ public final class HotkeyFeatures {
       while (auctionHouseKey.consumeClick()) {
         client.player.connection.sendCommand("ah");
         com.openorigins.client.util.OutboxStats.record("key /ah");
+      }
+      while (auctionDbKey.consumeClick()) {
+        if (client.gui.screen() == null) {
+          client.gui.setScreen(new com.openorigins.client.screen.AuctionDbScreen());
+        }
       }
       while (blueBalloonKey.consumeClick()) {
         client.player.connection.sendCommand("balloon blue-balloon");

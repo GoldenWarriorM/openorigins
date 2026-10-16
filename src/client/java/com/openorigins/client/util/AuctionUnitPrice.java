@@ -55,6 +55,54 @@ public final class AuctionUnitPrice {
     return true;
   }
 
+  /** Average/median from observed listings, styled like the price row. */
+  public static boolean applyDb(ItemStack stack, List<Component> lines) {
+    if (!com.openorigins.client.OpenOriginsConfig.getInstance()
+        .isEnabled(com.openorigins.client.OriginFeature.AH_PRICE_DB)) {
+      return false;
+    }
+    if (stack == null || stack.getCount() <= 0 || lines == null || lines.isEmpty()) {
+      return false;
+    }
+    int priceIdx = -1;
+    for (int i = 0; i < lines.size(); i++) {
+      if (PRICE.matcher(lines.get(i).getString().strip()).find()) {
+        priceIdx = i;
+        break;
+      }
+    }
+    if (priceIdx < 0) {
+      return false;
+    }
+    Component priceLine = lines.get(priceIdx);
+    String key;
+    try {
+      key = CustomItemIds.resolve(stack)
+          .orElse(net.minecraft.core.registries.BuiltInRegistries.ITEM
+              .getKey(stack.getItem()).toString());
+    } catch (Throwable t) {
+      return false;
+    }
+    AuctionPriceDb.Stats st;
+    try {
+      st = AuctionPriceDb.stats(key);
+    } catch (Throwable t) {
+      return false;
+    }
+    if (st == null || st.n() < 2) {
+      return false;
+    }
+    String label = Component.translatable("tooltip.openorigins.avg_med_prefix").getString();
+    String value = AuctionPriceDb.format(st.avg()) + " / " + AuctionPriceDb.format(st.med())
+        + " (" + st.n() + ")";
+    MutableComponent out = Component.literal(label).withStyle(priceLine.getStyle());
+    List<Component> sibs = priceLine.getSiblings();
+    out.append(Component.literal(value)
+        .withStyle(sibs.isEmpty() ? priceLine.getStyle() : sibs.get(0).getStyle()));
+    lines.add(priceIdx + 1, out);
+    return true;
+  }
+
   /**
    * Rebuilds the two-part server line 1:1: gray "Price: " prefix style for
    * our label, white number style for the value, trailing parts (gap + gem

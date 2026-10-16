@@ -11,6 +11,8 @@ public final class FeatureRegistry {
     net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents.DISCONNECT.register(
         (handler, client) -> com.openorigins.client.util.OaRendererCache.clear());
     net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents.DISCONNECT.register(
+        (handler, client) -> com.openorigins.client.util.AuctionPriceDb.clearWindows());
+    net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents.DISCONNECT.register(
         (handler, client) -> com.openorigins.client.util.OpenWorldCache.noteDisconnect());
     net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents.JOIN.register(
         (handler, sender, client) -> com.openorigins.client.util.OaEmojiStore.clearUnlocked());
