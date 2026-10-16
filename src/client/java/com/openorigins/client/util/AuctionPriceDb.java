@@ -8,6 +8,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -39,7 +40,7 @@ public final class AuctionPriceDb {
 
   /** Rarity order for the picker (ALL first). Server badges only. */
   public static final List<String> RARITIES =
-      List.of("ALL", "COMMON", "LIMITED", "RARE", "EPIC", "LEGENDARY", "NONE");
+      List.of("ALL", "COMMON", "LIMITED", "RARE", "EPIC", "LEGENDARY", "NONE", "RENAMED");
 
   /** Server badge glyph (name prefix) per rarity. */
   public static final java.util.Map<String, String> RARITY_GLYPHS = Map.of(
@@ -78,6 +79,9 @@ public final class AuctionPriceDb {
     public String vanillaId;
     public String rarity;
     public String variant = "";
+    public boolean renamed;
+    volatile Component styledName;
+    volatile String styledRaw;
     final List<Sample> samples = new ArrayList<>();
     volatile ItemStack icon;
     volatile JsonElement iconRaw;
@@ -269,6 +273,7 @@ public final class AuctionPriceDb {
         }
         long endsAt = parseEndsAt(loreLines, now);
         String hoverName = stack.getHoverName().getString();
+        Component hoverComp = stack.getHoverName();
         String[] variant = variantOf(hoverName, loreLines);
         String key = itemKey(stack) + variant[0];
         double unit = total / stack.getCount();
@@ -291,6 +296,11 @@ public final class AuctionPriceDb {
         try {
           Entry e = ITEMS.get(key);
           if (e != null) {
+            e.styledName = hoverComp;
+            e.styledRaw = encodeComponent(hoverComp);
+            if (isRenamed(hoverComp)) {
+              e.renamed = true;
+            }
             if (!stack.isEmpty()) {
               ItemStack icon = stack.copy();
               icon.setCount(1);
@@ -418,8 +428,14 @@ public final class AuctionPriceDb {
     String q = query == null ? "" : query.strip().toLowerCase(Locale.ROOT);
     List<Entry> out = new ArrayList<>();
     for (Entry e : ITEMS.values()) {
-      if (rarity != null && !rarity.equals("ALL") && !rarity.equals(e.rarity)) {
-        continue;
+      if (rarity != null && !rarity.equals("ALL")) {
+        if ("RENAMED".equals(rarity)) {
+          if (!e.renamed) {
+            continue;
+          }
+        } else if (e.renamed || !rarity.equals(e.rarity)) {
+          continue;
+        }
       }
       if (q.isEmpty() || e.name.toLowerCase(Locale.ROOT).contains(q)
           || e.key.toLowerCase(Locale.ROOT).contains(q)) {
@@ -441,6 +457,12 @@ public final class AuctionPriceDb {
   public static List<Sample> samples(String key) {
     Entry e = key == null ? null : ITEMS.get(key);
     return e == null ? List.of() : List.copyOf(e.samples);
+  }
+
+  /** Styled display name, or null when unknown. */
+  public static Component styledName(String key) {
+    Entry e = key == null ? null : ITEMS.get(key);
+    return e == null ? null : e.styledName;
   }
 
   public static synchronized void remove(String key) {
@@ -489,6 +511,39 @@ public final class AuctionPriceDb {
     return ItemStack.EMPTY;
   }
 
+  private static String encodeComponent(Component c) {
+    io.netty.buffer.ByteBuf buf = io.netty.buffer.Unpooled.buffer();
+    try {
+      net.minecraft.network.chat.ComponentSerialization.TRUSTED_CONTEXT_FREE_STREAM_CODEC
+          .encode(buf, c);
+      byte[] b = new byte[buf.readableBytes()];
+      buf.readBytes(b);
+      return Base64.getEncoder().encodeToString(b);
+    } finally {
+      buf.release();
+    }
+  }
+
+  private static Component decodeComponent(String s) {
+    byte[] b = Base64.getDecoder().decode(s);
+    io.netty.buffer.ByteBuf buf = io.netty.buffer.Unpooled.wrappedBuffer(b);
+    try {
+      return net.minecraft.network.chat.ComponentSerialization.TRUSTED_CONTEXT_FREE_STREAM_CODEC
+          .decode(buf);
+    } finally {
+      buf.release();
+    }
+  }
+
+  /** Player-renamed items carry italic names; server names never do. */
+  static boolean isRenamed(Component hoverName) {
+    try {
+      return hoverName != null && hoverName.getStyle().isItalic();
+    } catch (Throwable t) {
+      return false;
+    }
+  }
+
   public static String format(double v) {
     if (v == Math.floor(v) && !Double.isInfinite(v)) {
       return String.format(Locale.US, "%,d", (long) v);
@@ -515,6 +570,15 @@ public final class AuctionPriceDb {
         o.addProperty("vanilla", e.vanillaId);
         o.addProperty("rarity", e.rarity);
         o.addProperty("variant", e.variant);
+        o.addProperty("renamed", e.renamed);
+        try {
+          if (e.styledRaw != null) {
+            o.addProperty("styledName", e.styledRaw);
+          } else if (e.styledName != null) {
+            o.addProperty("styledName", encodeComponent(e.styledName));
+          }
+        } catch (Throwable ignored) {
+        }
         JsonArray arr = new JsonArray();
         for (Sample s : e.samples) {
           JsonArray tuple = new JsonArray();
@@ -561,6 +625,20 @@ public final class AuctionPriceDb {
               o.has("vanilla") ? o.get("vanilla").getAsString() : "minecraft:paper");
           // Server badges only: recompute (drops legacy vanilla rarities).
           e.rarity = rarityOf(e.name);
+          if (o.has("renamed")) {
+            try {
+              e.renamed = o.get("renamed").getAsBoolean();
+            } catch (Exception ignored) {
+            }
+          }
+          if (o.has("styledName")) {
+            try {
+              String raw = o.get("styledName").getAsString();
+              e.styledRaw = raw;
+              e.styledName = decodeComponent(raw);
+            } catch (Exception ignored) {
+            }
+          }
           if (o.has("variant")) {
             try {
               e.variant = o.get("variant").getAsString();

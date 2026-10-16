@@ -137,7 +137,9 @@ public final class AuctionDbScreen extends Screen {
       graphics.item(icon, x, y);
       x += 20;
     }
-    graphics.text(font, e.name, x, y + 4, 0xFFFFFFFF);
+    Component titleName = AuctionPriceDb.styledName(e.key);
+    graphics.text(font, titleName != null ? titleName
+        : net.minecraft.network.chat.Component.literal(e.name), x, y + 4, 0xFFFFFFFF);
     y += 22;
     if (e.variant != null && !e.variant.isEmpty()) {
       graphics.text(font, e.variant, this.width / 2 - 260 + 238, y, 0xFFAAAAAA);
@@ -236,7 +238,11 @@ public final class AuctionDbScreen extends Screen {
       AuctionPriceDb.Stats st = AuctionPriceDb.stats(this.entry.key);
       String sub = st == null ? "" : "Avg " + AuctionPriceDb.format(st.avg()) + "  Med "
           + AuctionPriceDb.format(st.med()) + "  (" + st.n() + ")";
-      graphics.text(mc.font, this.entry.name, x + 24, y + 2, 0xFFFFFFFF);
+      Component name = AuctionPriceDb.styledName(this.entry.key);
+      if (name == null) {
+        name = Component.literal(this.entry.name);
+      }
+      graphics.text(mc.font, name, x + 24, y + 2, 0xFFFFFFFF);
       graphics.text(mc.font, sub, x + 24, y + 12, 0xFFAAAAAA);
     }
   }
