@@ -36,7 +36,7 @@ public final class AuctionDbScreen extends Screen {
     this.addRenderableWidget(this.search);
     this.setInitialFocus(this.search);
     this.rarityButtons.clear();
-    int sideX = cx - 260 + 438;
+    int sideX = cx - 260 + 446;
     int y = 56;
     for (String r : AuctionPriceDb.RARITIES) {
       final String rr = r;
@@ -54,11 +54,11 @@ public final class AuctionDbScreen extends Screen {
       this.addRenderableWidget(b);
     }
     refreshRarityButtons();
-    this.list = new DbList(this, this.minecraft, 230, this.height - 136, 56, 24);
+    this.list = new DbList(this, this.minecraft, 222, this.height - 136, 56, 24);
     this.list.setX(cx - 260);
     this.addRenderableWidget(this.list);
     this.detailList = new SaleList(this.minecraft, 192, this.height - 186, 112, 22);
-    this.detailList.setX(cx - 260 + 238);
+    this.detailList.setX(cx - 260 + 246);
     this.addRenderableWidget(this.detailList);
     net.minecraft.client.gui.components.Button delBtn =
         net.minecraft.client.gui.components.Button.builder(
@@ -220,10 +220,13 @@ public final class AuctionDbScreen extends Screen {
       graphics.text(mc.font,
           mark + when + "  " + this.sample.count() + "x @ "
               + AuctionPriceDb.format(this.sample.unit()),
-          this.getContentX() + 2, this.getContentY() + 1, main);
-      graphics.text(mc.font,
-          this.sample.seller().isEmpty() ? "-" : this.sample.seller(),
-          this.getContentX() + 10, this.getContentY() + 11, out ? 0xFF777777 : 0xFFAAAAAA);
+          this.getContentX() + 6, this.getContentY() + 1, main);
+      String seller = this.sample.seller().isEmpty() ? "-" : this.sample.seller();
+      if (seller.length() > 20) {
+        seller = seller.substring(0, 20) + "…";
+      }
+      graphics.text(mc.font, seller,
+          this.getContentX() + 14, this.getContentY() + 11, out ? 0xFF777777 : 0xFFAAAAAA);
     }
   }
 
