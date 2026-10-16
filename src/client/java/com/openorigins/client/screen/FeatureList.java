@@ -785,6 +785,7 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
       this.toggleButton.setMessage(Component.translatable(on ? "options.on" : "options.off")
           .withStyle(on ? net.minecraft.ChatFormatting.GREEN : net.minecraft.ChatFormatting.RED));
       this.resetButton.active = on != this.feature.getDefaultValue();
+      this.resetButton.visible = this.resetButton.active;
       if (this.expandButton != null) {
         boolean exp = isExpanded(this.group);
         this.expandButton.setMessage(Component.literal(exp ? "-" : "+"));
@@ -944,6 +945,7 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
       this.button.setMessage(Component.translatable(on ? "options.on" : "options.off")
           .withStyle(on ? net.minecraft.ChatFormatting.GREEN : net.minecraft.ChatFormatting.RED));
       this.resetButton.active = on != this.defaultValue;
+      this.resetButton.visible = this.resetButton.active;
       if (this.expandButton != null) {
         boolean exp = isExpanded(this.group);
         this.expandButton.setMessage(Component.literal(exp ? "-" : "+"));
@@ -1079,6 +1081,7 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
     public void refreshEntry() {
       this.button.setMessage(Component.literal(this.value.get()));
       this.resetButton.active = this.reset != null && !this.isDefault.getAsBoolean();
+      this.resetButton.visible = this.resetButton.active;
     }
 
     public void setSuffix(java.util.function.Supplier<net.minecraft.network.chat.Component> suffix) {
@@ -1198,6 +1201,7 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
         }
       }
       this.resetButton.active = this.get.getAsInt() != this.defaultValue;
+      this.resetButton.visible = this.resetButton.active;
     }
 
     @Override
