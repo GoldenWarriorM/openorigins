@@ -177,6 +177,11 @@ public final class AuctionDbScreen extends Screen {
     SaleList(Minecraft mc, int width, int height, int y, int itemHeight) {
       super(mc, width, height, y, itemHeight);
     }
+
+    @Override
+    public int getRowWidth() {
+      return this.getWidth();
+    }
   }
 
   private static final class SaleRow extends ObjectSelectionList.Entry<SaleRow> {
@@ -238,6 +243,11 @@ public final class AuctionDbScreen extends Screen {
     DbList(AuctionDbScreen parent, Minecraft mc, int width, int height, int y, int itemHeight) {
       super(mc, width, height, y, itemHeight);
       this.parent = parent;
+    }
+
+    @Override
+    public int getRowWidth() {
+      return this.getWidth();
     }
 
     @Override
