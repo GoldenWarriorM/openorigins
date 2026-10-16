@@ -70,6 +70,7 @@
   "tooltip.openorigins.avg_med_prefix": "Avg/Med: ",
   "menu.openorigins.ahdb.title": "Auction Prices",
   "menu.openorigins.ahdb.search_hint": "Search items... (empty shows all)",
+  "menu.openorigins.ahdb.rarity": "Rarity: %s (%s)",
   "menu.openorigins.homes.title": "Homes",
   "menu.openorigins.worlds.title": "Worlds",
   "menu.openorigins.homes.sethome": "Set Home",

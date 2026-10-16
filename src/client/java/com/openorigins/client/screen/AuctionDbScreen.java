@@ -14,6 +14,7 @@ import net.minecraft.world.item.ItemStack;
 public final class AuctionDbScreen extends Screen {
   private EditBox search;
   private DbList list;
+  private int rarityIdx;
 
   public AuctionDbScreen() {
     super(Component.translatable("menu.openorigins.ahdb.title"));
@@ -22,15 +23,35 @@ public final class AuctionDbScreen extends Screen {
   @Override
   protected void init() {
     int cx = this.width / 2;
-    this.search = new EditBox(this.font, cx - 110, 34, 220, 20,
+    this.search = new EditBox(this.font, cx - 110, 30, 220, 20,
         Component.translatable("menu.openorigins.ahdb.search_hint"));
     this.search.setMaxLength(48);
     this.search.setResponder(q -> refresh());
     this.addRenderableWidget(this.search);
     this.setInitialFocus(this.search);
-    this.list = new DbList(this.minecraft, 240, this.height - 100, 62, 24);
+    net.minecraft.client.gui.components.Button rarityBtn =
+        net.minecraft.client.gui.components.Button.builder(rarityLabel(), b -> {
+          this.rarityIdx = (this.rarityIdx + 1) % AuctionPriceDb.RARITIES.size();
+          b.setMessage(rarityLabel());
+          refresh();
+        }).bounds(cx - 110, 52, 220, 20).build();
+    this.addRenderableWidget(rarityBtn);
+    this.list = new DbList(this.minecraft, 240, this.height - 130, 76, 24);
     this.addRenderableWidget(this.list);
     refresh();
+  }
+
+  private Component rarityLabel() {
+    String r = AuctionPriceDb.RARITIES.get(this.rarityIdx);
+    int n = 0;
+    if ("ALL".equals(r)) {
+      n = AuctionPriceDb.itemCount();
+    } else {
+      for (AuctionPriceDb.Entry e : AuctionPriceDb.search("", r)) {
+        n++;
+      }
+    }
+    return Component.translatable("menu.openorigins.ahdb.rarity", r, n);
   }
 
   private void refresh() {
@@ -38,7 +59,8 @@ public final class AuctionDbScreen extends Screen {
       return;
     }
     String q = this.search == null ? "" : this.search.getValue();
-    List<AuctionPriceDb.Entry> found = AuctionPriceDb.search(q);
+    List<AuctionPriceDb.Entry> found =
+        AuctionPriceDb.search(q, AuctionPriceDb.RARITIES.get(this.rarityIdx));
     this.list.replaceEntries(found.stream().map(Row::new).toList());
   }
 

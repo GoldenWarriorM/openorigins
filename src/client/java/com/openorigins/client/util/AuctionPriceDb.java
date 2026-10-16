@@ -37,10 +37,39 @@ public final class AuctionPriceDb {
 
   public record Stats(double avg, double med, int n) {}
 
+  /** Rarity order for the picker (ALL first). */
+  public static final List<String> RARITIES =
+      List.of("ALL", "COMMON", "UNCOMMON", "RARE", "EPIC", "LEGENDARY", "LIMITED");
+
+  private static final java.util.Map<String, String> GLYPH_RARITY = Map.of(
+      "ꑶ", "LIMITED",
+      "ꑲ", "COMMON",
+      "ꑳ", "RARE",
+      "ꑴ", "EPIC",
+      "ꑵ", "LEGENDARY");
+
+  /** Rarity from the vanilla component, else the server badge glyph, else COMMON. */
+  public static String rarityOf(String name, String vanillaRarity) {
+    if (vanillaRarity != null && !vanillaRarity.isBlank()) {
+      String v = vanillaRarity.strip().toUpperCase(Locale.ROOT);
+      if (RARITIES.contains(v)) {
+        return v;
+      }
+    }
+    if (name != null && !name.isEmpty()) {
+      String g = GLYPH_RARITY.get(name.substring(0, 1));
+      if (g != null) {
+        return g;
+      }
+    }
+    return "COMMON";
+  }
+
   public static final class Entry {
     public final String key;
     public String name;
     public String vanillaId;
+    public String rarity;
     final List<Sample> samples = new ArrayList<>();
     volatile ItemStack icon;
     volatile JsonElement iconRaw;
@@ -49,6 +78,7 @@ public final class AuctionPriceDb {
       this.key = key;
       this.name = name;
       this.vanillaId = vanillaId;
+      this.rarity = rarityOf(name, null);
     }
   }
 
@@ -126,10 +156,20 @@ public final class AuctionPriceDb {
         record(key, stack.getHoverName().getString(), vanillaId(stack), unit);
         try {
           Entry e = ITEMS.get(key);
-          if (e != null && !stack.isEmpty()) {
-            ItemStack icon = stack.copy();
-            icon.setCount(1);
-            e.icon = icon;
+          if (e != null) {
+            if (!stack.isEmpty()) {
+              ItemStack icon = stack.copy();
+              icon.setCount(1);
+              e.icon = icon;
+            }
+            try {
+              net.minecraft.world.item.Rarity rarity =
+                  stack.get(DataComponents.RARITY);
+              if (rarity != null) {
+                e.rarity = rarityOf(e.name, rarity.name());
+              }
+            } catch (Throwable ignored) {
+            }
           }
         } catch (Throwable ignored) {
         }
@@ -205,11 +245,14 @@ public final class AuctionPriceDb {
     return new Stats(sum / n, med, n);
   }
 
-  /** Case-insensitive name/id search, most-sampled first. */
-  public static List<Entry> search(String query) {
+  /** Case-insensitive name/id search plus rarity filter, most-sampled first. */
+  public static List<Entry> search(String query, String rarity) {
     String q = query == null ? "" : query.strip().toLowerCase(Locale.ROOT);
     List<Entry> out = new ArrayList<>();
     for (Entry e : ITEMS.values()) {
+      if (rarity != null && !rarity.equals("ALL") && !rarity.equals(e.rarity)) {
+        continue;
+      }
       if (q.isEmpty() || e.name.toLowerCase(Locale.ROOT).contains(q)
           || e.key.toLowerCase(Locale.ROOT).contains(q)) {
         out.add(e);
@@ -284,6 +327,7 @@ public final class AuctionPriceDb {
         JsonObject o = new JsonObject();
         o.addProperty("name", e.name);
         o.addProperty("vanilla", e.vanillaId);
+        o.addProperty("rarity", e.rarity);
         JsonArray arr = new JsonArray();
         for (Sample s : e.samples) {
           JsonArray pair = new JsonArray();
@@ -325,6 +369,13 @@ public final class AuctionPriceDb {
           JsonObject o = en.getValue().getAsJsonObject();
           Entry e = new Entry(en.getKey(), o.has("name") ? o.get("name").getAsString() : en.getKey(),
               o.has("vanilla") ? o.get("vanilla").getAsString() : "minecraft:paper");
+          if (o.has("rarity")) {
+            try {
+              String r = o.get("rarity").getAsString();
+              e.rarity = AuctionPriceDb.RARITIES.contains(r) ? r : rarityOf(e.name, null);
+            } catch (Exception ignored) {
+            }
+          }
           if (o.has("icon")) {
             e.iconRaw = o.get("icon");
           }
