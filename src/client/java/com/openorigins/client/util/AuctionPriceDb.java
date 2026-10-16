@@ -231,8 +231,12 @@ public final class AuctionPriceDb {
       if (noise) {
         continue;
       }
-      // Glyph-only separators carry no identity (badges live in the name).
+      // Glyph-only separators/tags carry no identity (badges live in the name).
+      // Same for any line without a single letter or digit.
       if (s.codePointCount(0, s.length()) == 1 && s.codePointAt(0) > 0x2500) {
+        continue;
+      }
+      if (!s.matches(".*[A-Za-z0-9].*")) {
         continue;
       }
       desc.add(s);
