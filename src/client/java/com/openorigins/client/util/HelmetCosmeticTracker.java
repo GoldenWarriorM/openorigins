@@ -778,6 +778,7 @@ public final class HelmetCosmeticTracker {
           setTip(pendingHelmet);
           lastCommitMs = System.currentTimeMillis();
           pendingHelmet = ItemStack.EMPTY;
+          saveHelmet();
           com.openorigins.client.util.DebugLog.info("[helmet] attr-commit {} (was {}) gone={}",
               describe(realHelmet), cur.isEmpty() ? "<empty>" : describe(cur), goneEverywhere(realHelmet));
         }
