@@ -93,11 +93,7 @@ public final class AuctionUnitPrice {
     String label = Component.translatable("tooltip.openorigins.avg_med_prefix").getString();
     String value = AuctionPriceDb.format(st.avg()) + " / " + AuctionPriceDb.format(st.med())
         + " (" + st.n() + ")";
-    MutableComponent out = Component.literal(label).withStyle(priceLine.getStyle());
-    List<Component> sibs = priceLine.getSiblings();
-    out.append(Component.literal(value)
-        .withStyle(sibs.isEmpty() ? priceLine.getStyle() : sibs.get(0).getStyle()));
-    lines.add(priceIdx + 1, out);
+    lines.add(priceIdx + 1, buildUnitLine(priceLine, label, value));
     return true;
   }
 
