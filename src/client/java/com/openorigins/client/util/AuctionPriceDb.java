@@ -360,6 +360,18 @@ public final class AuctionPriceDb {
     return ITEMS.size();
   }
 
+  public static synchronized void remove(String key) {
+    if (key != null && ITEMS.remove(key) != null) {
+      save();
+    }
+  }
+
+  public static synchronized void clear() {
+    ITEMS.clear();
+    SEEN.clear();
+    save();
+  }
+
   public static synchronized void clearWindows() {
     SEEN.clear();
   }

@@ -15,6 +15,8 @@ public final class AuctionDbScreen extends Screen {
   private EditBox search;
   private DbList list;
   private String rarity = "ALL";
+  private net.minecraft.client.gui.components.Button clearBtn;
+  private long clearArmedAt;
   private final List<net.minecraft.client.gui.components.Button> rarityButtons =
       new java.util.ArrayList<>();
 
@@ -50,8 +52,36 @@ public final class AuctionDbScreen extends Screen {
       this.addRenderableWidget(b);
     }
     refreshRarityButtons();
-    this.list = new DbList(this.minecraft, 240, this.height - 116, 56, 24);
+    this.list = new DbList(this.minecraft, 240, this.height - 136, 56, 24);
     this.addRenderableWidget(this.list);
+    net.minecraft.client.gui.components.Button delBtn =
+        net.minecraft.client.gui.components.Button.builder(
+            Component.translatable("menu.openorigins.ahdb.delete"), b -> {
+              Row sel = this.list.getSelected();
+              if (sel != null) {
+                AuctionPriceDb.remove(sel.entry.key);
+                refreshRarityButtons();
+                refresh();
+              }
+            }).bounds(cx - 112, this.height - 30, 110, 20).build();
+    this.addRenderableWidget(delBtn);
+    this.clearBtn = net.minecraft.client.gui.components.Button.builder(
+        Component.translatable("menu.openorigins.ahdb.clear"), b -> {
+          long now = System.currentTimeMillis();
+          if (now - this.clearArmedAt < 5000) {
+            AuctionPriceDb.clear();
+            this.clearArmedAt = 0;
+            this.clearBtn.setMessage(
+                Component.translatable("menu.openorigins.ahdb.clear"));
+            refreshRarityButtons();
+            refresh();
+          } else {
+            this.clearArmedAt = now;
+            this.clearBtn.setMessage(
+                Component.translatable("menu.openorigins.ahdb.clear_sure"));
+          }
+        }).bounds(cx + 2, this.height - 30, 110, 20).build();
+    this.addRenderableWidget(this.clearBtn);
     refresh();
   }
 
