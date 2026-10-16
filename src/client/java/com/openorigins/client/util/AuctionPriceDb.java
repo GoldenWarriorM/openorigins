@@ -33,7 +33,7 @@ import net.minecraft.world.item.component.ItemLore;
 public final class AuctionPriceDb {
   private AuctionPriceDb() {}
 
-  public record Sample(double unit, long ts, String seller, long endsAt) {}
+  public record Sample(double unit, long ts, String seller, long endsAt, int count) {}
 
   public record Stats(double avg, double med, int n) {}
 
@@ -202,7 +202,7 @@ public final class AuctionPriceDb {
         SEEN.put(row, now);
         double unit = total / stack.getCount();
         record(key, stack.getHoverName().getString(), vanillaId(stack), unit, seller, now,
-            endsAt);
+            endsAt, stack.getCount());
         try {
           Entry e = ITEMS.get(key);
           if (e != null) {
@@ -254,7 +254,7 @@ public final class AuctionPriceDb {
   }
 
   static synchronized void record(String key, String name, String vanillaId, double unit,
-      String seller, long now, long endsAt) {
+      String seller, long now, long endsAt, int count) {
     if (key == null || key.isEmpty() || !(unit > 0)) {
       return;
     }
@@ -265,7 +265,7 @@ public final class AuctionPriceDb {
     } else if (name != null && !name.isBlank()) {
       e.name = name;
     }
-    e.samples.add(new Sample(unit, now, seller == null ? "" : seller, endsAt));
+    e.samples.add(new Sample(unit, now, seller == null ? "" : seller, endsAt, Math.max(1, count)));
     while (e.samples.size() > MAX_SAMPLES) {
       e.samples.remove(0);
     }
@@ -276,23 +276,28 @@ public final class AuctionPriceDb {
     if (e == null || e.samples.isEmpty()) {
       return null;
     }
-    List<Double> vals = new ArrayList<>(e.samples.size());
+    // Volume-weighted: a 128-stack lot moves the market more than a single.
+    List<double[]> vals = new ArrayList<>(e.samples.size());
+    long totalW = 0;
+    double totalV = 0;
     for (Sample s : e.samples) {
-      vals.add(s.unit());
+      long w = Math.max(1, s.count());
+      vals.add(new double[]{s.unit(), w});
+      totalW += w;
+      totalV += s.unit() * w;
     }
-    Collections.sort(vals);
-    double sum = 0;
-    for (double v : vals) {
-      sum += v;
+    vals.sort(java.util.Comparator.comparingDouble(a -> a[0]));
+    long half = (totalW + 1) / 2;
+    long acc = 0;
+    double med = vals.get(vals.size() - 1)[0];
+    for (double[] v : vals) {
+      acc += (long) v[1];
+      if (acc >= half) {
+        med = v[0];
+        break;
+      }
     }
-    double med;
-    int n = vals.size();
-    if (n % 2 == 1) {
-      med = vals.get(n / 2);
-    } else {
-      med = (vals.get(n / 2 - 1) + vals.get(n / 2)) / 2.0;
-    }
-    return new Stats(sum / n, med, n);
+    return new Stats(totalV / totalW, med, e.samples.size());
   }
 
   /** Case-insensitive name/id search plus rarity filter, most-sampled first. */
@@ -385,6 +390,7 @@ public final class AuctionPriceDb {
           tuple.add(s.ts());
           tuple.add(s.seller());
           tuple.add(s.endsAt());
+          tuple.add(s.count());
           arr.add(tuple);
         }
         o.add("samples", arr);
@@ -439,8 +445,9 @@ public final class AuctionPriceDb {
               long ts = tuple.get(1).getAsLong();
               String seller = tuple.size() > 2 ? tuple.get(2).getAsString() : "";
               long endsAt = tuple.size() > 3 ? tuple.get(3).getAsLong() : -1;
+              int count = tuple.size() > 4 ? tuple.get(4).getAsInt() : 1;
               if (unit > 0 && now - ts < MAX_AGE_MS) {
-                e.samples.add(new Sample(unit, ts, seller, endsAt));
+                e.samples.add(new Sample(unit, ts, seller, endsAt, Math.max(1, count)));
               }
             }
           }
