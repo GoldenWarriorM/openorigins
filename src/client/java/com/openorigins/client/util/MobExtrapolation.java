@@ -118,6 +118,24 @@ public final class MobExtrapolation {
               }
               ArrayDeque<double[]> q = HIST.computeIfAbsent(e.getId(),
                   id -> new ArrayDeque<>(WINDOW));
+              // TEMP: identify non-Grimm tracked entities (bobber splash?).
+              if (q.isEmpty()) {
+                try {
+                  String type = net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE
+                      .getKey(e.getType()).toString();
+                  String key = "-";
+                  if (e instanceof net.minecraft.world.entity.Display.ItemDisplay d) {
+                    try {
+                      key = displayKey(d.getSlot(0).get());
+                    } catch (Throwable ignored) {
+                    }
+                  }
+                  com.openorigins.client.util.DebugLog.info(
+                      "[extrap] +track id={} type={} key={} vehicle={}", e.getId(), type, key,
+                      e.getVehicle() == null ? "-" : e.getVehicle().getType().getDescriptionId());
+                } catch (Throwable ignored) {
+                }
+              }
               synchronized (q) {
                 q.addLast(new double[] {e.getX(), e.getY(), e.getZ()});
                 while (q.size() > WINDOW) {
