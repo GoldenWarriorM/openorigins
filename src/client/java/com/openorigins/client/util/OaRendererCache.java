@@ -21,9 +21,33 @@ public final class OaRendererCache {
       if (e instanceof net.minecraft.world.entity.Avatar) {
         return null;
       }
-      return CACHE.get(e);
+      EntityRenderer<?, ?> hit = CACHE.get(e);
+      if (hit != null && isCrossWired(e, hit)) {
+        CACHE.remove(e);
+        com.openorigins.client.util.DebugLog.info(
+            "[oacache] dropped cross-wired renderer {} for {}#{}",
+            hit.getClass().getName(), e.getType(), e.getId());
+        return null;
+      }
+      return hit;
     } catch (Throwable t) {
       return null;
+    }
+  }
+
+  /**
+   * Tripwire for the ItemFrame/Display crash: a display renderer must never
+   * serve a non-display entity and vice versa. On mismatch the entry is
+   * dropped so the dispatcher resolves fresh.
+   */
+  private static boolean isCrossWired(Entity e, EntityRenderer<?, ?> r) {
+    try {
+      boolean entityIsDisplay = e instanceof net.minecraft.world.entity.Display;
+      boolean rendererIsDisplay =
+          r.getClass().getName().contains("DisplayRenderer");
+      return entityIsDisplay != rendererIsDisplay;
+    } catch (Throwable t) {
+      return false;
     }
   }
 
