@@ -1188,6 +1188,7 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
         this.list.refreshEntries();
       }, true)
           .width(20).sprite(RESET_ICON, 8, 8).withTootip().build();
+      this.refreshEntry();
     }
 
     public void refreshEntry() {
