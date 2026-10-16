@@ -32,14 +32,15 @@ public final class AuctionDbScreen extends Screen {
   @Override
   protected void init() {
     int cx = this.width / 2;
-    this.search = new EditBox(this.font, cx - 110, 30, 220, 20,
+    int x0 = cx - 308;
+    this.search = new EditBox(this.font, x0, 30, 280, 20,
         Component.translatable("menu.openorigins.ahdb.search_hint"));
     this.search.setMaxLength(48);
     this.search.setResponder(q -> refresh());
     this.addRenderableWidget(this.search);
     this.setInitialFocus(this.search);
     this.rarityButtons.clear();
-    int sideX = cx - 260 + 438;
+    int sideX = x0 + 508;
     int y = 56;
     for (String r : AuctionPriceDb.RARITIES) {
       final String rr = r;
@@ -48,7 +49,7 @@ public final class AuctionDbScreen extends Screen {
             this.rarity = rr;
             refreshRarityButtons();
             refresh();
-          }).bounds(sideX, y, 72, 20)
+          }).bounds(sideX, y, 100, 20)
               .tooltip(net.minecraft.client.gui.components.Tooltip.create(
                   Component.literal(rr)))
               .build();
@@ -57,17 +58,17 @@ public final class AuctionDbScreen extends Screen {
       this.addRenderableWidget(b);
     }
     refreshRarityButtons();
-    this.list = new DbList(this, this.minecraft, 230, this.height - 136, 56, 24);
-    this.list.setX(cx - 260);
+    this.list = new DbList(this, this.minecraft, 280, this.height - 100, 56, 24);
+    this.list.setX(x0);
     this.addRenderableWidget(this.list);
-    this.detailList = new SaleList(this.minecraft, 192, this.height - 186, 112, 22);
-    this.detailList.setX(cx - 260 + 238);
+    this.detailList = new SaleList(this.minecraft, 212, this.height - 156, 112, 22);
+    this.detailList.setX(x0 + 288);
     this.addRenderableWidget(this.detailList);
-    int exX = cx - 260 + 400;
+    int exX = x0 + 508;
     int exTop = 56 + AuctionPriceDb.RARITIES.size() * 22 + 6;
     this.exclHintX = exX;
     this.exclHintY = exTop + 26;
-    this.exclList = new ExclList(this.minecraft, 110,
+    this.exclList = new ExclList(this.minecraft, 100,
         Math.max(40, this.height - exTop - 62), exTop + 22, 12);
     this.exclList.setX(exX);
     this.addRenderableWidget(this.exclList);
@@ -168,7 +169,7 @@ public final class AuctionDbScreen extends Screen {
     if (e == null || this.minecraft == null) {
       return;
     }
-    int x = this.width / 2 - 260 + 238;
+    int x = (this.width / 2 - 308 + 288);
     int y = 56;
     net.minecraft.client.gui.Font font = this.minecraft.font;
     ItemStack icon = AuctionPriceDb.iconFor(e.key);
@@ -181,7 +182,7 @@ public final class AuctionDbScreen extends Screen {
         : net.minecraft.network.chat.Component.literal(e.name), x, y + 4, 0xFFFFFFFF);
     y += 22;
     if (e.variant != null && !e.variant.isEmpty()) {
-      graphics.text(font, e.variant, this.width / 2 - 260 + 238, y, 0xFFAAAAAA);
+      graphics.text(font, e.variant, (this.width / 2 - 308 + 288), y, 0xFFAAAAAA);
       y += 12;
     }
     AuctionPriceDb.Stats st = AuctionPriceDb.stats(e.key);
@@ -189,7 +190,7 @@ public final class AuctionDbScreen extends Screen {
       graphics.text(font,
           "Avg " + AuctionPriceDb.format(st.avg()) + "  Med " + AuctionPriceDb.format(st.med())
               + "  (" + st.n() + ") \ua8a6",
-          this.width / 2 - 260 + 238, y, 0xFFAAAAAA);
+          (this.width / 2 - 308 + 288), y, 0xFFAAAAAA);
     }
   }
 

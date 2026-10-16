@@ -76,6 +76,7 @@ public final class AuctionPriceDb {
   public static final class Entry {
     public final String key;
     public String name;
+    public String descText = "";
     public String vanillaId;
     public String rarity;
     public String variant = "";
@@ -110,9 +111,8 @@ public final class AuctionPriceDb {
   private static final int MAX_SAMPLES = 2000;
   private static final long MAX_AGE_MS = 120L * 24 * 60 * 60 * 1000;
 
-  /** Normalized seller nicks excluded from stats. */
-  private static final java.util.Set<String> EXCLUDED =
-      java.util.Collections.newSetFromMap(new ConcurrentHashMap<>());
+  /** Normalized seller nicks excluded from stats (value: display case). */
+  private static final java.util.Map<String, String> EXCLUDED = new ConcurrentHashMap<>();
 
   /** Nick without the rank badge prefix ("… Zoltraq" -> "zoltraq"). */
   public static String sellerNick(String seller) {
@@ -129,11 +129,13 @@ public final class AuctionPriceDb {
 
   public static boolean isExcluded(String seller) {
     String nick = sellerNick(seller);
-    return !nick.isEmpty() && EXCLUDED.contains(nick);
+    return !nick.isEmpty() && EXCLUDED.containsKey(nick);
   }
 
-  public static java.util.Set<String> excludedNicks() {
-    return java.util.Set.copyOf(EXCLUDED);
+  public static java.util.List<String> excludedNicks() {
+    List<String> out = new ArrayList<>(EXCLUDED.values());
+    out.sort(String::compareToIgnoreCase);
+    return out;
   }
 
   public static synchronized void setExcluded(String seller, boolean excluded) {
@@ -142,7 +144,9 @@ public final class AuctionPriceDb {
       return;
     }
     if (excluded) {
-      EXCLUDED.add(nick);
+      String display = seller.strip();
+      int sp = display.lastIndexOf(' ');
+      EXCLUDED.put(nick, sp >= 0 ? display.substring(sp + 1) : display);
     } else {
       EXCLUDED.remove(nick);
     }
@@ -255,7 +259,7 @@ public final class AuctionPriceDb {
       } catch (Throwable ignored) {
       }
     }
-    return new String[]{suffix, label};
+    return new String[]{suffix, label, String.join(" ", desc)};
   }
 
   /** Scans a menu (background or visible) for auction listings. */
@@ -331,7 +335,7 @@ public final class AuctionPriceDb {
         }
         SEEN.put(row, now);
         record(key, hoverName, vanillaId(stack), unit, seller, now,
-            endsAt, stack.getCount(), variant[1]);
+            endsAt, stack.getCount(), variant[1], variant.length > 2 ? variant[2] : "");
         try {
           Entry e = ITEMS.get(key);
           if (e != null) {
@@ -415,7 +419,7 @@ public final class AuctionPriceDb {
   }
 
   static synchronized void record(String key, String name, String vanillaId, double unit,
-      String seller, long now, long endsAt, int count, String variant) {
+      String seller, long now, long endsAt, int count, String variant, String descFull) {
     if (key == null || key.isEmpty() || !(unit > 0)) {
       return;
     }
@@ -423,6 +427,8 @@ public final class AuctionPriceDb {
     if (e == null) {
       e = new Entry(key, name == null ? key : name, vanillaId);
       e.variant = variant == null ? "" : variant;
+      String desc = descFull == null ? "" : descFull;
+      e.descText = desc.length() > 200 ? desc.substring(0, 200) : desc;
       ITEMS.put(key, e);
     } else if (name != null && !name.isBlank()) {
       e.name = name;
@@ -483,7 +489,8 @@ public final class AuctionPriceDb {
         }
       }
       if (q.isEmpty() || e.name.toLowerCase(Locale.ROOT).contains(q)
-          || e.key.toLowerCase(Locale.ROOT).contains(q)) {
+          || e.key.toLowerCase(Locale.ROOT).contains(q)
+          || (e.descText != null && e.descText.toLowerCase(Locale.ROOT).contains(q))) {
         out.add(e);
       }
     }
@@ -607,8 +614,8 @@ public final class AuctionPriceDb {
           com.mojang.serialization.JsonOps.INSTANCE, mc.level.registryAccess()) : null;
       JsonObject root = new JsonObject();
       JsonArray excl = new JsonArray();
-      for (String nick : EXCLUDED) {
-        excl.add(nick);
+      for (String display : EXCLUDED.values()) {
+        excl.add(display);
       }
       root.add("excluded", excl);
       for (Entry e : ITEMS.values()) {
@@ -620,6 +627,7 @@ public final class AuctionPriceDb {
         o.addProperty("vanilla", e.vanillaId);
         o.addProperty("rarity", e.rarity);
         o.addProperty("variant", e.variant);
+        o.addProperty("desc", e.descText == null ? "" : e.descText);
         o.addProperty("renamed", e.renamed);
         try {
           if (e.styledRaw != null) {
@@ -671,9 +679,10 @@ public final class AuctionPriceDb {
       if (root.has("excluded")) {
         try {
           for (JsonElement el : root.getAsJsonArray("excluded")) {
-            String nick = el.getAsString().strip().toLowerCase(Locale.ROOT);
+            String display = el.getAsString().strip();
+            String nick = sellerNick(display);
             if (!nick.isEmpty()) {
-              EXCLUDED.add(nick);
+              EXCLUDED.put(nick, display);
             }
           }
         } catch (Exception ignored) {
@@ -706,6 +715,12 @@ public final class AuctionPriceDb {
           if (o.has("variant")) {
             try {
               e.variant = o.get("variant").getAsString();
+            } catch (Exception ignored) {
+            }
+          }
+          if (o.has("desc")) {
+            try {
+              e.descText = o.get("desc").getAsString();
             } catch (Exception ignored) {
             }
           }
