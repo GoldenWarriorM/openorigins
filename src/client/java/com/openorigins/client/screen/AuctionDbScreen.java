@@ -52,7 +52,7 @@ public final class AuctionDbScreen extends Screen {
       this.addRenderableWidget(b);
     }
     refreshRarityButtons();
-    this.list = new DbList(this.minecraft, 240, this.height - 136, 56, 24);
+    this.list = new DbList(this, this.minecraft, 240, this.height - 136, 56, 24);
     this.addRenderableWidget(this.list);
     net.minecraft.client.gui.components.Button delBtn =
         net.minecraft.client.gui.components.Button.builder(
@@ -117,8 +117,11 @@ public final class AuctionDbScreen extends Screen {
 
   private static final class DbList
       extends ObjectSelectionList<Row> {
-    DbList(Minecraft mc, int width, int height, int y, int itemHeight) {
+    private final AuctionDbScreen parent;
+
+    DbList(AuctionDbScreen parent, Minecraft mc, int width, int height, int y, int itemHeight) {
       super(mc, width, height, y, itemHeight);
+      this.parent = parent;
     }
 
     @Override
@@ -152,6 +155,19 @@ public final class AuctionDbScreen extends Screen {
     @Override
     public Component getNarration() {
       return Component.literal(this.entry.name);
+    }
+
+    @Override
+    public boolean mouseClicked(net.minecraft.client.input.MouseButtonEvent event,
+        boolean doubleClick) {
+      if (doubleClick) {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc != null) {
+          mc.gui.setScreen(new AuctionDbEntryScreen(this.entry.key));
+        }
+        return true;
+      }
+      return false;
     }
 
     @Override

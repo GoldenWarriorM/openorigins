@@ -74,6 +74,8 @@
   "menu.openorigins.ahdb.delete": "Delete selected",
   "menu.openorigins.ahdb.clear": "Clear database",
   "menu.openorigins.ahdb.clear_sure": "Sure?",
+  "menu.openorigins.ahdb.back": "Back",
+  "menu.openorigins.ahdb.entry_title": "Sale history",
   "menu.openorigins.homes.title": "Homes",
   "menu.openorigins.worlds.title": "Worlds",
   "menu.openorigins.homes.sethome": "Set Home",

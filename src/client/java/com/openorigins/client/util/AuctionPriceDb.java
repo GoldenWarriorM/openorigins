@@ -360,6 +360,12 @@ public final class AuctionPriceDb {
     return ITEMS.size();
   }
 
+  /** Copy of an entry's samples (newest last). */
+  public static List<Sample> samples(String key) {
+    Entry e = key == null ? null : ITEMS.get(key);
+    return e == null ? List.of() : List.copyOf(e.samples);
+  }
+
   public static synchronized void remove(String key) {
     if (key != null && ITEMS.remove(key) != null) {
       save();
