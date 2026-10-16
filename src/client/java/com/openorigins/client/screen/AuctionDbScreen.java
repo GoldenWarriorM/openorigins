@@ -19,6 +19,8 @@ public final class AuctionDbScreen extends Screen {
   private String rarity = "ALL";
   private net.minecraft.client.gui.components.Button clearBtn;
   private long clearArmedAt;
+  private int exclHintX;
+  private int exclHintY;
   private AuctionPriceDb.Entry detail;
   private final List<net.minecraft.client.gui.components.Button> rarityButtons =
       new java.util.ArrayList<>();
@@ -62,16 +64,11 @@ public final class AuctionDbScreen extends Screen {
     this.detailList.setX(cx - 260 + 238);
     this.addRenderableWidget(this.detailList);
     int exX = cx - 260 + 400;
-    net.minecraft.client.gui.components.StringWidget hint1 =
-        new net.minecraft.client.gui.components.StringWidget(exX, 208, 110, 9,
-            Component.translatable("menu.openorigins.ahdb.excl_hint1"), this.font);
-    this.addRenderableWidget(hint1);
-    net.minecraft.client.gui.components.StringWidget hint2 =
-        new net.minecraft.client.gui.components.StringWidget(exX, 218, 110, 9,
-            Component.translatable("menu.openorigins.ahdb.excl_hint2"), this.font);
-    this.addRenderableWidget(hint2);
+    int exTop = 56 + AuctionPriceDb.RARITIES.size() * 22 + 6;
+    this.exclHintX = exX;
+    this.exclHintY = exTop + 26;
     this.exclList = new ExclList(this.minecraft, 110,
-        Math.max(40, this.height - 272), 230, 12);
+        Math.max(40, this.height - exTop - 62), exTop + 22, 12);
     this.exclList.setX(exX);
     this.addRenderableWidget(this.exclList);
     refreshExcluded();
@@ -156,6 +153,14 @@ public final class AuctionDbScreen extends Screen {
       float partialTick) {
     super.extractRenderState(graphics, mouseX, mouseY, partialTick);
     drawDetailHeader(graphics);
+    if (AuctionPriceDb.excludedNicks().isEmpty() && this.minecraft != null) {
+      graphics.text(this.minecraft.font,
+          Component.translatable("menu.openorigins.ahdb.excl_hint1"),
+          this.exclHintX + 4, this.exclHintY, 0xFF777777);
+      graphics.text(this.minecraft.font,
+          Component.translatable("menu.openorigins.ahdb.excl_hint2"),
+          this.exclHintX + 4, this.exclHintY + 10, 0xFF777777);
+    }
   }
 
   private void drawDetailHeader(GuiGraphicsExtractor graphics) {
