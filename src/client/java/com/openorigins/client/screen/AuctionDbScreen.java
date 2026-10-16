@@ -70,7 +70,8 @@ public final class AuctionDbScreen extends Screen {
         new net.minecraft.client.gui.components.StringWidget(exX, 218, 110, 9,
             Component.translatable("menu.openorigins.ahdb.excl_hint2"), this.font);
     this.addRenderableWidget(hint2);
-    this.exclList = new ExclList(this.minecraft, 110, this.height - 272, 230, 12);
+    this.exclList = new ExclList(this.minecraft, 110,
+        Math.max(40, this.height - 272), 230, 12);
     this.exclList.setX(exX);
     this.addRenderableWidget(this.exclList);
     refreshExcluded();
@@ -297,8 +298,10 @@ public final class AuctionDbScreen extends Screen {
           mark + when + "  " + this.sample.count() + "x @ "
               + AuctionPriceDb.format(this.sample.unit()) + " \ua8a6",
           this.getContentX() + 2, this.getContentY() + 1, main);
-      graphics.text(mc.font,
-          this.sample.seller().isEmpty() ? "-" : this.sample.seller(),
+      String rawSeller = this.sample.seller().isEmpty() ? "-" : this.sample.seller();
+      int sp = rawSeller.lastIndexOf(' ');
+      String nick = sp >= 0 ? rawSeller.substring(sp + 1) : rawSeller;
+      graphics.text(mc.font, nick,
           this.getContentX() + 10, this.getContentY() + 11, out ? 0xFF777777 : 0xFFAAAAAA);
     }
   }

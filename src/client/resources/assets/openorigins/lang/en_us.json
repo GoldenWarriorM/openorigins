@@ -76,6 +76,8 @@
   "menu.openorigins.ahdb.clear_sure": "Sure?",
   "menu.openorigins.ahdb.back": "Back",
   "menu.openorigins.ahdb.entry_title": "Sale history",
+  "menu.openorigins.ahdb.excl_hint1": "Excluded sellers:",
+  "menu.openorigins.ahdb.excl_hint2": "click sale to add",
   "menu.openorigins.homes.title": "Homes",
   "menu.openorigins.worlds.title": "Worlds",
   "menu.openorigins.homes.sethome": "Set Home",
