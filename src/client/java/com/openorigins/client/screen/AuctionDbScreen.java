@@ -15,6 +15,7 @@ public final class AuctionDbScreen extends Screen {
   private EditBox search;
   private DbList list;
   private SaleList detailList;
+  private ExclList exclList;
   private String rarity = "ALL";
   private net.minecraft.client.gui.components.Button clearBtn;
   private long clearArmedAt;
@@ -60,6 +61,19 @@ public final class AuctionDbScreen extends Screen {
     this.detailList = new SaleList(this.minecraft, 192, this.height - 186, 112, 22);
     this.detailList.setX(cx - 260 + 238);
     this.addRenderableWidget(this.detailList);
+    int exX = cx - 260 + 400;
+    net.minecraft.client.gui.components.StringWidget hint1 =
+        new net.minecraft.client.gui.components.StringWidget(exX, 208, 110, 9,
+            Component.translatable("menu.openorigins.ahdb.excl_hint1"), this.font);
+    this.addRenderableWidget(hint1);
+    net.minecraft.client.gui.components.StringWidget hint2 =
+        new net.minecraft.client.gui.components.StringWidget(exX, 218, 110, 9,
+            Component.translatable("menu.openorigins.ahdb.excl_hint2"), this.font);
+    this.addRenderableWidget(hint2);
+    this.exclList = new ExclList(this.minecraft, 110, this.height - 272, 230, 12);
+    this.exclList.setX(exX);
+    this.addRenderableWidget(this.exclList);
+    refreshExcluded();
     net.minecraft.client.gui.components.Button delBtn =
         net.minecraft.client.gui.components.Button.builder(
             Component.translatable("menu.openorigins.ahdb.delete"), b -> {
@@ -168,7 +182,7 @@ public final class AuctionDbScreen extends Screen {
     if (st != null) {
       graphics.text(font,
           "Avg " + AuctionPriceDb.format(st.avg()) + "  Med " + AuctionPriceDb.format(st.med())
-              + "  (" + st.n() + ")",
+              + "  (" + st.n() + ") \ua8a6",
           this.width / 2 - 260 + 238, y, 0xFFAAAAAA);
     }
   }
@@ -182,6 +196,63 @@ public final class AuctionDbScreen extends Screen {
     public int getRowWidth() {
       return this.getWidth();
     }
+  }
+
+  private static final class ExclList extends ObjectSelectionList<ExclRow> {
+    ExclList(Minecraft mc, int width, int height, int y, int itemHeight) {
+      super(mc, width, height, y, itemHeight);
+    }
+
+    @Override
+    public int getRowWidth() {
+      return this.getWidth();
+    }
+  }
+
+  private static final class ExclRow extends ObjectSelectionList.Entry<ExclRow> {
+    private final AuctionDbScreen parent;
+    private final String nick;
+
+    ExclRow(AuctionDbScreen parent, String nick) {
+      this.parent = parent;
+      this.nick = nick;
+    }
+
+    @Override
+    public Component getNarration() {
+      return Component.literal(this.nick);
+    }
+
+    @Override
+    public boolean mouseClicked(net.minecraft.client.input.MouseButtonEvent event,
+        boolean doubleClick) {
+      if (event.button() != com.openorigins.client.util.VersionCompat.mouseLeft()) {
+        return false;
+      }
+      AuctionPriceDb.setExcluded(this.nick, false);
+      this.parent.refreshExcluded();
+      this.parent.refreshDetailList();
+      this.parent.refresh();
+      return true;
+    }
+
+    @Override
+    public void extractContent(GuiGraphicsExtractor graphics, int mouseX, int mouseY,
+        boolean hovered, float partialTick) {
+      Minecraft mc = Minecraft.getInstance();
+      graphics.text(mc.font, "✕ " + this.nick, this.getContentX() + 2,
+          this.getContentY() + 2, 0xFFAAAAAA);
+    }
+  }
+
+  void refreshExcluded() {
+    if (this.exclList == null) {
+      return;
+    }
+    java.util.List<String> nicks =
+        new java.util.ArrayList<>(AuctionPriceDb.excludedNicks());
+    nicks.sort(String::compareToIgnoreCase);
+    this.exclList.replaceEntries(nicks.stream().map(n -> new ExclRow(this, n)).toList());
   }
 
   private static final class SaleRow extends ObjectSelectionList.Entry<SaleRow> {
@@ -224,7 +295,7 @@ public final class AuctionDbScreen extends Screen {
       String mark = out ? "✕ " : "";
       graphics.text(mc.font,
           mark + when + "  " + this.sample.count() + "x @ "
-              + AuctionPriceDb.format(this.sample.unit()),
+              + AuctionPriceDb.format(this.sample.unit()) + " \ua8a6",
           this.getContentX() + 2, this.getContentY() + 1, main);
       graphics.text(mc.font,
           this.sample.seller().isEmpty() ? "-" : this.sample.seller(),

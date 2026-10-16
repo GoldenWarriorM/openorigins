@@ -132,6 +132,10 @@ public final class AuctionPriceDb {
     return !nick.isEmpty() && EXCLUDED.contains(nick);
   }
 
+  public static java.util.Set<String> excludedNicks() {
+    return java.util.Set.copyOf(EXCLUDED);
+  }
+
   public static synchronized void setExcluded(String seller, boolean excluded) {
     String nick = sellerNick(seller);
     if (nick.isEmpty()) {
