@@ -196,18 +196,22 @@ public final class AuctionPriceDb {
           continue;
         }
         long endsAt = parseEndsAt(loreLines, now);
-        long endBucket = endsAt < 0 ? -1 : endsAt / 300000L;
         String key = itemKey(stack);
-        String row = windowId + "|" + idx + "|" + key + "|" + total + "|" + stack.getCount()
-            + "|" + seller.toLowerCase(Locale.ROOT) + "|" + endBucket;
+        double unit = total / stack.getCount();
+        // Same lot check against recorded samples: identical terms plus
+        // listing end within tolerance (display minutes shift as time passes,
+        // the true end doesn't). Page moves and re-opens can't duplicate.
+        if (isSameLot(key, unit, stack.getCount(), seller, endsAt)) {
+          continue;
+        }
+        String row = key + "|" + total + "|" + stack.getCount()
+            + "|" + seller.toLowerCase(Locale.ROOT);
         Long last = SEEN.get(row);
-        // Same computed end: the same standing lot, no matter how old.
-        // No end: fall back to the re-observation window.
-        if (last != null && (endBucket != -1 || now - last < REOBSERVE_MS)) {
+        // No end to compare (or first sighting): re-observation window only.
+        if (last != null && now - last < REOBSERVE_MS) {
           continue;
         }
         SEEN.put(row, now);
-        double unit = total / stack.getCount();
         record(key, stack.getHoverName().getString(), vanillaId(stack), unit, seller, now,
             endsAt, stack.getCount());
         try {
@@ -251,6 +255,29 @@ public final class AuctionPriceDb {
     } catch (Throwable t) {
       return "minecraft:air";
     }
+  }
+
+  /** True when the same lot (terms + end within tolerance) is already stored. */
+  static boolean isSameLot(String key, double unit, int count, String seller, long endsAt) {
+    if (endsAt < 0) {
+      return false;
+    }
+    Entry e = key == null ? null : ITEMS.get(key);
+    if (e == null) {
+      return false;
+    }
+    for (Sample s : e.samples) {
+      if (s.endsAt() < 0 || s.unit() != unit || s.count() != count) {
+        continue;
+      }
+      if (!s.seller().equalsIgnoreCase(seller)) {
+        continue;
+      }
+      if (Math.abs(s.endsAt() - endsAt) < 360000L) {
+        return true;
+      }
+    }
+    return false;
   }
 
   static synchronized void record(String key, String name, String vanillaId, double unit,
