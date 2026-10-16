@@ -72,7 +72,7 @@ public final class AuctionDbScreen extends Screen {
     int exX = x0 + 508;
     int exTop = 30 + AuctionPriceDb.RARITIES.size() * 22 + 6;
     this.exclList = new ExclList(this.minecraft, 100,
-        Math.max(40, this.height - exTop - 62), exTop + 22, 12);
+        Math.max(40, this.height - 44 - (exTop + 22)), exTop + 22, 12);
     this.exclList.setX(exX);
     this.addRenderableWidget(this.exclList);
     refreshExcluded();
@@ -173,11 +173,6 @@ public final class AuctionDbScreen extends Screen {
     if (this.detailList != null) {
       this.detailList.setY(y + 6);
       this.detailList.setHeight(Math.max(40, this.height - 44 - (y + 6)));
-    }
-    if (this.exclList != null) {
-      int ey = y + 6;
-      this.exclList.setY(ey);
-      this.exclList.setHeight(Math.max(40, this.height - 44 - ey));
     }
     refreshDetailList();
   }
