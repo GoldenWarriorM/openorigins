@@ -33,7 +33,7 @@ import net.minecraft.world.item.component.ItemLore;
 public final class AuctionPriceDb {
   private AuctionPriceDb() {}
 
-  public record Sample(double unit, long ts) {}
+  public record Sample(double unit, long ts, String seller) {}
 
   public record Stats(double avg, double med, int n) {}
 
@@ -83,13 +83,17 @@ public final class AuctionPriceDb {
   }
 
   private static final Map<String, Entry> ITEMS = new ConcurrentHashMap<>();
-  /** Already-recorded rows per menu window (ids recycle, so this stays tiny). */
-  private static final Map<Integer, java.util.Set<String>> SEEN = new LinkedHashMap<>() {
+  /** Already-recorded rows with last-seen time: re-scans within the window
+   * are ignored, genuinely standing lots re-observe after it. */
+  private static final Map<String, Long> SEEN = new LinkedHashMap<>() {
     @Override
-    protected boolean removeEldestEntry(Map.Entry<Integer, java.util.Set<String>> e) {
-      return size() > 12;
+    protected boolean removeEldestEntry(Map.Entry<String, Long> e) {
+      return size() > 2000;
     }
   };
+
+  /** A row counts as new when unseen for this long (re-lists pass through). */
+  private static final long REOBSERVE_MS = 30L * 60 * 1000;
 
   private static final int MAX_SAMPLES = 100;
   private static final long MAX_AGE_MS = 120L * 24 * 60 * 60 * 1000;
@@ -108,9 +112,7 @@ public final class AuctionPriceDb {
     }
     net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
     Object playerInv = (mc != null && mc.player != null) ? mc.player.getInventory() : null;
-    java.util.Set<String> seen =
-        SEEN.computeIfAbsent(windowId, k -> java.util.Collections.newSetFromMap(
-            new java.util.concurrent.ConcurrentHashMap<>()));
+    long now = System.currentTimeMillis();
     int n = 0;
     int idx = 0;
     for (Slot slot : menu.slots) {
@@ -131,7 +133,7 @@ public final class AuctionPriceDb {
           continue;
         }
         Double total = null;
-        boolean seller = false;
+        String seller = null;
         for (Component line : lore.lines()) {
           String s = line.getString().strip();
           Matcher m = PRICE.matcher(s);
@@ -141,19 +143,25 @@ public final class AuctionPriceDb {
             } catch (NumberFormatException ignored) {
             }
           } else if (s.toLowerCase(Locale.ROOT).startsWith("seller:")) {
-            seller = true;
+            seller = s.substring("seller:".length()).strip();
+            if (seller.isEmpty()) {
+              seller = null;
+            }
           }
         }
-        if (total == null || total <= 0 || !seller) {
+        if (total == null || total <= 0 || seller == null) {
           continue;
         }
         String key = itemKey(stack);
-        String row = idx + "|" + key + "|" + total + "|" + stack.getCount();
-        if (!seen.add(row)) {
+        String row = windowId + "|" + idx + "|" + key + "|" + total + "|" + stack.getCount()
+            + "|" + seller.toLowerCase(Locale.ROOT);
+        Long last = SEEN.get(row);
+        if (last != null && now - last < REOBSERVE_MS) {
           continue;
         }
+        SEEN.put(row, now);
         double unit = total / stack.getCount();
-        record(key, stack.getHoverName().getString(), vanillaId(stack), unit);
+        record(key, stack.getHoverName().getString(), vanillaId(stack), unit, seller, now);
         try {
           Entry e = ITEMS.get(key);
           if (e != null) {
@@ -204,7 +212,8 @@ public final class AuctionPriceDb {
     }
   }
 
-  static synchronized void record(String key, String name, String vanillaId, double unit) {
+  static synchronized void record(String key, String name, String vanillaId, double unit,
+      String seller, long now) {
     if (key == null || key.isEmpty() || !(unit > 0)) {
       return;
     }
@@ -215,7 +224,7 @@ public final class AuctionPriceDb {
     } else if (name != null && !name.isBlank()) {
       e.name = name;
     }
-    e.samples.add(new Sample(unit, System.currentTimeMillis()));
+    e.samples.add(new Sample(unit, now, seller == null ? "" : seller));
     while (e.samples.size() > MAX_SAMPLES) {
       e.samples.remove(0);
     }
@@ -330,10 +339,11 @@ public final class AuctionPriceDb {
         o.addProperty("rarity", e.rarity);
         JsonArray arr = new JsonArray();
         for (Sample s : e.samples) {
-          JsonArray pair = new JsonArray();
-          pair.add(s.unit());
-          pair.add(s.ts());
-          arr.add(pair);
+          JsonArray tuple = new JsonArray();
+          tuple.add(s.unit());
+          tuple.add(s.ts());
+          tuple.add(s.seller());
+          arr.add(tuple);
         }
         o.add("samples", arr);
         try {
@@ -382,11 +392,12 @@ public final class AuctionPriceDb {
           JsonArray arr = o.getAsJsonArray("samples");
           if (arr != null) {
             for (JsonElement el : arr) {
-              JsonArray pair = el.getAsJsonArray();
-              double unit = pair.get(0).getAsDouble();
-              long ts = pair.get(1).getAsLong();
+              JsonArray tuple = el.getAsJsonArray();
+              double unit = tuple.get(0).getAsDouble();
+              long ts = tuple.get(1).getAsLong();
+              String seller = tuple.size() > 2 ? tuple.get(2).getAsString() : "";
               if (unit > 0 && now - ts < MAX_AGE_MS) {
-                e.samples.add(new Sample(unit, ts));
+                e.samples.add(new Sample(unit, ts, seller));
               }
             }
           }
