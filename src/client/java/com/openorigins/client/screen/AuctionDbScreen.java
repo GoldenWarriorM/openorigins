@@ -63,10 +63,10 @@ public final class AuctionDbScreen extends Screen {
       int c = "ALL".equals(r) ? AuctionPriceDb.itemCount() : counts.getOrDefault(r, 0);
       String glyph = AuctionPriceDb.RARITY_GLYPHS.getOrDefault(r, "");
       String text = glyph.isEmpty() ? r + " " + c : glyph + " " + c;
-      Component label = Component.literal(text)
-          .withStyle(r.equals(this.rarity) ? net.minecraft.ChatFormatting.GOLD
-              : net.minecraft.ChatFormatting.WHITE);
-      this.rarityButtons.get(i).setMessage(label);
+      if (r.equals(this.rarity)) {
+        text = "[" + text + "]";
+      }
+      this.rarityButtons.get(i).setMessage(Component.literal(text));
     }
   }
 
