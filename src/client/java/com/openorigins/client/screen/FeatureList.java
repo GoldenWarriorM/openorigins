@@ -807,7 +807,8 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
     private static Component featureTooltip(OriginFeature feature) {
       Component desc = Component.translatable(feature.getDescriptionKey());
       if (feature == OriginFeature.HELMET_COSMETIC_SLOT
-          || feature == OriginFeature.ENTITY_EXTRAPOLATION) {
+          || feature == OriginFeature.ENTITY_EXTRAPOLATION
+          || feature == OriginFeature.AH_PRICE_DB) {
         return desc.copy().append("\n")
             .append(Component.translatable("label.openorigins.experimental")
                 .withStyle(net.minecraft.ChatFormatting.YELLOW))
