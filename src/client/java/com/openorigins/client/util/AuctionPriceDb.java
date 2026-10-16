@@ -195,7 +195,7 @@ public final class AuctionPriceDb {
   private static final List<String> NOISE_CONTAINS = List.of(
       "price:", "seller:", "time left:", "created:", "world:", "position:",
       "click", "visit realm", "pin realm", "players:", "delivered", "expired", "reset",
-      "currently viewing");
+      "currently viewing", "auction sold");
 
   /** Normalized display name without the server badge prefix. */
   static String normName(String name) {
