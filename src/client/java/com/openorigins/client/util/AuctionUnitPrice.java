@@ -77,9 +77,7 @@ public final class AuctionUnitPrice {
     Component priceLine = lines.get(priceIdx);
     String key;
     try {
-      key = CustomItemIds.resolve(stack)
-          .orElse(net.minecraft.core.registries.BuiltInRegistries.ITEM
-              .getKey(stack.getItem()).toString());
+      key = AuctionPriceDb.fullKey(stack);
     } catch (Throwable t) {
       return false;
     }

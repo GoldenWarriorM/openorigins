@@ -139,6 +139,10 @@ public final class AuctionDbScreen extends Screen {
     }
     graphics.text(font, e.name, x, y + 4, 0xFFFFFFFF);
     y += 22;
+    if (e.variant != null && !e.variant.isEmpty()) {
+      graphics.text(font, e.variant, this.width / 2 - 260 + 238, y, 0xFFAAAAAA);
+      y += 12;
+    }
     AuctionPriceDb.Stats st = AuctionPriceDb.stats(e.key);
     if (st != null) {
       graphics.text(font,

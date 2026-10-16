@@ -77,6 +77,7 @@ public final class AuctionPriceDb {
     public String name;
     public String vanillaId;
     public String rarity;
+    public String variant = "";
     final List<Sample> samples = new ArrayList<>();
     volatile ItemStack icon;
     volatile JsonElement iconRaw;
@@ -143,6 +144,77 @@ public final class AuctionPriceDb {
   private static final Pattern PRICE =
       Pattern.compile("(?i)^price:\\s*([\\d,]+(?:\\.\\d+)?)");
 
+  /** Lore lines that describe the listing itself, never the item. */
+  private static final List<String> NOISE_CONTAINS = List.of(
+      "price:", "seller:", "time left:", "created:", "world:", "position:",
+      "click", "visit realm", "pin realm", "players:", "delivered", "expired", "reset");
+
+  /** Normalized display name without the server badge prefix. */
+  static String normName(String name) {
+    if (name == null) {
+      return "";
+    }
+    String s = name.strip();
+    while (!s.isEmpty() && s.codePointAt(0) > 0x2500) {
+      s = s.substring(Character.charCount(s.codePointAt(0))).strip();
+    }
+    return s.toLowerCase(Locale.ROOT);
+  }
+
+  /**
+   * Identity signals from the full description: normalized name plus the
+   * first descriptive line and a hash of all of them. Returns {suffix, label}.
+   */
+  static String[] variantOf(String name, List<Component> loreLines) {
+    List<String> desc = new ArrayList<>();
+    for (Component line : loreLines) {
+      String s = line.getString().strip();
+      if (s.isEmpty()) {
+        continue;
+      }
+      String lower = s.toLowerCase(Locale.ROOT);
+      boolean noise = false;
+      for (String n : NOISE_CONTAINS) {
+        if (lower.contains(n)) {
+          noise = true;
+          break;
+        }
+      }
+      if (noise) {
+        continue;
+      }
+      // Glyph-only separators carry no identity (badges live in the name).
+      if (s.codePointCount(0, s.length()) == 1 && s.codePointAt(0) > 0x2500) {
+        continue;
+      }
+      desc.add(s);
+    }
+    String nn = normName(name);
+    String suffix = "";
+    String label = "";
+    if (!nn.isEmpty()) {
+      suffix = "|n=" + nn;
+    }
+    if (!desc.isEmpty()) {
+      try {
+        java.security.MessageDigest md = java.security.MessageDigest.getInstance("SHA-1");
+        byte[] hash =
+            md.digest(String.join("\n", desc).getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        StringBuilder hex = new StringBuilder();
+        for (int i = 0; i < 5; i++) {
+          hex.append(String.format("%02x", hash[i]));
+        }
+        suffix += "|v=" + hex;
+        label = desc.get(0);
+        if (label.length() > 30) {
+          label = label.substring(0, 30) + "…";
+        }
+      } catch (Throwable ignored) {
+      }
+    }
+    return new String[]{suffix, label};
+  }
+
   /** Scans a menu (background or visible) for auction listings. */
   public static synchronized int scanMenu(AbstractContainerMenu menu, int windowId) {
     if (menu == null) {
@@ -176,7 +248,6 @@ public final class AuctionPriceDb {
         }
         Double total = null;
         String seller = null;
-        String mob = null;
         List<Component> loreLines = lore.lines();
         for (Component line : loreLines) {
           String s = line.getString().strip();
@@ -191,21 +262,15 @@ public final class AuctionPriceDb {
             if (seller.isEmpty()) {
               seller = null;
             }
-          } else if (s.toLowerCase(Locale.ROOT).startsWith("mob:")) {
-            mob = s.substring("mob:".length()).strip().toLowerCase(Locale.ROOT);
-            if (mob.isEmpty()) {
-              mob = null;
-            }
           }
         }
         if (total == null || total <= 0 || seller == null) {
           continue;
         }
         long endsAt = parseEndsAt(loreLines, now);
-        String key = itemKey(stack);
-        if (mob != null) {
-          key = key + "|mob=" + mob;
-        }
+        String hoverName = stack.getHoverName().getString();
+        String[] variant = variantOf(hoverName, loreLines);
+        String key = itemKey(stack) + variant[0];
         double unit = total / stack.getCount();
         // Same lot check against recorded samples: identical terms plus
         // listing end within tolerance (display minutes shift as time passes,
@@ -221,8 +286,8 @@ public final class AuctionPriceDb {
           continue;
         }
         SEEN.put(row, now);
-        record(key, stack.getHoverName().getString(), vanillaId(stack), unit, seller, now,
-            endsAt, stack.getCount());
+        record(key, hoverName, vanillaId(stack), unit, seller, now,
+            endsAt, stack.getCount(), variant[1]);
         try {
           Entry e = ITEMS.get(key);
           if (e != null) {
@@ -257,8 +322,19 @@ public final class AuctionPriceDb {
     return vanillaId(stack);
   }
 
-  private static String vanillaId(ItemStack stack) {
+  /** Full database key: base id + normalized name + description hash. */
+  static String fullKey(ItemStack stack) {
     try {
+      String base = itemKey(stack);
+      ItemLore lore = stack.get(DataComponents.LORE);
+      List<Component> lines = lore == null ? List.of() : lore.lines();
+      return base + variantOf(stack.getHoverName().getString(), lines)[0];
+    } catch (Throwable t) {
+      return itemKey(stack);
+    }
+  }
+
+  private static String vanillaId(ItemStack stack) {    try {
       return net.minecraft.core.registries.BuiltInRegistries.ITEM
           .getKey(stack.getItem()).toString();
     } catch (Throwable t) {
@@ -290,13 +366,14 @@ public final class AuctionPriceDb {
   }
 
   static synchronized void record(String key, String name, String vanillaId, double unit,
-      String seller, long now, long endsAt, int count) {
+      String seller, long now, long endsAt, int count, String variant) {
     if (key == null || key.isEmpty() || !(unit > 0)) {
       return;
     }
     Entry e = ITEMS.get(key);
     if (e == null) {
       e = new Entry(key, name == null ? key : name, vanillaId);
+      e.variant = variant == null ? "" : variant;
       ITEMS.put(key, e);
     } else if (name != null && !name.isBlank()) {
       e.name = name;
@@ -437,6 +514,7 @@ public final class AuctionPriceDb {
         o.addProperty("name", e.name);
         o.addProperty("vanilla", e.vanillaId);
         o.addProperty("rarity", e.rarity);
+        o.addProperty("variant", e.variant);
         JsonArray arr = new JsonArray();
         for (Sample s : e.samples) {
           JsonArray tuple = new JsonArray();
@@ -483,6 +561,12 @@ public final class AuctionPriceDb {
               o.has("vanilla") ? o.get("vanilla").getAsString() : "minecraft:paper");
           // Server badges only: recompute (drops legacy vanilla rarities).
           e.rarity = rarityOf(e.name);
+          if (o.has("variant")) {
+            try {
+              e.variant = o.get("variant").getAsString();
+            } catch (Exception ignored) {
+            }
+          }
           if (o.has("icon")) {
             e.iconRaw = o.get("icon");
           }
