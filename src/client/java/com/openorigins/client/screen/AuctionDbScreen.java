@@ -17,6 +17,7 @@ public final class AuctionDbScreen extends Screen {
   private String rarity = "ALL";
   private net.minecraft.client.gui.components.Button clearBtn;
   private long clearArmedAt;
+  private AuctionPriceDb.Entry detail;
   private final List<net.minecraft.client.gui.components.Button> rarityButtons =
       new java.util.ArrayList<>();
 
@@ -34,7 +35,7 @@ public final class AuctionDbScreen extends Screen {
     this.addRenderableWidget(this.search);
     this.setInitialFocus(this.search);
     this.rarityButtons.clear();
-    int sideX = cx + 128;
+    int sideX = cx - 260 + 438;
     int y = 56;
     for (String r : AuctionPriceDb.RARITIES) {
       final String rr = r;
@@ -52,7 +53,8 @@ public final class AuctionDbScreen extends Screen {
       this.addRenderableWidget(b);
     }
     refreshRarityButtons();
-    this.list = new DbList(this, this.minecraft, 240, this.height - 136, 56, 24);
+    this.list = new DbList(this, this.minecraft, 230, this.height - 136, 56, 24);
+    this.list.setX(cx - 260);
     this.addRenderableWidget(this.list);
     net.minecraft.client.gui.components.Button delBtn =
         net.minecraft.client.gui.components.Button.builder(
@@ -111,6 +113,61 @@ public final class AuctionDbScreen extends Screen {
     this.list.replaceEntries(found.stream().map(Row::new).toList());
   }
 
+  void showDetail(AuctionPriceDb.Entry entry) {
+    this.detail = entry;
+  }
+
+  @Override
+  public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY,
+      float partialTick) {
+    super.extractRenderState(graphics, mouseX, mouseY, partialTick);
+    drawDetail(graphics);
+  }
+
+  private void drawDetail(GuiGraphicsExtractor graphics) {
+    AuctionPriceDb.Entry e = this.detail;
+    if (e == null || this.minecraft == null) {
+      return;
+    }
+    int x = this.width / 2 - 260 + 238;
+    int y = 56;
+    net.minecraft.client.gui.Font font = this.minecraft.font;
+    ItemStack icon = AuctionPriceDb.iconFor(e.key);
+    if (!icon.isEmpty()) {
+      graphics.item(icon, x, y);
+      x += 20;
+    }
+    graphics.text(font, e.name, x, y + 4, 0xFFFFFFFF);
+    y += 22;
+    AuctionPriceDb.Stats st = AuctionPriceDb.stats(e.key);
+    if (st != null) {
+      graphics.text(font,
+          "Avg " + AuctionPriceDb.format(st.avg()) + "  Med " + AuctionPriceDb.format(st.med())
+              + "  (" + st.n() + ")",
+          this.width / 2 - 260 + 238, y, 0xFFAAAAAA);
+      y += 14;
+    }
+    java.util.List<AuctionPriceDb.Sample> samples =
+        new java.util.ArrayList<>(AuctionPriceDb.samples(e.key));
+    samples.sort((a, b) -> Long.compare(b.ts(), a.ts()));
+    int shown = 0;
+    for (AuctionPriceDb.Sample s : samples) {
+      if (shown >= 8 || y > this.height - 44) {
+        break;
+      }
+      String when = java.time.LocalDateTime
+          .ofInstant(java.time.Instant.ofEpochMilli(s.ts()), java.time.ZoneId.systemDefault())
+          .format(java.time.format.DateTimeFormatter.ofPattern("MM-dd HH:mm"));
+      graphics.text(font, when + "  " + s.count() + "x @ " + AuctionPriceDb.format(s.unit()),
+          this.width / 2 - 260 + 238, y, 0xFFFFFFFF);
+      y += 10;
+      graphics.text(font, s.seller().isEmpty() ? "-" : s.seller(),
+          this.width / 2 - 260 + 246, y, 0xFFAAAAAA);
+      y += 12;
+      shown++;
+    }
+  }
+
   @Override
   public void tick() {
   }
@@ -122,6 +179,12 @@ public final class AuctionDbScreen extends Screen {
     DbList(AuctionDbScreen parent, Minecraft mc, int width, int height, int y, int itemHeight) {
       super(mc, width, height, y, itemHeight);
       this.parent = parent;
+    }
+
+    @Override
+    public void setSelected(Row row) {
+      super.setSelected(row);
+      this.parent.showDetail(row == null ? null : row.entry);
     }
 
     @Override
@@ -155,19 +218,6 @@ public final class AuctionDbScreen extends Screen {
     @Override
     public Component getNarration() {
       return Component.literal(this.entry.name);
-    }
-
-    @Override
-    public boolean mouseClicked(net.minecraft.client.input.MouseButtonEvent event,
-        boolean doubleClick) {
-      if (doubleClick) {
-        Minecraft mc = Minecraft.getInstance();
-        if (mc != null) {
-          mc.gui.setScreen(new AuctionDbEntryScreen(this.entry.key));
-        }
-        return true;
-      }
-      return false;
     }
 
     @Override
