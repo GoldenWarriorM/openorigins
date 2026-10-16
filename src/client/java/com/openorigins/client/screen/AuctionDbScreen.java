@@ -32,23 +32,25 @@ public final class AuctionDbScreen extends Screen {
     this.addRenderableWidget(this.search);
     this.setInitialFocus(this.search);
     this.rarityButtons.clear();
-    int n = AuctionPriceDb.RARITIES.size();
-    int w = 72;
-    for (int i = 0; i < n; i++) {
-      final String r = AuctionPriceDb.RARITIES.get(i);
-      int row = i / 3;
-      int col = i % 3;
+    int sideX = cx + 128;
+    int y = 56;
+    for (String r : AuctionPriceDb.RARITIES) {
+      final String rr = r;
       net.minecraft.client.gui.components.Button b =
           net.minecraft.client.gui.components.Button.builder(Component.empty(), btn -> {
-            this.rarity = r;
+            this.rarity = rr;
             refreshRarityButtons();
             refresh();
-          }).bounds(cx - 109 + col * (w + 1), 52 + row * 22, w, 20).build();
+          }).bounds(sideX, y, 72, 20)
+              .tooltip(net.minecraft.client.gui.components.Tooltip.create(
+                  Component.literal(rr)))
+              .build();
+      y += 22;
       this.rarityButtons.add(b);
       this.addRenderableWidget(b);
     }
     refreshRarityButtons();
-    this.list = new DbList(this.minecraft, 240, this.height - 162, 100, 24);
+    this.list = new DbList(this.minecraft, 240, this.height - 116, 56, 24);
     this.addRenderableWidget(this.list);
     refresh();
   }
