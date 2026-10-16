@@ -21,3 +21,22 @@ jobs:
         with:
           name: openorigins
           path: build/libs/*.jar
+
+  release:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: openorigins
+          path: dist
+      - name: Publish rolling dev release (raw jar, no zip)
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: dev-latest
+          name: dev-latest
+          prerelease: true
+          files: dist/*.jar
