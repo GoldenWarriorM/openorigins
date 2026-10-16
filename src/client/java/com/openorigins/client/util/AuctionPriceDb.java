@@ -39,7 +39,7 @@ public final class AuctionPriceDb {
 
   /** Rarity order for the picker (ALL first). Server badges only. */
   public static final List<String> RARITIES =
-      List.of("ALL", "COMMON", "LIMITED", "RARE", "EPIC", "LEGENDARY");
+      List.of("ALL", "COMMON", "LIMITED", "RARE", "EPIC", "LEGENDARY", "NONE");
 
   /** Server badge glyph (name prefix) per rarity. */
   public static final java.util.Map<String, String> RARITY_GLYPHS = Map.of(
@@ -56,7 +56,7 @@ public final class AuctionPriceDb {
       "ꑴ", "EPIC",
       "ꑵ", "LEGENDARY");
 
-  /** Rarity from the server badge prefix; plain names are COMMON. */
+  /** Rarity from the server badge prefix; plain names get their own bucket. */
   public static String rarityOf(String name) {
     if (name != null && !name.isEmpty()) {
       String g = GLYPH_RARITY.get(name.substring(0, 1));
@@ -64,7 +64,7 @@ public final class AuctionPriceDb {
         return g;
       }
     }
-    return "COMMON";
+    return "NONE";
   }
 
   /** Backwards-compatible overload (vanilla component is ignored). */
