@@ -42,6 +42,8 @@ public final class AuctionPriceDb {
     public String name;
     public String vanillaId;
     final List<Sample> samples = new ArrayList<>();
+    volatile ItemStack icon;
+    volatile JsonElement iconRaw;
 
     Entry(String key, String name, String vanillaId) {
       this.key = key;
@@ -122,6 +124,15 @@ public final class AuctionPriceDb {
         }
         double unit = total / stack.getCount();
         record(key, stack.getHoverName().getString(), vanillaId(stack), unit);
+        try {
+          Entry e = ITEMS.get(key);
+          if (e != null && !stack.isEmpty()) {
+            ItemStack icon = stack.copy();
+            icon.setCount(1);
+            e.icon = icon;
+          }
+        } catch (Throwable ignored) {
+        }
         n++;
       } catch (Throwable ignored) {
       }
@@ -219,6 +230,36 @@ public final class AuctionPriceDb {
     SEEN.clear();
   }
 
+  /** Display icon: live snapshot, else disk snapshot decoded once a level exists. */
+  public static ItemStack iconFor(String key) {
+    Entry e = key == null ? null : ITEMS.get(key);
+    if (e == null) {
+      return ItemStack.EMPTY;
+    }
+    if (e.icon != null && !e.icon.isEmpty()) {
+      return e.icon;
+    }
+    if (e.iconRaw != null) {
+      try {
+        net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
+        if (mc != null && mc.level != null) {
+          var ops = net.minecraft.resources.RegistryOps.create(
+              com.mojang.serialization.JsonOps.INSTANCE, mc.level.registryAccess());
+          ItemStack decoded = net.minecraft.world.item.ItemStack.OPTIONAL_CODEC
+              .parse(ops, e.iconRaw).getOrThrow();
+          e.iconRaw = null;
+          if (!decoded.isEmpty()) {
+            e.icon = decoded;
+            return decoded;
+          }
+        }
+      } catch (Throwable ignored) {
+        e.iconRaw = null;
+      }
+    }
+    return ItemStack.EMPTY;
+  }
+
   public static String format(double v) {
     if (v == Math.floor(v) && !Double.isInfinite(v)) {
       return String.format(Locale.US, "%,d", (long) v);
@@ -232,6 +273,9 @@ public final class AuctionPriceDb {
 
   public static synchronized void save() {
     try {
+      net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
+      var ops = (mc != null && mc.level != null) ? net.minecraft.resources.RegistryOps.create(
+          com.mojang.serialization.JsonOps.INSTANCE, mc.level.registryAccess()) : null;
       JsonObject root = new JsonObject();
       for (Entry e : ITEMS.values()) {
         if (e.samples.isEmpty()) {
@@ -248,6 +292,15 @@ public final class AuctionPriceDb {
           arr.add(pair);
         }
         o.add("samples", arr);
+        try {
+          if (e.icon != null && !e.icon.isEmpty() && ops != null) {
+            o.add("icon", net.minecraft.world.item.ItemStack.OPTIONAL_CODEC
+                .encodeStart(ops, e.icon).getOrThrow());
+          } else if (e.iconRaw != null) {
+            o.add("icon", e.iconRaw);
+          }
+        } catch (Throwable ignored) {
+        }
         root.add(e.key, o);
       }
       Files.writeString(file(), root.toString(), StandardCharsets.UTF_8);
@@ -272,6 +325,9 @@ public final class AuctionPriceDb {
           JsonObject o = en.getValue().getAsJsonObject();
           Entry e = new Entry(en.getKey(), o.has("name") ? o.get("name").getAsString() : en.getKey(),
               o.has("vanilla") ? o.get("vanilla").getAsString() : "minecraft:paper");
+          if (o.has("icon")) {
+            e.iconRaw = o.get("icon");
+          }
           JsonArray arr = o.getAsJsonArray("samples");
           if (arr != null) {
             for (JsonElement el : arr) {

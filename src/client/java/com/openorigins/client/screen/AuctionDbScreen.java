@@ -64,16 +64,18 @@ public final class AuctionDbScreen extends Screen {
 
     Row(AuctionPriceDb.Entry entry) {
       this.entry = entry;
-      ItemStack stack = ItemStack.EMPTY;
-      try {
-        net.minecraft.resources.Identifier id =
-            net.minecraft.resources.Identifier.tryParse(entry.vanillaId);
-        if (id != null) {
-          net.minecraft.world.item.Item item =
-              net.minecraft.core.registries.BuiltInRegistries.ITEM.getValue(id);
-          stack = new ItemStack(item, 1);
+      ItemStack stack = AuctionPriceDb.iconFor(entry.key);
+      if (stack.isEmpty()) {
+        try {
+          net.minecraft.resources.Identifier id =
+              net.minecraft.resources.Identifier.tryParse(entry.vanillaId);
+          if (id != null) {
+            net.minecraft.world.item.Item item =
+                net.minecraft.core.registries.BuiltInRegistries.ITEM.getValue(id);
+            stack = new ItemStack(item, 1);
+          }
+        } catch (Throwable ignored) {
         }
-      } catch (Throwable ignored) {
       }
       this.icon = stack;
     }
