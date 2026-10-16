@@ -37,4 +37,18 @@ processResources {
   filesMatching("fabric.mod.json") { expand "version": project.version }
 }
 
+def gitSha = providers.exec {
+  commandLine("git", "rev-parse", "--short", "HEAD")
+}.standardOutput.asText.map { it.trim() }.getOrElse("nogit")
+
+tasks.named("jar") {
+  manifest {
+    attributes(
+        "Implementation-Title": project.mod_id,
+        "Implementation-Version": "${project.version}+${gitSha}",
+        "Git-Commit": gitSha
+    )
+  }
+}
+
 tasks.withType(JavaCompile).configureEach { it.options.release = 25 }
