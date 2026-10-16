@@ -18,7 +18,7 @@ public abstract class CommandProbeMixin {
         com.openorigins.client.util.DebugLog.info("[cmd] own /{}", cmd.command());
       } else {
         com.openorigins.client.util.DebugLog.info("[cmd] user /{}", cmd.command());
-        com.openorigins.client.util.BackgroundMenu.noteForeignCommand();
+        com.openorigins.client.util.BackgroundMenu.noteForeignCommand(cmd.command());
         com.openorigins.client.util.BackgroundMenu.finishIfArmed();
       }
     }

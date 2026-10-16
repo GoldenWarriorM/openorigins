@@ -69,7 +69,48 @@ public final class BackgroundMenu {
 
   /** A chat command not sent by us (user typed it): back off. */
   public static void noteForeignCommand() {
+    noteForeignCommand(null);
+  }
+
+  /** Same, with the command text so menu answers can be told apart. */
+  public static synchronized void noteForeignCommand(String command) {
     lastForeignCmdMs = System.currentTimeMillis();
+    lastForeignCommand = command == null ? null : command.strip().toLowerCase(java.util.Locale.ROOT);
+  }
+
+  private static volatile String lastForeignCommand;
+
+  /**
+   * User commands that never open a menu: an orphaned answer arriving after
+   * one of these is still ours (e.g. our bg /streaks answered right after
+   * the user hit /realm tp). Menu-opening commands are absent here on
+   * purpose: their answers stay visible.
+   */
+  private static boolean isNonMenuCommand(String command) {
+    if (command == null || command.isEmpty()) {
+      return false;
+    }
+    return command.equals("realm tp") || command.equals("spawn")
+        || command.startsWith("balloon ");
+  }
+
+  /** A late answer to our own send counts as ours when the user only typed
+   * non-menu commands (or nothing) since. */
+  private static synchronized boolean lateOrphanOurs() {
+    long now = System.currentTimeMillis();
+    if (now - lastOwnSendMs > 60000) {
+      return false;
+    }
+    if (now - lastForeignCmdMs > 60000) {
+      return true;
+    }
+    if (lastForeignCommand != null && (lastForeignCommand.equals("streaks")
+        || lastForeignCommand.equals("homes") || lastForeignCommand.startsWith("navigator")
+        || lastForeignCommand.equals("profile"))) {
+      // The user asked for a menu themselves: its answer stays visible.
+      return false;
+    }
+    return isNonMenuCommand(lastForeignCommand);
   }
 
   private static volatile String deadZoneLocation;
@@ -233,7 +274,7 @@ public final class BackgroundMenu {
   private static synchronized void disarm() {
     if (armed && attempts > 0 && menu == null && pendingCommand != null) {
       orphanCommand = pendingCommand;
-      orphanUntilMs = System.currentTimeMillis() + 15000;
+      orphanUntilMs = System.currentTimeMillis() + 60000;
     } else {
       orphanCommand = null;
       orphanUntilMs = 0;
@@ -279,7 +320,8 @@ public final class BackgroundMenu {
     if (!armed || menu != null) {
       boolean adopted = false;
       if (!armed && menu == null && orphanCommand != null
-          && System.currentTimeMillis() < orphanUntilMs && !userActive()) {
+          && System.currentTimeMillis() < orphanUntilMs
+          && (!userActive() || lateOrphanOurs())) {
         try {
           if (isGenericRows(packet.getType()) && !looksUserFacing(titleStr)) {
             adopted = true;
