@@ -61,7 +61,7 @@ public final class AuctionDbScreen extends Screen {
     this.list = new DbList(this, this.minecraft, 280, this.height - 100, 56, 24);
     this.list.setX(x0);
     this.addRenderableWidget(this.list);
-    this.detailList = new SaleList(this.minecraft, 212, this.height - 156, 112, 22);
+    this.detailList = new SaleList(this.minecraft, 212, this.height - 224, 150, 22);
     this.detailList.setX(x0 + 288);
     this.addRenderableWidget(this.detailList);
     int exX = x0 + 508;
@@ -181,9 +181,25 @@ public final class AuctionDbScreen extends Screen {
     graphics.text(font, titleName != null ? titleName
         : net.minecraft.network.chat.Component.literal(e.name), x, y + 4, 0xFFFFFFFF);
     y += 22;
-    if (e.variant != null && !e.variant.isEmpty()) {
-      graphics.text(font, e.variant, (this.width / 2 - 308 + 288), y, 0xFFAAAAAA);
-      y += 12;
+    String desc = AuctionPriceDb.descText(e.key);
+    if (!desc.isEmpty()) {
+      int drawn = 0;
+      for (String dl : desc.split("\n")) {
+        if (drawn >= 4) {
+          break;
+        }
+        String line = dl.strip();
+        if (line.isEmpty()) {
+          continue;
+        }
+        if (line.length() > 30) {
+          line = line.substring(0, 30);
+        }
+        graphics.text(font, line, (this.width / 2 - 308 + 288), y, 0xFFAAAAAA);
+        y += 10;
+        drawn++;
+      }
+      y += 2;
     }
     AuctionPriceDb.Stats st = AuctionPriceDb.stats(e.key);
     if (st != null) {

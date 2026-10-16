@@ -259,7 +259,7 @@ public final class AuctionPriceDb {
       } catch (Throwable ignored) {
       }
     }
-    return new String[]{suffix, label, String.join(" ", desc)};
+    return new String[]{suffix, label, String.join("\n", desc)};
   }
 
   /** Scans a menu (background or visible) for auction listings. */
@@ -428,7 +428,7 @@ public final class AuctionPriceDb {
       e = new Entry(key, name == null ? key : name, vanillaId);
       e.variant = variant == null ? "" : variant;
       String desc = descFull == null ? "" : descFull;
-      e.descText = desc.length() > 200 ? desc.substring(0, 200) : desc;
+      e.descText = desc.length() > 400 ? desc.substring(0, 400) : desc;
       ITEMS.put(key, e);
     } else if (name != null && !name.isBlank()) {
       e.name = name;
@@ -509,6 +509,12 @@ public final class AuctionPriceDb {
   public static List<Sample> samples(String key) {
     Entry e = key == null ? null : ITEMS.get(key);
     return e == null ? List.of() : List.copyOf(e.samples);
+  }
+
+  /** Full description text for the detail panel. */
+  public static String descText(String key) {
+    Entry e = key == null ? null : ITEMS.get(key);
+    return e == null || e.descText == null ? "" : e.descText;
   }
 
   /** Styled display name, or null when unknown. */
