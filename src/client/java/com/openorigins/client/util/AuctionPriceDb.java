@@ -176,6 +176,7 @@ public final class AuctionPriceDb {
         }
         Double total = null;
         String seller = null;
+        String mob = null;
         List<Component> loreLines = lore.lines();
         for (Component line : loreLines) {
           String s = line.getString().strip();
@@ -190,6 +191,11 @@ public final class AuctionPriceDb {
             if (seller.isEmpty()) {
               seller = null;
             }
+          } else if (s.toLowerCase(Locale.ROOT).startsWith("mob:")) {
+            mob = s.substring("mob:".length()).strip().toLowerCase(Locale.ROOT);
+            if (mob.isEmpty()) {
+              mob = null;
+            }
           }
         }
         if (total == null || total <= 0 || seller == null) {
@@ -197,6 +203,9 @@ public final class AuctionPriceDb {
         }
         long endsAt = parseEndsAt(loreLines, now);
         String key = itemKey(stack);
+        if (mob != null) {
+          key = key + "|mob=" + mob;
+        }
         double unit = total / stack.getCount();
         // Same lot check against recorded samples: identical terms plus
         // listing end within tolerance (display minutes shift as time passes,
