@@ -128,6 +128,23 @@ public final class MobExtrapolation {
               }
               ArrayDeque<double[]> q = HIST.computeIfAbsent(e.getId(),
                   id -> new ArrayDeque<>(WINDOW));
+              // TEMP: identify wrongly-tracked entities (armor flight effect?).
+              if (q.isEmpty()) {
+                try {
+                  String type = net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE
+                      .getKey(e.getType()).toString();
+                  String key = "-";
+                  if (e instanceof net.minecraft.world.entity.Display.ItemDisplay d) {
+                    try {
+                      key = displayKey(d.getSlot(0).get());
+                    } catch (Throwable ignored) {
+                    }
+                  }
+                  com.openorigins.client.util.DebugLog.info(
+                      "[extrap] +track id={} type={} key={}", e.getId(), type, key);
+                } catch (Throwable ignored) {
+                }
+              }
               synchronized (q) {
                 q.addLast(new double[] {e.getX(), e.getY(), e.getZ()});
                 while (q.size() > WINDOW) {
