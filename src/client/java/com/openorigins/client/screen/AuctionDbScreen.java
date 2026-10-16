@@ -17,10 +17,10 @@ public final class AuctionDbScreen extends Screen {
   private SaleList detailList;
   private ExclList exclList;
   private String rarity = "ALL";
+  private String searchText = "";
+  private String selectedKey;
   private net.minecraft.client.gui.components.Button clearBtn;
   private long clearArmedAt;
-  private int exclHintX;
-  private int exclHintY;
   private AuctionPriceDb.Entry detail;
   private java.util.List<String> detailLines = List.of();
   private final List<net.minecraft.client.gui.components.Button> rarityButtons =
@@ -37,7 +37,11 @@ public final class AuctionDbScreen extends Screen {
     this.search = new EditBox(this.font, x0, 30, 280, 20,
         Component.translatable("menu.openorigins.ahdb.search_hint"));
     this.search.setMaxLength(48);
-    this.search.setResponder(q -> refresh());
+    this.search.setValue(this.searchText);
+    this.search.setResponder(q -> {
+      this.searchText = q;
+      refresh();
+    });
     this.addRenderableWidget(this.search);
     this.setInitialFocus(this.search);
     this.rarityButtons.clear();
@@ -67,8 +71,6 @@ public final class AuctionDbScreen extends Screen {
     this.addRenderableWidget(this.detailList);
     int exX = x0 + 508;
     int exTop = 30 + AuctionPriceDb.RARITIES.size() * 22 + 6;
-    this.exclHintX = exX;
-    this.exclHintY = exTop + 26;
     this.exclList = new ExclList(this.minecraft, 100,
         Math.max(40, this.height - exTop - 62), exTop + 22, 12);
     this.exclList.setX(exX);
@@ -103,6 +105,15 @@ public final class AuctionDbScreen extends Screen {
         }).bounds(cx + 2, this.height - 30, 110, 20).build();
     this.addRenderableWidget(this.clearBtn);
     refresh();
+    if (this.selectedKey != null) {
+      for (Row row : this.list.children()) {
+        if (row.entry.key.equals(this.selectedKey)) {
+          this.list.setSelected(row);
+          showDetail(row.entry);
+          break;
+        }
+      }
+    }
   }
 
   private void refreshRarityButtons() {
@@ -133,6 +144,7 @@ public final class AuctionDbScreen extends Screen {
 
   void showDetail(AuctionPriceDb.Entry entry) {
     this.detail = entry;
+    this.selectedKey = entry == null ? null : entry.key;
     this.detailLines = List.of();
     if (entry != null) {
       String desc = AuctionPriceDb.descText(entry.key);
@@ -162,6 +174,11 @@ public final class AuctionDbScreen extends Screen {
       this.detailList.setY(y + 6);
       this.detailList.setHeight(Math.max(40, this.height - 44 - (y + 6)));
     }
+    if (this.exclList != null) {
+      int ey = y + 6;
+      this.exclList.setY(ey);
+      this.exclList.setHeight(Math.max(40, this.height - 44 - ey));
+    }
     refreshDetailList();
   }
 
@@ -184,13 +201,14 @@ public final class AuctionDbScreen extends Screen {
       float partialTick) {
     super.extractRenderState(graphics, mouseX, mouseY, partialTick);
     drawDetailHeader(graphics);
-    if (AuctionPriceDb.excludedNicks().isEmpty() && this.minecraft != null) {
+    if (AuctionPriceDb.excludedNicks().isEmpty() && this.minecraft != null
+        && this.exclList != null) {
       graphics.text(this.minecraft.font,
           Component.translatable("menu.openorigins.ahdb.excl_hint1"),
-          this.exclHintX + 4, this.exclHintY, 0xFF777777);
+          this.exclList.getX() + 4, this.exclList.getY() + 4, 0xFF777777);
       graphics.text(this.minecraft.font,
           Component.translatable("menu.openorigins.ahdb.excl_hint2"),
-          this.exclHintX + 4, this.exclHintY + 10, 0xFF777777);
+          this.exclList.getX() + 4, this.exclList.getY() + 14, 0xFF777777);
     }
   }
 
