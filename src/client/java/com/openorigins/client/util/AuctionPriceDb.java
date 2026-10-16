@@ -37,9 +37,17 @@ public final class AuctionPriceDb {
 
   public record Stats(double avg, double med, int n) {}
 
-  /** Rarity order for the picker (ALL first). */
+  /** Rarity order for the picker (ALL first). Server badges only. */
   public static final List<String> RARITIES =
-      List.of("ALL", "COMMON", "UNCOMMON", "RARE", "EPIC", "LEGENDARY", "LIMITED");
+      List.of("ALL", "COMMON", "LIMITED", "RARE", "EPIC", "LEGENDARY");
+
+  /** Server badge glyph (name prefix) per rarity. */
+  public static final java.util.Map<String, String> RARITY_GLYPHS = Map.of(
+      "LIMITED", "ꑶ",
+      "COMMON", "ꑲ",
+      "RARE", "ꑳ",
+      "EPIC", "ꑴ",
+      "LEGENDARY", "ꑵ");
 
   private static final java.util.Map<String, String> GLYPH_RARITY = Map.of(
       "ꑶ", "LIMITED",
@@ -48,14 +56,8 @@ public final class AuctionPriceDb {
       "ꑴ", "EPIC",
       "ꑵ", "LEGENDARY");
 
-  /** Rarity from the vanilla component, else the server badge glyph, else COMMON. */
-  public static String rarityOf(String name, String vanillaRarity) {
-    if (vanillaRarity != null && !vanillaRarity.isBlank()) {
-      String v = vanillaRarity.strip().toUpperCase(Locale.ROOT);
-      if (RARITIES.contains(v)) {
-        return v;
-      }
-    }
+  /** Rarity from the server badge prefix; plain names are COMMON. */
+  public static String rarityOf(String name) {
     if (name != null && !name.isEmpty()) {
       String g = GLYPH_RARITY.get(name.substring(0, 1));
       if (g != null) {
@@ -63,6 +65,11 @@ public final class AuctionPriceDb {
       }
     }
     return "COMMON";
+  }
+
+  /** Backwards-compatible overload (vanilla component is ignored). */
+  public static String rarityOf(String name, String vanillaRarity) {
+    return rarityOf(name);
   }
 
   public static final class Entry {
@@ -78,7 +85,7 @@ public final class AuctionPriceDb {
       this.key = key;
       this.name = name;
       this.vanillaId = vanillaId;
-      this.rarity = rarityOf(name, null);
+      this.rarity = rarityOf(name);
     }
   }
 
@@ -211,14 +218,7 @@ public final class AuctionPriceDb {
               icon.setCount(1);
               e.icon = icon;
             }
-            try {
-              net.minecraft.world.item.Rarity rarity =
-                  stack.get(DataComponents.RARITY);
-              if (rarity != null) {
-                e.rarity = rarityOf(e.name, rarity.name());
-              }
-            } catch (Throwable ignored) {
-            }
+            e.rarity = rarityOf(e.name);
           }
         } catch (Throwable ignored) {
         }
@@ -427,13 +427,8 @@ public final class AuctionPriceDb {
           JsonObject o = en.getValue().getAsJsonObject();
           Entry e = new Entry(en.getKey(), o.has("name") ? o.get("name").getAsString() : en.getKey(),
               o.has("vanilla") ? o.get("vanilla").getAsString() : "minecraft:paper");
-          if (o.has("rarity")) {
-            try {
-              String r = o.get("rarity").getAsString();
-              e.rarity = AuctionPriceDb.RARITIES.contains(r) ? r : rarityOf(e.name, null);
-            } catch (Exception ignored) {
-            }
-          }
+          // Server badges only: recompute (drops legacy vanilla rarities).
+          e.rarity = rarityOf(e.name);
           if (o.has("icon")) {
             e.iconRaw = o.get("icon");
           }

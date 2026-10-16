@@ -14,7 +14,9 @@ import net.minecraft.world.item.ItemStack;
 public final class AuctionDbScreen extends Screen {
   private EditBox search;
   private DbList list;
-  private int rarityIdx;
+  private String rarity = "ALL";
+  private final List<net.minecraft.client.gui.components.Button> rarityButtons =
+      new java.util.ArrayList<>();
 
   public AuctionDbScreen() {
     super(Component.translatable("menu.openorigins.ahdb.title"));
@@ -29,29 +31,41 @@ public final class AuctionDbScreen extends Screen {
     this.search.setResponder(q -> refresh());
     this.addRenderableWidget(this.search);
     this.setInitialFocus(this.search);
-    net.minecraft.client.gui.components.Button rarityBtn =
-        net.minecraft.client.gui.components.Button.builder(rarityLabel(), b -> {
-          this.rarityIdx = (this.rarityIdx + 1) % AuctionPriceDb.RARITIES.size();
-          b.setMessage(rarityLabel());
-          refresh();
-        }).bounds(cx - 110, 52, 220, 20).build();
-    this.addRenderableWidget(rarityBtn);
+    this.rarityButtons.clear();
+    int n = AuctionPriceDb.RARITIES.size();
+    int w = 220 / n;
+    for (int i = 0; i < n; i++) {
+      final String r = AuctionPriceDb.RARITIES.get(i);
+      net.minecraft.client.gui.components.Button b =
+          net.minecraft.client.gui.components.Button.builder(Component.empty(), btn -> {
+            this.rarity = r;
+            refreshRarityButtons();
+            refresh();
+          }).bounds(cx - 110 + i * w, 52, w - 1, 20).build();
+      this.rarityButtons.add(b);
+      this.addRenderableWidget(b);
+    }
+    refreshRarityButtons();
     this.list = new DbList(this.minecraft, 240, this.height - 130, 76, 24);
     this.addRenderableWidget(this.list);
     refresh();
   }
 
-  private Component rarityLabel() {
-    String r = AuctionPriceDb.RARITIES.get(this.rarityIdx);
-    int n = 0;
-    if ("ALL".equals(r)) {
-      n = AuctionPriceDb.itemCount();
-    } else {
-      for (AuctionPriceDb.Entry e : AuctionPriceDb.search("", r)) {
-        n++;
-      }
+  private void refreshRarityButtons() {
+    java.util.Map<String, Integer> counts = new java.util.HashMap<>();
+    for (AuctionPriceDb.Entry e : AuctionPriceDb.search("", "ALL")) {
+      counts.merge(e.rarity, 1, Integer::sum);
     }
-    return Component.translatable("menu.openorigins.ahdb.rarity", r, n);
+    for (int i = 0; i < this.rarityButtons.size(); i++) {
+      String r = AuctionPriceDb.RARITIES.get(i);
+      int c = "ALL".equals(r) ? AuctionPriceDb.itemCount() : counts.getOrDefault(r, 0);
+      String glyph = AuctionPriceDb.RARITY_GLYPHS.getOrDefault(r, "");
+      String text = glyph.isEmpty() ? r + " " + c : glyph + " " + c;
+      Component label = Component.literal(text)
+          .withStyle(r.equals(this.rarity) ? net.minecraft.ChatFormatting.GOLD
+              : net.minecraft.ChatFormatting.WHITE);
+      this.rarityButtons.get(i).setMessage(label);
+    }
   }
 
   private void refresh() {
@@ -59,8 +73,7 @@ public final class AuctionDbScreen extends Screen {
       return;
     }
     String q = this.search == null ? "" : this.search.getValue();
-    List<AuctionPriceDb.Entry> found =
-        AuctionPriceDb.search(q, AuctionPriceDb.RARITIES.get(this.rarityIdx));
+    List<AuctionPriceDb.Entry> found = AuctionPriceDb.search(q, this.rarity);
     this.list.replaceEntries(found.stream().map(Row::new).toList());
   }
 
