@@ -20,7 +20,7 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
   private static final Identifier RESET_ICON =
       Identifier.fromNamespaceAndPath("openorigins", "reset");
 
-  private static final int ROW_H = 24;
+  private static final int ROW_H = UiConstants.FEATURE_ROW_H;
   private ConfigTab jumpTab;
   private double jumpScroll;
   private double smoothTarget = Double.NaN;
@@ -496,7 +496,7 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
   @Override
   public int getRowWidth() {
     try {
-      return Math.max(220, Math.min(380, this.getWidth() - 24));
+      return Math.max(UiConstants.ROW_W_MIN, Math.min(UiConstants.ROW_W_MAX, this.getWidth() - 24));
     } catch (Throwable t) {
       return 340;
     }

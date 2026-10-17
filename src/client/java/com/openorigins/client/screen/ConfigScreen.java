@@ -34,7 +34,7 @@ public class ConfigScreen extends Screen {
   private ConfigTab highlightTab;
   private static final int PANEL_X = 10;
   private static final int PANEL_TOP = 30;
-  private static final int ROW_H = 22;
+  private static final int ROW_H = UiConstants.CONFIG_ROW_H;
 
   public ConfigScreen(Screen parent) {
     super(Component.translatable("screen.openorigins.config.title"));
@@ -136,7 +136,8 @@ public class ConfigScreen extends Screen {
   protected void repositionElements() {
     int panelW = this.panelWidth();
     int gap = 8, margin = 10;
-    int tabW = Math.max(240, Math.min(420, this.width - (margin + panelW + gap) - margin));
+    int tabW = Math.max(UiConstants.TAB_W_MIN,
+        Math.min(UiConstants.TAB_W_MAX, this.width - (margin + panelW + gap) - margin));
     int totalW = panelW + gap + tabW;
     int startX = Math.max(margin, (this.width - totalW) / 2);
     for (int i = 0; i < this.tabButtons.size(); i++) {
