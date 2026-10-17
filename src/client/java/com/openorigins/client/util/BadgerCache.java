@@ -378,16 +378,23 @@ public final class BadgerCache {
       taskTimeLeft = root.has("timeleft") ? root.get("timeleft").getAsString() : "";
       REQUIRED.clear();
       JsonArray arr = root.getAsJsonArray("required");
+      boolean junkDropped = false;
       if (arr != null) {
         for (JsonElement el : arr) {
           JsonObject o = el.getAsJsonObject();
           String nm = o.has("name") ? o.get("name").getAsString() : "";
           if (isMenuJunk(nm)) {
             // Heals a saved list polluted by a foreign-menu scan.
+            junkDropped = true;
             continue;
           }
           REQUIRED.add(new Required(o.get("id").getAsString(), nm, o.get("count").getAsInt()));
         }
+      }
+      if (junkDropped) {
+        // The timer came from the same poisoned scan; drop it too and wait
+        // for the next real streaks-menu scan to repopulate.
+        taskTimeLeft = "";
       }
       TIERS.clear();
       JsonArray ta = root.getAsJsonArray("tiers");
