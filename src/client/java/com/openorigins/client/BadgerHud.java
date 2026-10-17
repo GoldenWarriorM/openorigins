@@ -84,14 +84,8 @@ public final class BadgerHud implements net.fabricmc.fabric.api.client.rendering
     }
     // Quest stage the player is on, e.g. "Basic: (2/5)" — label gray, value white.
     for (BadgerCache.Tier t : BadgerCache.tiers()) {
-      String value = "(" + t.done() + "/" + t.total() + ")";
-      Component text = styledRow(t.name(), value);
-      if (t.done() >= t.total()) {
-        text = Component.literal(t.name() + ": ")
-            .withStyle(net.minecraft.ChatFormatting.GRAY)
-            .append(Component.literal(value).withStyle(net.minecraft.ChatFormatting.GREEN));
-      }
-      rows.add(new Row(null, text, 0xFFFFFFFF));
+      rows.add(new Row(null, styledRow(t.name(), "(" + t.done() + "/" + t.total() + ")"),
+          0xFFFFFFFF));
     }
     if (BadgerCache.daysUntilReset() > 0) {
       rows.add(new Row(null, Component.translatable("hud.openorigins.badger_reset",
