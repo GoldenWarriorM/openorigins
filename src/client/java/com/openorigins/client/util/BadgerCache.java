@@ -54,6 +54,19 @@ public final class BadgerCache {
     return List.copyOf(REQUIRED);
   }
 
+  /** Server-menu captions that leaked into REQUIRED before the sentinel
+   *  fix; never legitimate badger task items. */
+  private static boolean isMenuJunk(String name) {
+    if (name == null || name.isBlank()) {
+      return true;
+    }
+    String s = name.toLowerCase(java.util.Locale.ROOT).strip();
+    return s.equals("your listings") || s.equals("refresh") || s.equals("shrink view")
+        || s.equals("← back") || s.equals("back") || s.equals("events")
+        || s.equals("your profile") || s.equals("badges") || s.equals("realms")
+        || s.equals("social") || s.equals("close") || s.equals("learn more");
+  }
+
   private static String iconKey(String itemId, String displayName) {
     return itemId + "\n" + displayName;
   }
@@ -187,7 +200,10 @@ public final class BadgerCache {
     final List<Required> req = new ArrayList<>();
     final List<Tier> tiers = new ArrayList<>();
     // Lambda captures need holders: score (0), high (1), days (2), delivered (3).
-    final int[] counters = new int[4];
+    // Sentinels restored (-1 = "not found"): the score<0 guard below must
+    // reject menus that aren't the badger streaks menu. Regression from the
+    // MenuLore refactor had zero-init, committing every menu's items.
+    final int[] counters = {-1, -1, -1, 0};
     final String[] timeLeftRef = {null};
     MenuLore.forEachTop(menu, (idx, stack) -> {
       String name = stack.getHoverName().getString();
@@ -366,6 +382,10 @@ public final class BadgerCache {
         for (JsonElement el : arr) {
           JsonObject o = el.getAsJsonObject();
           String nm = o.has("name") ? o.get("name").getAsString() : "";
+          if (isMenuJunk(nm)) {
+            // Heals a saved list polluted by a foreign-menu scan.
+            continue;
+          }
           REQUIRED.add(new Required(o.get("id").getAsString(), nm, o.get("count").getAsInt()));
         }
       }
