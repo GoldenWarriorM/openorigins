@@ -109,6 +109,10 @@ public final class AuctionPriceDb {
   private static final long REOBSERVE_MS = 30L * 60 * 1000;
 
   private static final int MAX_SAMPLES = 2000;
+  /** Hard cap on tracked items: the JSON is rewritten whole on save. */
+  private static final int MAX_ITEMS = 2000;
+  /** Minimum spacing between whole-file saves while browsing. */
+  private static final int SAVE_COOLDOWN_MS = 10_000;
   private static final long MAX_AGE_MS = 120L * 24 * 60 * 60 * 1000;
 
   /** Normalized seller nicks excluded from stats (value: display case). */
@@ -386,9 +390,10 @@ public final class AuctionPriceDb {
       }
     }
     if (n > 0) {
-      save();
+      scheduleSave();
       DebugLog.info("[ahdb] +{} listings ({} items tracked)", n, ITEMS.size());
     }
+    flushIfDue();
     return n;
   }
 
@@ -458,6 +463,7 @@ public final class AuctionPriceDb {
       String desc = descFull == null ? "" : descFull;
       e.descText = desc.length() > 400 ? desc.substring(0, 400) : desc;
       ITEMS.put(key, e);
+      enforceItemCap();
     } else if (name != null && !name.isBlank()) {
       e.name = name;
     }
@@ -639,6 +645,57 @@ public final class AuctionPriceDb {
 
   private static Path file() {
     return FabricLoader.getInstance().getConfigDir().resolve("openorigins_ah_prices.json");
+  }
+
+  private static volatile boolean dirty;
+  private static volatile long lastSaveMs;
+
+  /** Marks data changed; the whole-file write happens at the next flush point. */
+  public static synchronized void scheduleSave() {
+    dirty = true;
+  }
+
+  /** Writes at most once per cooldown, when a flush point passes by. */
+  public static synchronized void flushIfDue() {
+    if (!dirty) {
+      return;
+    }
+    long now = System.currentTimeMillis();
+    if (now - lastSaveMs < SAVE_COOLDOWN_MS) {
+      return;
+    }
+    dirty = false;
+    lastSaveMs = now;
+    save();
+  }
+
+  /** Unconditional flush: end of session, or user-initiated change. */
+  public static synchronized void flushNow() {
+    if (!dirty) {
+      return;
+    }
+    dirty = false;
+    lastSaveMs = System.currentTimeMillis();
+    save();
+  }
+
+  /** Trims the item map to MAX_ITEMS by oldest last-observed sample. */
+  private static void enforceItemCap() {
+    while (ITEMS.size() > MAX_ITEMS) {
+      String oldest = null;
+      long oldestTs = Long.MAX_VALUE;
+      for (Entry e : ITEMS.values()) {
+        long t = e.samples.isEmpty() ? 0 : e.samples.get(e.samples.size() - 1).ts();
+        if (t < oldestTs) {
+          oldestTs = t;
+          oldest = e.key;
+        }
+      }
+      if (oldest == null) {
+        break;
+      }
+      ITEMS.remove(oldest);
+    }
   }
 
   public static synchronized void save() {

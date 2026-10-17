@@ -27,6 +27,12 @@ import net.minecraft.world.item.component.ItemLore;
  * Required items, streak score, reset days and tier progress.
  */
 public final class BadgerCache {
+  /** One lazy save at the end of a capture batch instead of one per scan. */
+  private static final Runnable SAVER = BadgerCache::save;
+
+  private static void flushSave() {
+    SaveBatch.mark(SAVER);
+  }
   private BadgerCache() {}
 
   public record Required(String itemId, String displayName, int count) {}
@@ -110,7 +116,7 @@ public final class BadgerCache {
     boolean removed = REQUIRED.removeIf(
         r -> (r.itemId() + "\n" + r.displayName()).equals(key));
     if (removed) {
-      save();
+      flushSave();
       org.slf4j.LoggerFactory.getLogger("openorigins").info(
           "[badger] delivered on close: {}", key.replace('\n', ' '));
     }
@@ -170,7 +176,15 @@ public final class BadgerCache {
 
   public static void scanMenu(net.minecraft.world.inventory.AbstractContainerMenu menu) {
     if (menu == null) return;
+    SaveBatch.begin();
+    try {
+      scanMenu0(menu);
+    } finally {
+      SaveBatch.end();
+    }
+  }
 
+  private static void scanMenu0(net.minecraft.world.inventory.AbstractContainerMenu menu) {
     Minecraft mc = Minecraft.getInstance();
     Object playerInv = (mc != null && mc.player != null) ? mc.player.getInventory() : null;
     List<Required> req = new ArrayList<>();
@@ -287,7 +301,7 @@ public final class BadgerCache {
     TIERS.clear();
     TIERS.addAll(tiers);
     if (changed) {
-      save();
+      SaveBatch.mark(SAVER);
       com.openorigins.client.util.DebugLog.info(
           "[badger] task: {} streak={} resetDays={} tiers={}", REQUIRED, score, days, TIERS);
     }
@@ -297,6 +311,18 @@ public final class BadgerCache {
 
   private static Path file() {
     return FabricLoader.getInstance().getConfigDir().resolve("openorigins_badger.json");
+  }
+
+  /** Trims capture-session leftovers on disconnect. Icons for the current
+   *  task stay (the HUD needs them); orphans from long-past tasks go. */
+  public static void noteDisconnect() {
+    // Icons for the current task stay (the HUD needs them); orphans from
+    // long-past tasks go.
+    java.util.Set<String> kept = new java.util.HashSet<>();
+    for (Required r : REQUIRED) {
+      kept.add(iconKey(r.itemId(), r.displayName()));
+    }
+    ICONS.keySet().removeIf(k -> !kept.contains(k));
   }
 
   public static synchronized void save() {

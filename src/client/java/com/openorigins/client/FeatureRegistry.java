@@ -14,6 +14,12 @@ public final class FeatureRegistry {
         (handler, client) -> com.openorigins.client.util.AuctionPriceDb.clearWindows());
     net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents.DISCONNECT.register(
         (handler, client) -> com.openorigins.client.util.OpenWorldCache.noteDisconnect());
+    net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents.DISCONNECT.register(
+        (handler, client) -> com.openorigins.client.util.BadgerCache.noteDisconnect());
+    net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents.DISCONNECT.register(
+        (handler, client) -> com.openorigins.client.util.HelmetCosmeticTracker.noteDisconnect());
+    net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents.DISCONNECT.register(
+        (handler, client) -> com.openorigins.client.util.AuctionPriceDb.flushNow());
     net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents.JOIN.register(
         (handler, sender, client) -> com.openorigins.client.util.OaEmojiStore.clearUnlocked());
     AuctionPing.register();
@@ -34,6 +40,10 @@ public final class FeatureRegistry {
       // Remembers the current open world from its boss bar ("Open World Yellow").
       if (client.level.getGameTime() % 20 == 0) {
         com.openorigins.client.util.OpenWorldCache.pollBossBars(client);
+      }
+      // Periodic persistence flush while browsing (price database throttle).
+      if (client.level.getGameTime() % 100 == 0) {
+        com.openorigins.client.util.AuctionPriceDb.flushIfDue();
       }
     });
     // Entity-bound server data (nametags) must die with the entity object:

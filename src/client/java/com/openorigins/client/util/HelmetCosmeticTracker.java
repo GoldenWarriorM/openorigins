@@ -215,6 +215,15 @@ public final class HelmetCosmeticTracker {
     INV_HEADS.clear();
   }
 
+  /** Session-local inventory state dies with the connection. */
+  public static void noteDisconnect() {
+    clearInv();
+    diffBase = null;
+    diffAt = 0;
+    pendingHelmet = ItemStack.EMPTY;
+    pendingAt = 0;
+  }
+
   private static boolean isHeadArmor(ItemStack stack) {
     if (stack == null || stack.isEmpty() || isCosmetic(stack)) {
       return false;

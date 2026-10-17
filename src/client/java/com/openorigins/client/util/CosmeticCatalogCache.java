@@ -30,6 +30,12 @@ import org.slf4j.LoggerFactory;
  * equipped-helmet stats.
  */
 public final class CosmeticCatalogCache {
+  /** One lazy save at the end of a capture batch instead of one per entry. */
+  private static final Runnable SAVER = CosmeticCatalogCache::save;
+
+  private static void flushSave() {
+    SaveBatch.mark(SAVER);
+  }
   private CosmeticCatalogCache() {}
 
   private static final Logger LOG = LoggerFactory.getLogger("openorigins");
@@ -106,7 +112,7 @@ public final class CosmeticCatalogCache {
     List<Component> prev = CLEAN.get(key);
     if (prev == null || !sameText(prev, full)) {
       CLEAN.put(key, List.copyOf(full));
-      save();
+      flushSave();
       com.openorigins.client.util.DebugLog.info("[cosmetics] captured '{}' ({} lines)", key, full.size());
     }
   }
@@ -228,7 +234,15 @@ public final class CosmeticCatalogCache {
 
   public static void scanMenu(net.minecraft.world.inventory.AbstractContainerMenu menu) {
     if (menu == null) return;
+    SaveBatch.begin();
+    try {
+      scanMenu0(menu);
+    } finally {
+      SaveBatch.end();
+    }
+  }
 
+  private static void scanMenu0(net.minecraft.world.inventory.AbstractContainerMenu menu) {
     Minecraft mc = Minecraft.getInstance();
     Object playerInv = (mc != null && mc.player != null) ? mc.player.getInventory() : null;
     boolean changed = false;
@@ -269,7 +283,7 @@ public final class CosmeticCatalogCache {
       }
     }
     if (changed) {
-      save();
+      flushSave();
     }
   
   }
@@ -392,7 +406,7 @@ public final class CosmeticCatalogCache {
         }
       }
       if (cleaned) {
-        save();
+        flushSave();
       }
       com.openorigins.client.util.DebugLog.info("[cosmetics] loaded {} entries from disk", n);
     } catch (Exception ex) {

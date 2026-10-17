@@ -35,6 +35,13 @@ public final class HomeInfoCache {
 
   private record Info(List<Component> lore, String worldColor, long resetAt) {}
 
+  /** One lazy save at the end of a capture batch instead of one per entry. */
+  static final Runnable SAVER = HomeInfoCache::save;
+
+  static void flushSave() {
+    SaveBatch.mark(SAVER);
+  }
+
   private static final Map<String, Info> CACHE = new ConcurrentHashMap<>();
   private static final Map<String, String> CONTAINER_NAMES = new ConcurrentHashMap<>();
   private static volatile long lastHomesGuiMs;
@@ -53,6 +60,8 @@ public final class HomeInfoCache {
   private static final List<String> NAMES = new java.util.concurrent.CopyOnWriteArrayList<>();
   private static final java.util.Map<String, Long> TOMBSTONES =
       new java.util.concurrent.ConcurrentHashMap<>();
+  /** Deleted-home markers auto-expire after this long (server may re-own it). */
+  private static final long TOMBSTONE_TTL_MS = 7L * 24 * 60 * 60 * 1000;
   private static volatile int CAPACITY;
   public static final String DEFAULT_ICON = "textures/custom_ui/transport_menu/button_homes.png";
   public static final String PLUS_ICON = "textures/custom/ui/slot_add.png";
@@ -137,13 +146,13 @@ public final class HomeInfoCache {
       // expired). Only an explicit re-creation revives (fresh-confirm path).
       // Lore still updates; the timer stays expired.
       CACHE.put(k, new Info(copy, color, prev.resetAt()));
-      save();
+      flushSave();
       com.openorigins.client.util.DebugLog.info("[homes] kept expired for '{}' (new anchor ignored)",
           name);
       return;
     }
     CACHE.put(k, new Info(copy, color, anchor));
-    save();
+    flushSave();
   }
 
   /**
@@ -160,7 +169,7 @@ public final class HomeInfoCache {
       }
     }
     if (changed) {
-      save();
+      flushSave();
     }
   }
 
@@ -179,7 +188,7 @@ public final class HomeInfoCache {
       }
     }
     if (changed) {
-      save();
+      flushSave();
     }
   }
 
@@ -249,6 +258,18 @@ public final class HomeInfoCache {
     if (menu == null) {
       return 0;
     }
+    SaveBatch.begin();
+    try {
+      return captureMenu0(menu);
+    } finally {
+      SaveBatch.end();
+    }
+  }
+
+  private static int captureMenu0(net.minecraft.world.inventory.AbstractContainerMenu menu) {
+    if (menu == null) {
+      return 0;
+    }
     net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
     Object playerInv = (mc != null && mc.player != null) ? mc.player.getInventory() : null;
     int n = 0;
@@ -305,7 +326,7 @@ public final class HomeInfoCache {
           int cap = parseCapacity(capLine.getString());
           if (cap > 0 && cap != CAPACITY) {
             CAPACITY = cap;
-            save();
+            flushSave();
             org.slf4j.LoggerFactory.getLogger("openorigins")
                 .info("[homes-lore] capacity: {} (from '{}')", cap, capLine.getString());
           }
@@ -358,7 +379,7 @@ public final class HomeInfoCache {
       LAYOUT.clear();
       LAYOUT.addAll(layout);
       EXTRA_PLUS = 0;
-      save();
+      flushSave();
       if (!others.isEmpty()) {
         org.slf4j.LoggerFactory.getLogger("openorigins")
             .info("[homes-lore] layout: {} homes, {} other. others: {}", n, layout.size() - n, others);
@@ -384,7 +405,7 @@ public final class HomeInfoCache {
         }
         if (!known) {
           NAMES.add(e.getValue());
-          save();
+          flushSave();
         }
       }
       if (topCount >= 10) {
@@ -412,14 +433,14 @@ public final class HomeInfoCache {
           }
         }
         if (changed) {
-          save();
+          flushSave();
         }
       }
       if (n == 0 && topCount >= 10) {
         if (!NAMES.isEmpty() || LAYOUT.stream().anyMatch(x -> x.startsWith("home:"))) {
           NAMES.clear();
           LAYOUT.removeIf(x -> x.startsWith("home:"));
-          save();
+          flushSave();
           org.slf4j.LoggerFactory.getLogger("openorigins")
               .info("[homes] pruned to empty by authoritative menu");
         }
@@ -455,7 +476,7 @@ public final class HomeInfoCache {
     }
     NAMES.add(name);
     com.openorigins.client.util.DebugLog.info("[homes] +name via addName: '{}'", name);
-    save();
+    flushSave();
     return true;
   }
 
@@ -465,7 +486,7 @@ public final class HomeInfoCache {
       String e = LAYOUT.get(i);
       if (e.toLowerCase(java.util.Locale.ROOT).startsWith("locked:cmd:")) {
         LAYOUT.remove(i);
-        save();
+        flushSave();
         return;
       }
     }
@@ -474,7 +495,7 @@ public final class HomeInfoCache {
   /** A slot was freed: append a CMD placeholder for instant count. */
   public static synchronized void addCmdSlot() {
     LAYOUT.add("locked:CMD: /sethome [name]");
-    save();
+    flushSave();
   }
 
   /** Bundled server-lore template (decoded lazily) for empty caches. */
@@ -562,7 +583,7 @@ public final class HomeInfoCache {
       anchor = 0;
     }
     CACHE.put(k, new Info(List.copyOf(lore), color, anchor));
-    save();
+    flushSave();
   }
 
   /** Rebuilds a two-part lore line (fixed prefix + variable value), keeping
@@ -594,7 +615,7 @@ public final class HomeInfoCache {
   /** Drops cached lore/timer for a name (re-created homes start fresh). */
   public static synchronized void dropCache(String name) {
     if (CACHE.remove(key(name)) != null) {
-      save();
+      flushSave();
     }
   }
 
@@ -610,7 +631,7 @@ public final class HomeInfoCache {
       changed = true;
     }
     if (changed) {
-      save();
+      flushSave();
     }
     return changed;
   }
@@ -628,7 +649,7 @@ public final class HomeInfoCache {
     boolean dropped = TOMBSTONES.entrySet()
         .removeIf(e -> now - e.getValue() < 15000);
     if (dropped) {
-      save();
+      flushSave();
     }
     com.openorigins.client.util.DebugLog.info("[homes] rollback, fresh tombstones dropped={}", dropped);
     HomeFetch.start();
@@ -662,7 +683,7 @@ public final class HomeInfoCache {
     LAYOUT.removeIf(e -> e.startsWith("home:"));
     lastEmptyCompleteMs = 0;
     lastZeroGuiMs = 0;
-    save();
+    flushSave();
     com.openorigins.client.util.DebugLog.info("[homes] pruned stale cache by consensus");
     return true;
   }
@@ -700,7 +721,7 @@ public final class HomeInfoCache {
       }
     }
     if (changed) {
-      save();
+      flushSave();
     }
     return changed;
   }
@@ -859,23 +880,30 @@ public final class HomeInfoCache {
       }
       int n = 0;
       for (JsonElement el : arr) {
-        JsonObject o = el.getAsJsonObject();
-        String k = o.get("key").getAsString();
-        String world = o.has("world") ? o.get("world").getAsString() : null;
-        long resetAt = 0;
-        if (o.has("resetAt")) {
-          try {
-            resetAt = o.get("resetAt").getAsLong();
-          } catch (Exception ignored) {
+        // One corrupt entry (truncated Base64 line, missing field) must not
+        // abort the rest of the file's sections.
+        try {
+          JsonObject o = el.getAsJsonObject();
+          String k = o.get("key").getAsString();
+          String world = o.has("world") ? o.get("world").getAsString() : null;
+          long resetAt = 0;
+          if (o.has("resetAt")) {
+            try {
+              resetAt = o.get("resetAt").getAsLong();
+            } catch (Exception ignored) {
+            }
           }
-        }
-        List<Component> lore = new ArrayList<>();
-        for (JsonElement le : o.getAsJsonArray("lore")) {
-          lore.add(decodeLine(le.getAsString()));
-        }
-        if (!k.isEmpty() && !lore.isEmpty()) {
-          CACHE.put(k, new Info(List.copyOf(lore), world, resetAt));
-          n++;
+          List<Component> lore = new ArrayList<>();
+          for (JsonElement le : o.getAsJsonArray("lore")) {
+            lore.add(decodeLine(le.getAsString()));
+          }
+          if (!k.isEmpty() && !lore.isEmpty()) {
+            CACHE.put(k, new Info(List.copyOf(lore), world, resetAt));
+            n++;
+          }
+        } catch (Exception entryFailed) {
+          com.openorigins.client.util.DebugLog.warn(
+              "[homes-lore] skipped corrupt home entry: {}", entryFailed.toString());
         }
       }
       org.slf4j.LoggerFactory.getLogger("openorigins")
@@ -895,6 +923,7 @@ public final class HomeInfoCache {
         }
       }
       TOMBSTONES.clear();
+      long nowMs = System.currentTimeMillis();
       if (root.has("tombstones") && root.get("tombstones").isJsonObject()) {
         for (Map.Entry<String, JsonElement> e : root.getAsJsonObject("tombstones").entrySet()) {
           try {
@@ -903,10 +932,20 @@ public final class HomeInfoCache {
           }
         }
       } else if (root.has("tombstones") && root.get("tombstones").isJsonArray()) {
-        for (JsonElement el : root.getAsJsonArray("tombstones")) {
-          TOMBSTONES.put(el.getAsString(), System.currentTimeMillis());
+        for (JsonElement er : root.getAsJsonArray("tombstones")) {
+          try {
+            TOMBSTONES.put(er.getAsString(), nowMs);
+          } catch (Exception ignored) {
+          }
         }
       }
+      // A tombstone records "server deleted this home" at a moment in time.
+      // If it lived forever, an aggressive cleanup pass could permanently
+      // hide a home the server still owns. Age them out; re-fetch and
+      // consensus pruning correct anything that returns.
+      int expired = TOMBSTONES.size();
+      TOMBSTONES.values().removeIf(ts -> nowMs - ts > TOMBSTONE_TTL_MS);
+      expired -= TOMBSTONES.size();
       JsonObject res = root.getAsJsonObject("resets");
       if (res != null) {
         Map<String, Long> map = new java.util.HashMap<>();
@@ -961,7 +1000,7 @@ public final class HomeInfoCache {
       if (purged > 0) {
         org.slf4j.LoggerFactory.getLogger("openorigins")
             .info("[homes-lore] purged {} visit entries from disk", purged);
-        save();
+        flushSave();
       }
     } catch (Exception ex) {
       org.slf4j.LoggerFactory.getLogger("openorigins")

@@ -335,7 +335,15 @@ public final class OpenWorldCache {
 
   public static int scanMenu(net.minecraft.world.inventory.AbstractContainerMenu menu) {
     if (menu == null) return 0;
+    SaveBatch.begin();
+    try {
+      return scanMenu0(menu);
+    } finally {
+      SaveBatch.end();
+    }
+  }
 
+  private static int scanMenu0(net.minecraft.world.inventory.AbstractContainerMenu menu) {
     Minecraft mc = Minecraft.getInstance();
     Object playerInv = (mc != null && mc.player != null) ? mc.player.getInventory() : null;
     int found = 0;
@@ -386,7 +394,7 @@ public final class OpenWorldCache {
       RESET_AT.put(color, at);
       RESETS.put(color, new ResetInfo(resetLine, now));
       HomeInfoCache.adoptReset(color, at);
-      HomeInfoCache.save();
+      SaveBatch.mark(HomeInfoCache.SAVER);
       StringBuilder all = new StringBuilder();
       for (Component line : lore.lines()) {
         if (all.length() > 0) {
