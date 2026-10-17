@@ -240,8 +240,11 @@ public final class AuctionDbScreen extends Screen {
     }
   }
 
-  private static final class SaleList extends ObjectSelectionList<SaleRow> {
-    SaleList(Minecraft mc, int width, int height, int y, int itemHeight) {
+  /** Base for the DB's three lists: rows span the full widget width
+   *  (vanilla hardcodes 220, clipping the left side). */
+  private static abstract class FullRowList<R extends ObjectSelectionList.Entry<R>>
+      extends ObjectSelectionList<R> {
+    FullRowList(Minecraft mc, int width, int height, int y, int itemHeight) {
       super(mc, width, height, y, itemHeight);
     }
 
@@ -251,14 +254,15 @@ public final class AuctionDbScreen extends Screen {
     }
   }
 
-  private static final class ExclList extends ObjectSelectionList<ExclRow> {
-    ExclList(Minecraft mc, int width, int height, int y, int itemHeight) {
+  private static final class SaleList extends FullRowList<SaleRow> {
+    SaleList(Minecraft mc, int width, int height, int y, int itemHeight) {
       super(mc, width, height, y, itemHeight);
     }
+  }
 
-    @Override
-    public int getRowWidth() {
-      return this.getWidth();
+  private static final class ExclList extends FullRowList<ExclRow> {
+    ExclList(Minecraft mc, int width, int height, int y, int itemHeight) {
+      super(mc, width, height, y, itemHeight);
     }
   }
 
@@ -369,17 +373,12 @@ public final class AuctionDbScreen extends Screen {
   }
 
   private static final class DbList
-      extends ObjectSelectionList<Row> {
+      extends FullRowList<Row> {
     private final AuctionDbScreen parent;
 
     DbList(AuctionDbScreen parent, Minecraft mc, int width, int height, int y, int itemHeight) {
       super(mc, width, height, y, itemHeight);
       this.parent = parent;
-    }
-
-    @Override
-    public int getRowWidth() {
-      return this.getWidth();
     }
 
     @Override
