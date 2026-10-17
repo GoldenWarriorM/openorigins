@@ -13,7 +13,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 /** Freezes mouse look during cutscenes (spectator mode). */
 @Mixin(MouseHandler.class)
 public abstract class CutsceneMouseMixin {
-  @Inject(method = "handleAccumulatedMovement", at = @At("HEAD"), cancellable = true)
+  @Inject(method = "handleAccumulatedMovement", at = @At("HEAD"), cancellable = true, require = 0)
   private void openorigins$freezeMouse(CallbackInfo ci) {
     if (!OpenOriginsConfig.getInstance().isEnabled(OriginFeature.CUTSCENE_ENHANCEMENTS)) {
       return;

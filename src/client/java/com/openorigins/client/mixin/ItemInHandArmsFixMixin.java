@@ -19,7 +19,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public abstract class ItemInHandArmsFixMixin {
   @Inject(method = "submitArmWithItem",
       at = @At(value = "INVOKE",
-          target = "Lnet/minecraft/client/renderer/item/ItemStackRenderState;submit(Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/SubmitNodeCollector;III)V"))
+          target = "Lnet/minecraft/client/renderer/item/ItemStackRenderState;submit(Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/SubmitNodeCollector;III)V"), require = 0)
   private void openorigins$shiftArms(ArmedEntityRenderState state, ItemStackRenderState item,
       ItemStack itemStack, HumanoidArm arm, PoseStack poseStack,
       SubmitNodeCollector submitNodeCollector, int lightCoords, CallbackInfo ci) {

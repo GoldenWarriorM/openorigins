@@ -25,7 +25,7 @@ public abstract class BreakSyncMixin {
       method = "continueDestroyBlock",
       at = @At(
           value = "INVOKE",
-          target = "Lnet/minecraft/world/level/block/state/BlockState;getDestroyProgress(Lnet/minecraft/world/entity/player/Player;Lnet/minecraft/world/level/BlockGetter;Lnet/minecraft/core/BlockPos;)F"))
+          target = "Lnet/minecraft/world/level/block/state/BlockState;getDestroyProgress(Lnet/minecraft/world/entity/player/Player;Lnet/minecraft/world/level/BlockGetter;Lnet/minecraft/core/BlockPos;)F"), require = 0)
   private float openorigins$breakIncrement(BlockState state, Player player, BlockGetter level,
       BlockPos pos) {
     float vanilla = state.getDestroyProgress(player, level, pos);
@@ -33,7 +33,7 @@ public abstract class BreakSyncMixin {
         (MultiPlayerGameMode) (Object) this, state, player, level, pos, vanilla);
   }
 
-  @Inject(method = "startDestroyBlock", at = @At("HEAD"))
+  @Inject(method = "startDestroyBlock", at = @At("HEAD"), require = 0)
   private void openorigins$breakTarget(BlockPos pos, Direction direction,
       CallbackInfoReturnable<Boolean> cir) {
     try {
@@ -46,7 +46,7 @@ public abstract class BreakSyncMixin {
     }
   }
 
-  @Inject(method = "stopDestroyBlock", at = @At("HEAD"))
+  @Inject(method = "stopDestroyBlock", at = @At("HEAD"), require = 0)
   private void openorigins$breakAbort(CallbackInfo ci) {
     try {
       com.openorigins.client.util.BreakSync.onAbort();
@@ -54,7 +54,7 @@ public abstract class BreakSyncMixin {
     }
   }
 
-  @Inject(method = "destroyBlock", at = @At("HEAD"))
+  @Inject(method = "destroyBlock", at = @At("HEAD"), require = 0)
   private void openorigins$breakClientDone(BlockPos pos, CallbackInfoReturnable<Boolean> cir) {
     try {
       com.openorigins.client.util.BreakSync.onClientDone();

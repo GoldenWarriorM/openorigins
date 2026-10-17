@@ -13,7 +13,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 /** Lets hotkeys fire inside container GUIs (scan dump). */
 @Mixin(AbstractContainerScreen.class)
 public abstract class ContainerHotkeyMixin {
-  @Inject(method = "keyPressed", at = @At("HEAD"), cancellable = true)
+  @Inject(method = "keyPressed", at = @At("HEAD"), cancellable = true, require = 0)
   private void openorigins$guiHotkey(KeyEvent event, CallbackInfoReturnable<Boolean> cir) {
     if (HotkeyFeatures.matchesScan(event)) {
       com.openorigins.client.util.DebugLog.info("[hotkey] scan pressed in GUI");

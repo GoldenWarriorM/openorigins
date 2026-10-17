@@ -23,7 +23,7 @@ public abstract class OaEmojiLearnMixin {
     }
   }
 
-  @Inject(method = "handleCommandSuggestions", at = @At("HEAD"))
+  @Inject(method = "handleCommandSuggestions", at = @At("HEAD"), require = 0)
   private void openorigins$harvestEmoji(ClientboundCommandSuggestionsPacket packet, CallbackInfo ci) {
     if (!openorigins$emojiOn()) return;
     try {
@@ -41,13 +41,13 @@ public abstract class OaEmojiLearnMixin {
     }
   }
 
-  @Inject(method = "sendChat", at = @At("HEAD"))
+  @Inject(method = "sendChat", at = @At("HEAD"), require = 0)
   private void openorigins$noteSent(String message, CallbackInfo ci) {
     if (!openorigins$emojiOn()) return;
     OaEmojiStore.noteSent(message);
   }
 
-  @Inject(method = "handleSystemChat", at = @At("TAIL"))
+  @Inject(method = "handleSystemChat", at = @At("TAIL"), require = 0)
   private void openorigins$learnSystem(ClientboundSystemChatPacket packet, CallbackInfo ci) {
     if (!openorigins$emojiOn() || packet.overlay()) return;
     try {
@@ -56,7 +56,7 @@ public abstract class OaEmojiLearnMixin {
     }
   }
 
-  @Inject(method = "handlePlayerChat", at = @At("TAIL"))
+  @Inject(method = "handlePlayerChat", at = @At("TAIL"), require = 0)
   private void openorigins$learnPlayer(ClientboundPlayerChatPacket packet, CallbackInfo ci) {
     if (!openorigins$emojiOn()) return;
     try {
@@ -66,7 +66,7 @@ public abstract class OaEmojiLearnMixin {
   }
 
   @Inject(method = "handlePlayerInfoUpdate",
-      at = @At("HEAD"))
+      at = @At("HEAD"), require = 0)
   private void openorigins$unlockEmoji(
       net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket packet,
       CallbackInfo ci) {

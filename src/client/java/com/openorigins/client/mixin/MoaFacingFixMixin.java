@@ -28,7 +28,7 @@ public abstract class MoaFacingFixMixin {
 
   @Inject(
       method = "extractRenderState(Lnet/minecraft/world/entity/Display$ItemDisplay;Lnet/minecraft/client/renderer/entity/state/ItemDisplayEntityRenderState;F)V",
-      at = @At("TAIL"))
+      at = @At("TAIL"), require = 0)
   private void openorigins$flipMoaPart(Display.ItemDisplay entity,
       net.minecraft.client.renderer.entity.state.ItemDisplayEntityRenderState state,
       float partialTick, CallbackInfo ci) {

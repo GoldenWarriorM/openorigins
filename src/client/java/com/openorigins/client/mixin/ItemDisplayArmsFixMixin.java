@@ -20,7 +20,7 @@ public abstract class ItemDisplayArmsFixMixin {
       Collections.newSetFromMap(new WeakHashMap<>());
   private static boolean OPENORIGINS$LOGGED;
 
-  @Inject(method = "extractRenderState", at = @At("TAIL"))
+  @Inject(method = "extractRenderState", at = @At("TAIL"), require = 0)
   private void openorigins$flagArms(Display.ItemDisplay entity, ItemDisplayEntityRenderState state,
       float partialTick, CallbackInfo ci) {
     if (!ConnectionUtil.isConnected()) {
@@ -48,7 +48,7 @@ public abstract class ItemDisplayArmsFixMixin {
 
   @Inject(method = "submitInner",
       at = @At(value = "INVOKE",
-          target = "Lnet/minecraft/client/renderer/item/ItemStackRenderState;submit(Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/SubmitNodeCollector;III)V"))
+          target = "Lnet/minecraft/client/renderer/item/ItemStackRenderState;submit(Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/SubmitNodeCollector;III)V"), require = 0)
   private void openorigins$shiftArms(ItemDisplayEntityRenderState state, PoseStack poseStack,
       SubmitNodeCollector submitNodeCollector, int lightCoords, float interpolationProgress,
       CallbackInfo ci) {

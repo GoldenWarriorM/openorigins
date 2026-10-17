@@ -19,14 +19,14 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 /** Freezes client-side TripWire shape/placement so custom blocks built on it don't flicker. */
 @Mixin(TripWireBlock.class)
 public abstract class TripWireFixMixin {
-  @Inject(method = "getStateForPlacement", at = @At("HEAD"), cancellable = true)
+  @Inject(method = "getStateForPlacement", at = @At("HEAD"), cancellable = true, require = 0)
   private void openorigins$keepPlacement(BlockPlaceContext ctx, CallbackInfoReturnable<BlockState> cir) {
     if (OpenOriginsConfig.getInstance().isEnabled(OriginFeature.BLOCK_ENHANCEMENTS) && ConnectionUtil.isConnected()) {
       cir.setReturnValue(((TripWireBlock) (Object) this).defaultBlockState());
     }
   }
 
-  @Inject(method = "updateShape", at = @At("HEAD"), cancellable = true)
+  @Inject(method = "updateShape", at = @At("HEAD"), cancellable = true, require = 0)
   private void openorigins$freezeShape(BlockState state, LevelReader level, ScheduledTickAccess ticks,
       BlockPos pos, Direction dir, BlockPos otherPos, BlockState otherState, RandomSource random,
       CallbackInfoReturnable<BlockState> cir) {

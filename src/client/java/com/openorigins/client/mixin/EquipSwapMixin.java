@@ -22,7 +22,7 @@ import net.minecraft.world.InteractionResult;
  */
 @Mixin(Equippable.class)
 public abstract class EquipSwapMixin {
-  @Inject(method = "swapWithEquipmentSlot", at = @At("TAIL"))
+  @Inject(method = "swapWithEquipmentSlot", at = @At("TAIL"), require = 0)
   private void openorigins$predictEquip(ItemStack inHand, Player player,
       CallbackInfoReturnable<InteractionResult> cir) {
     if (!ConnectionUtil.isConnected()) {

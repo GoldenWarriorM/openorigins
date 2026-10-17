@@ -116,7 +116,7 @@ public abstract class HelmetCosmeticSlotMixin {
         && mouseY >= this.topPos + COSMETIC_Y - 1 && mouseY < this.topPos + COSMETIC_Y + 17;
   }
 
-  @Inject(method = "extractSlots", at = @At("TAIL"))
+  @Inject(method = "extractSlots", at = @At("TAIL"), require = 0)
   private void openorigins$drawHelmetSlots(GuiGraphicsExtractor graphics, int mouseX, int mouseY,
       CallbackInfo ci) {
     if (!this.openorigins$active()) {
@@ -163,7 +163,7 @@ public abstract class HelmetCosmeticSlotMixin {
     return !this.openorigins$cosmetic(worn).isEmpty();
   }
 
-  @Inject(method = "extractTooltip", at = @At("HEAD"), cancellable = true)
+  @Inject(method = "extractTooltip", at = @At("HEAD"), cancellable = true, require = 0)
   private void openorigins$hideWipedTooltip(GuiGraphicsExtractor graphics, int mouseX, int mouseY,
       CallbackInfo ci) {
     if (this.hoveredSlot == null || this.hoveredSlot.index != 5) {
@@ -174,7 +174,7 @@ public abstract class HelmetCosmeticSlotMixin {
     }
   }
 
-  @Inject(method = "extractContents", at = @At("TAIL"))
+  @Inject(method = "extractContents", at = @At("TAIL"), require = 0)
   private void openorigins$drawHelmetHighlight(GuiGraphicsExtractor graphics, int mouseX, int mouseY,
       float partialTick, CallbackInfo ci) {
     if (!this.openorigins$active()) {

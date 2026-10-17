@@ -48,7 +48,7 @@ public abstract class StrictRecipeMatchMixin {
 
   @ModifyReturnValue(
       method = "canCraft(Lnet/minecraft/world/entity/player/StackedItemContents;)Z",
-      at = @At("RETURN"))
+      at = @At("RETURN"), require = 0)
   private boolean openorigins$strictMatch(boolean original, StackedItemContents contents) {
     if (!original) {
       return false;

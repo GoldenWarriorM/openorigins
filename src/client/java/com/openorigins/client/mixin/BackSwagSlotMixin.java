@@ -146,7 +146,7 @@ public abstract class BackSwagSlotMixin {
         && mouseY >= this.topPos + SLOT_Y - 1 && mouseY < this.topPos + SLOT_Y + 17;
   }
 
-  @Inject(method = "extractSlots", at = @At("TAIL"))
+  @Inject(method = "extractSlots", at = @At("TAIL"), require = 0)
   private void openorigins$drawSlot(GuiGraphicsExtractor graphics, int mouseX, int mouseY,
       CallbackInfo ci) {
     ItemStack stack = this.openorigins$backStack();
@@ -161,7 +161,7 @@ public abstract class BackSwagSlotMixin {
     graphics.itemDecorations(Minecraft.getInstance().font, stack, SLOT_X, SLOT_Y);
   }
 
-  @Inject(method = "extractContents", at = @At("TAIL"))
+  @Inject(method = "extractContents", at = @At("TAIL"), require = 0)
   private void openorigins$drawHighlight(GuiGraphicsExtractor graphics, int mouseX, int mouseY,
       float partialTick, CallbackInfo ci) {
     ItemStack stack = this.openorigins$backStack();

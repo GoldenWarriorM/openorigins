@@ -18,7 +18,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
  */
 @Mixin(Entity.class)
 public abstract class EntityDistanceMixin {
-  @Inject(method = "shouldRenderAtSqrDistance", at = @At("HEAD"), cancellable = true)
+  @Inject(method = "shouldRenderAtSqrDistance", at = @At("HEAD"), cancellable = true, require = 0)
   private void openorigins$expandRenderDistance(double distance, CallbackInfoReturnable<Boolean> cir) {
     Entity self = (Entity) (Object) this;
     if (self instanceof ArmorStand stand) {

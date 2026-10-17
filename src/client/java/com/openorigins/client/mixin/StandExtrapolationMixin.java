@@ -12,7 +12,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public abstract class StandExtrapolationMixin {
   @Inject(
       method = "extractRenderState(Lnet/minecraft/world/entity/decoration/ArmorStand;Lnet/minecraft/client/renderer/entity/state/ArmorStandRenderState;F)V",
-      at = @At("TAIL"))
+      at = @At("TAIL"), require = 0)
   private void openorigins$extrapolate(ArmorStand entity,
       net.minecraft.client.renderer.entity.state.ArmorStandRenderState state,
       float partialTick, CallbackInfo ci) {

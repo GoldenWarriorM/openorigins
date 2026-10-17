@@ -12,7 +12,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public abstract class DisplayExtrapolationMixin {
   @Inject(
       method = "extractRenderState(Lnet/minecraft/world/entity/Display;Lnet/minecraft/client/renderer/entity/state/DisplayEntityRenderState;F)V",
-      at = @At("TAIL"))
+      at = @At("TAIL"), require = 0)
   private void openorigins$extrapolate(Display entity,
       net.minecraft.client.renderer.entity.state.DisplayEntityRenderState state,
       float partialTick, CallbackInfo ci) {

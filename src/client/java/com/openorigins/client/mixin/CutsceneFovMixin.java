@@ -12,7 +12,7 @@ import org.spongepowered.asm.mixin.injection.At;
 /** Locks FOV to 70 during cutscenes (spectator mode) for fine tuning. */
 @Mixin(Camera.class)
 public abstract class CutsceneFovMixin {
-  @ModifyReturnValue(method = "getFov", at = @At("RETURN"))
+  @ModifyReturnValue(method = "getFov", at = @At("RETURN"), require = 0)
   private float openorigins$cutsceneFov(float original) {
     if (!OpenOriginsConfig.getInstance().isEnabled(OriginFeature.CUTSCENE_ENHANCEMENTS)) {
       return original;

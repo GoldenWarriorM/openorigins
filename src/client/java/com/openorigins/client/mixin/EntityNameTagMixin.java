@@ -33,7 +33,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public abstract class EntityNameTagMixin {
   private static final double LINE_SPACING = 0.3105;
 
-  @Inject(method = "extractRenderState", at = @At("TAIL"))
+  @Inject(method = "extractRenderState", at = @At("TAIL"), require = 0)
   private void openorigins$storeTag(Entity entity, EntityRenderState state, float partialTick,
       CallbackInfo ci) {
     EntityData.NameTag tag = EntityData.getTag(entity.getId());
@@ -86,7 +86,7 @@ public abstract class EntityNameTagMixin {
   // NOTE: hooked on the int overload (the funnel every renderer calls, including
   // AvatarRenderer's override which bypasses the no-int wrapper for players).
   @Inject(method = "submitNameDisplay(Lnet/minecraft/client/renderer/entity/state/EntityRenderState;Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/SubmitNodeCollector;Lnet/minecraft/client/renderer/state/level/CameraRenderState;I)V",
-      at = @At("HEAD"), cancellable = true)
+      at = @At("HEAD"), cancellable = true, require = 0)
   private void openorigins$renderTag(EntityRenderState state, PoseStack poseStack,
       SubmitNodeCollector collector, CameraRenderState camera, int order, CallbackInfo ci) {
     EntityData.NameTag tag = ((TagHolder) state).openorigins$getTag();

@@ -13,7 +13,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 @Mixin(EntityRenderDispatcher.class)
 public abstract class OaRendererCacheMixin {
   @Inject(method = "getRenderer(Lnet/minecraft/world/entity/Entity;)Lnet/minecraft/client/renderer/entity/EntityRenderer;",
-      at = @At("HEAD"), cancellable = true)
+      at = @At("HEAD"), cancellable = true, require = 0)
   private void openorigins$cachedRenderer(Entity entity,
       CallbackInfoReturnable<EntityRenderer<?, ?>> cir) {
     try {
@@ -26,7 +26,7 @@ public abstract class OaRendererCacheMixin {
   }
 
   @Inject(method = "getRenderer(Lnet/minecraft/world/entity/Entity;)Lnet/minecraft/client/renderer/entity/EntityRenderer;",
-      at = @At("RETURN"))
+      at = @At("RETURN"), require = 0)
   private void openorigins$storeRenderer(Entity entity,
       CallbackInfoReturnable<EntityRenderer<?, ?>> cir) {
     try {

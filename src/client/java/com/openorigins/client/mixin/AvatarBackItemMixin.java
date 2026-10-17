@@ -29,14 +29,14 @@ public abstract class AvatarBackItemMixin {
   @Shadow
   protected abstract boolean addLayer(RenderLayer<?, ?> layer);
 
-  @Inject(method = "<init>", at = @At("TAIL"))
+  @Inject(method = "<init>", at = @At("TAIL"), require = 0)
   private void openorigins$addBackSwagLayer(CallbackInfo ci) {
     if ((Object) this instanceof AvatarRenderer avatarRenderer) {
       this.addLayer(new BackSwagLayer(avatarRenderer));
     }
   }
 
-  @Inject(method = "extractRenderState", at = @At("TAIL"))
+  @Inject(method = "extractRenderState", at = @At("TAIL"), require = 0)
   private void openorigins$extractBackItem(LivingEntity entity, LivingEntityRenderState state,
       float partialTick, CallbackInfo ci) {
     if (!(entity instanceof Avatar avatar) || !(state instanceof AvatarRenderState avatarState)) {

@@ -19,7 +19,7 @@ import org.spongepowered.asm.mixin.injection.At;
  */
 @Mixin(net.minecraft.client.renderer.entity.EntityRenderer.class)
 public abstract class EntityCullingMixin {
-  @ModifyReturnValue(method = "getBoundingBoxForCulling", at = @At("RETURN"))
+  @ModifyReturnValue(method = "getBoundingBoxForCulling", at = @At("RETURN"), require = 0)
   private AABB openorigins$expandCullingBox(AABB original, Entity entity) {
     if (entity instanceof ArmorStand stand) {
       if (stand.getVehicle() != null) {

@@ -45,7 +45,7 @@ public abstract class OaChatEmojiMixin extends net.minecraft.client.gui.screens.
     }
   }
 
-  @Inject(method = "init", at = @At("TAIL"))
+  @Inject(method = "init", at = @At("TAIL"), require = 0)
   private void openorigins$addEmojiButton(CallbackInfo ci) {
     openorigins$emojiPanel = null;
     if (!openorigins$emojiOn()) return;
@@ -60,7 +60,7 @@ public abstract class OaChatEmojiMixin extends net.minecraft.client.gui.screens.
     }));
   }
 
-  @Inject(method = "mouseClicked", at = @At("HEAD"), cancellable = true)
+  @Inject(method = "mouseClicked", at = @At("HEAD"), cancellable = true, require = 0)
   private void openorigins$blockHudClicks(MouseButtonEvent event, boolean doubleClick,
       CallbackInfoReturnable<Boolean> cir) {
     if (openorigins$emojiPanel != null && openorigins$emojiPanel.isMouseOver(event.x(), event.y())) {
@@ -69,7 +69,7 @@ public abstract class OaChatEmojiMixin extends net.minecraft.client.gui.screens.
     }
   }
 
-  @Inject(method = "mouseScrolled", at = @At("HEAD"), cancellable = true)
+  @Inject(method = "mouseScrolled", at = @At("HEAD"), cancellable = true, require = 0)
   private void openorigins$scrollBox(double mouseX, double mouseY, double scrollX, double scrollY,
       CallbackInfoReturnable<Boolean> cir) {
     if (openorigins$emojiPanel != null && openorigins$emojiPanel.isMouseOver(mouseX, mouseY)) {
@@ -95,7 +95,7 @@ public abstract class OaChatEmojiMixin extends net.minecraft.client.gui.screens.
   }
 
   @Inject(method = "extractRenderState(Lnet/minecraft/client/gui/GuiGraphicsExtractor;IIF)V",
-      at = @At("HEAD"))
+      at = @At("HEAD"), require = 0)
   private void openorigins$trackMouse(net.minecraft.client.gui.GuiGraphicsExtractor graphics,
       int mouseX, int mouseY, float partialTick, CallbackInfo ci) {
     openorigins$mouseX = mouseX;
@@ -104,7 +104,7 @@ public abstract class OaChatEmojiMixin extends net.minecraft.client.gui.screens.
 
   /** Blinds chat-history hover while the emoji box is hovered (no bleed-through). */
   @ModifyArgs(method = "extractRenderState", at = @At(value = "INVOKE",
-      target = "Lnet/minecraft/client/gui/components/ChatComponent;extractRenderState(Lnet/minecraft/client/gui/GuiGraphicsExtractor;Lnet/minecraft/client/gui/Font;IIILnet/minecraft/client/gui/components/ChatComponent$DisplayMode;Z)V"))
+      target = "Lnet/minecraft/client/gui/components/ChatComponent;extractRenderState(Lnet/minecraft/client/gui/GuiGraphicsExtractor;Lnet/minecraft/client/gui/Font;IIILnet/minecraft/client/gui/components/ChatComponent$DisplayMode;Z)V"), require = 0)
   private void openorigins$blindHistoryHover(Args args) {
     if (openorigins$panelHovered()) {
       args.set(3, -999);
@@ -112,7 +112,7 @@ public abstract class OaChatEmojiMixin extends net.minecraft.client.gui.screens.
     }
   }
 
-  @Inject(method = "onEdited", at = @At("TAIL"))
+  @Inject(method = "onEdited", at = @At("TAIL"), require = 0)
   private void openorigins$autoconvert(String value, CallbackInfo ci) {
     if (openorigins$converting) return;
     if (!openorigins$emojiOn()) return;
@@ -137,7 +137,7 @@ public abstract class OaChatEmojiMixin extends net.minecraft.client.gui.screens.
     }
   }
 
-  @Inject(method = "keyPressed", at = @At("HEAD"), cancellable = true)
+  @Inject(method = "keyPressed", at = @At("HEAD"), cancellable = true, require = 0)
   private void openorigins$closeEmojiFirst(KeyEvent event, CallbackInfoReturnable<Boolean> cir) {
     if (openorigins$emojiPanel != null && event.key() == 256) {
       this.removeWidget(openorigins$emojiPanel);

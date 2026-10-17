@@ -18,7 +18,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 @Mixin(ArmorStandRenderer.class)
 public abstract class ArmorStandRenderMixin {
   @Inject(method = "extractRenderState(Lnet/minecraft/world/entity/decoration/ArmorStand;Lnet/minecraft/client/renderer/entity/state/ArmorStandRenderState;F)V",
-      at = @At("TAIL"))
+      at = @At("TAIL"), require = 0)
   private void openorigins$interpolatePoses(ArmorStand stand, ArmorStandRenderState state, float partialTick,
       CallbackInfo ci) {
     if (!OpenOriginsConfig.getInstance().isEnabled(OriginFeature.SMOOTH_ANIMATIONS)) return;
@@ -38,7 +38,7 @@ public abstract class ArmorStandRenderMixin {
   }
 
   @Inject(method = "shouldShowName(Lnet/minecraft/world/entity/decoration/ArmorStand;D)Z",
-      at = @At("HEAD"), cancellable = true)
+      at = @At("HEAD"), cancellable = true, require = 0)
   private void openorigins$hideNameInF1(ArmorStand stand, double distance, CallbackInfoReturnable<Boolean> cir) {
     if (!OpenOriginsConfig.getInstance().isEnabled(OriginFeature.HIDE_NAMES)) return;
     if (!ConnectionUtil.isConnected()) return;

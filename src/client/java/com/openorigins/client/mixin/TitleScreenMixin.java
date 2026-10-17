@@ -36,7 +36,7 @@ public abstract class TitleScreenMixin extends Screen {
     super(Component.empty());
   }
 
-  @Inject(method = "init", at = @At("TAIL"))
+  @Inject(method = "init", at = @At("TAIL"), require = 0)
   private void openorigins$addJoinButton(CallbackInfo ci) {
     try {
       if (!com.openorigins.client.OpenOriginsConfig.getInstance().isTitleJoinButton()) {
@@ -76,7 +76,7 @@ public abstract class TitleScreenMixin extends Screen {
     com.openorigins.client.screen.IconRow.addCentered(this, button);
   }
 
-  @Inject(method = "mouseClicked", at = @At("HEAD"), cancellable = true)
+  @Inject(method = "mouseClicked", at = @At("HEAD"), cancellable = true, require = 0)
   private void openorigins$rightClickConfig(MouseButtonEvent event, boolean doubleClick,
       CallbackInfoReturnable<Boolean> cir) {
     try {

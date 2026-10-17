@@ -16,7 +16,7 @@ import org.spongepowered.asm.mixin.injection.At;
  */
 @Mixin(net.minecraft.client.renderer.entity.DisplayRenderer.class)
 public abstract class DisplayCullingMixin {
-  @ModifyReturnValue(method = "getBoundingBoxForCulling", at = @At("RETURN"))
+  @ModifyReturnValue(method = "getBoundingBoxForCulling", at = @At("RETURN"), require = 0)
   private AABB openorigins$expandDisplayCullingBox(AABB original, Display display) {
     if (!(display instanceof Display.BlockDisplay)
         && !(display instanceof Display.ItemDisplay)) {
