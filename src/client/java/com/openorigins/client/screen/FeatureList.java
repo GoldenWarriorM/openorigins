@@ -179,35 +179,40 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
   private void drawGroupTrees(GuiGraphicsExtractor graphics) {
     java.util.List<Entry> kids;
     try {
-      kids = new java.util.ArrayList<>(this.children());
+      kids = this.children();
     } catch (Throwable t) {
       return;
+    }
+    int n = kids.size();
+    // O(n) "last in group" pass: the earlier O(n^2) pair compare grew with
+    // every feature added.
+    String[] groups = new String[n];
+    boolean[] last = new boolean[n];
+    java.util.HashSet<String> seen = new java.util.HashSet<>();
+    for (int i = n - 1; i >= 0; i--) {
+      String g;
+      try {
+        g = kids.get(i).collapseGroup();
+      } catch (Throwable t) {
+        g = null;
+      }
+      groups[i] = g;
+      last[i] = g != null && !seen.contains(g);
+      if (g != null) {
+        seen.add(g);
+      }
     }
     try {
       this.enableScissor(graphics);
     } catch (Throwable ignored) {
     }
-    for (int i = 0; i < kids.size(); i++) {
+    for (int i = 0; i < n; i++) {
       Entry e = kids.get(i);
-      String group;
-      try {
-        group = e.collapseGroup();
-        if (group == null || e.getHeight() < 4) {
-          continue;
-        }
-      } catch (Throwable t) {
+      String group = groups[i];
+      if (group == null || e.getHeight() < 4) {
         continue;
       }
-      boolean last = true;
-      for (int j = i + 1; j < kids.size(); j++) {
-        try {
-          if (group.equals(kids.get(j).collapseGroup())) {
-            last = false;
-            break;
-          }
-        } catch (Throwable ignored) {
-        }
-      }
+      boolean groupLast = last[i];
       try {
         int lineX;
         int labelX;
@@ -225,7 +230,7 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
           lineX += 8;
         }
         int yStart = Math.max(0, y0 - 10);
-        int yEnd = last ? (y0 + y1) / 2 : y1;
+        int yEnd = groupLast ? (y0 + y1) / 2 : y1;
         int mid = (y0 + y1) / 2;
         int gray = 0xFF555555;
         graphics.fill(lineX, yStart, lineX + 1, yEnd, gray);
@@ -613,12 +618,21 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
 
   private static net.minecraft.network.chat.Component positionSuffix() {
     OpenOriginsConfig cfg = OpenOriginsConfig.getInstance();
-    String corner = net.minecraft.network.chat.Component.translatable(
-        "config.openorigins.corner." + cfg.getBadgerHudCorner().name().toLowerCase()).getString();
-    return net.minecraft.network.chat.Component.literal(
-        " (" + corner + " " + cfg.getBadgerHudDX() + ", " + cfg.getBadgerHudDY() + ")")
-        .withStyle(net.minecraft.ChatFormatting.GRAY);
+    String key = cfg.getBadgerHudCorner().name() + "|" + cfg.getBadgerHudDX()
+        + "," + cfg.getBadgerHudDY();
+    if (!key.equals(posSuffixKey)) {
+      String corner = net.minecraft.network.chat.Component.translatable(
+          "config.openorigins.corner." + cfg.getBadgerHudCorner().name().toLowerCase()).getString();
+      posSuffix = net.minecraft.network.chat.Component.literal(
+          " (" + corner + " " + cfg.getBadgerHudDX() + ", " + cfg.getBadgerHudDY() + ")")
+          .withStyle(net.minecraft.ChatFormatting.GRAY);
+      posSuffixKey = key;
+    }
+    return posSuffix;
   }
+
+  private static volatile String posSuffixKey = "";
+  private static volatile net.minecraft.network.chat.Component posSuffix;
 
   private static void openPositionEditor() {
     net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
