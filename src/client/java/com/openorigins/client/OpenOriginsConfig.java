@@ -402,6 +402,11 @@ public final class OpenOriginsConfig {
     }
     return out;
   }
+
+  /** Same comma-split parse as types (extrap.items ids). */
+  public static java.util.Set<String> parseExtrapItems(String raw) {
+    return parseExtrapTypes(raw);
+  }
   public void cycleBadgerHudCorner() {
     HudCorner[] values = HudCorner.values();
     badgerHudCorner = values[(badgerHudCorner.ordinal() + 1) % values.length];

@@ -59,6 +59,10 @@ public final class MobExtrapolation {
     appliedCount++;
   }
 
+  /** Reused scan buffers: no allocation while the feature idles. */
+  private static final java.util.List<double[]> hooks = new java.util.ArrayList<>(4);
+  private static final java.util.List<Entity> candidates = new java.util.ArrayList<>(256);
+
   public static void register() {
     net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents.DISCONNECT
         .register((handler, client) -> {
@@ -81,19 +85,22 @@ public final class MobExtrapolation {
           } catch (Throwable ignored) {
           }
           try {
-            java.util.List<double[]> hooks = new java.util.ArrayList<>(2);
-            try {
-              for (Entity h : client.level.entitiesForRendering()) {
-                if (h instanceof net.minecraft.world.entity.projectile.FishingHook) {
-                  hooks.add(new double[]{h.getX(), h.getY(), h.getZ()});
-                }
-              }
-            } catch (Throwable ignored) {
-            }
-            for (Entity e : client.level.entitiesForRendering()) {
-              if (e == null || e == client.player || e.isRemoved()) {
+            // Single pass: collect fishing-rig hooks and candidates, then
+            // process candidates once the hook set is complete (a display
+            // must not be excluded by a bobber seen later in the iteration).
+            candidates.clear();
+            hooks.clear();
+            for (Entity h : client.level.entitiesForRendering()) {
+              if (h instanceof net.minecraft.world.entity.projectile.FishingHook) {
+                hooks.add(new double[]{h.getX(), h.getY(), h.getZ()});
                 continue;
               }
+              if (h == null || h == client.player || h.isRemoved()) {
+                continue;
+              }
+              candidates.add(h);
+            }
+            for (Entity e : candidates) {
               if (carriesPlayer(e, client.player) || sharesMountWithPlayer(e, client.player)
                   || nearHook(e, hooks)
                   || !typeAllowed(e) || !displayAllowed(e)) {
@@ -257,8 +264,7 @@ public final class MobExtrapolation {
         net.minecraft.world.item.ItemStack s = d.getSlot(0).get();
         if (s == null || s.isEmpty()) return false;
         String id = displayKey(s);
-        java.util.Set<String> only =
-            com.openorigins.client.OpenOriginsConfig.getInstance().getExtrapItems();
+        java.util.Set<String> only = extrapItemsCached();
         if (!only.isEmpty()) {
           return only.contains(id);
         }
@@ -272,6 +278,19 @@ public final class MobExtrapolation {
     }
     return true;
   }
+
+  /** extrap.items parsed once per config change, not once per entity. */
+  private static java.util.Set<String> extrapItemsCached() {
+    String raw = com.openorigins.client.OpenOriginsConfig.getInstance().getExtrapItemsRaw();
+    if (!raw.equals(cachedItemsRaw)) {
+      cachedItems = com.openorigins.client.OpenOriginsConfig.parseExtrapItems(raw);
+      cachedItemsRaw = raw;
+    }
+    return cachedItems;
+  }
+
+  private static volatile String cachedItemsRaw;
+  private static volatile java.util.Set<String> cachedItems = java.util.Set.of();
 
   /** Fishing rigs (bobber splash displays/stands) must never be smoothed. */
   private static boolean nearHook(Entity e, java.util.List<double[]> hooks) {
@@ -341,9 +360,9 @@ public final class MobExtrapolation {
       long nowMs = System.currentTimeMillis();
       double[] cur = APPLIED.get(e.getId());
       if (cur == null || tLen2 > MAX_SNAP_LEN * MAX_SNAP_LEN) {
-        double[] snap = {t[0], t[1], t[2], (double) nowMs};
-        APPLIED.put(e.getId(), snap);
-        return new double[] {t[0], t[1], t[2]};
+        cur = new double[] {t[0], t[1], t[2], (double) nowMs};
+        APPLIED.put(e.getId(), cur);
+        return SCRATCH;
       }
       double dt = Math.max(0.0, Math.min(500.0, nowMs - cur[3]));
       double f = 1.0 - Math.exp(-dt / DAMP_TAU_MS);
@@ -351,7 +370,7 @@ public final class MobExtrapolation {
       cur[1] += (t[1] - cur[1]) * f;
       cur[2] += (t[2] - cur[2]) * f;
       cur[3] = (double) nowMs;
-      return new double[] {cur[0], cur[1], cur[2]};
+      return cur;
     } catch (Throwable t) {
       return null;
     }
@@ -365,15 +384,18 @@ public final class MobExtrapolation {
         return null;
       }
       double ms = extraMs();
-      double ox = sm[0] * ms;
-      double oy = sm[1] * ms;
-      double oz = sm[2] * ms;
-      if (ox * ox + oy * oy + oz * oz < 0.0001) {
+      SCRATCH[0] = sm[0] * ms;
+      SCRATCH[1] = sm[1] * ms;
+      SCRATCH[2] = sm[2] * ms;
+      if (SCRATCH[0] * SCRATCH[0] + SCRATCH[1] * SCRATCH[1] + SCRATCH[2] * SCRATCH[2] < 0.0001) {
         return null;
       }
-      return new double[] {ox, oy, oz};
+      return SCRATCH;
     } catch (Throwable t) {
       return null;
     }
   }
+
+  /** Reused render-path target; callers apply it synchronously and drop it. */
+  private static final double[] SCRATCH = new double[3];
 }
