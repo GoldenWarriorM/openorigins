@@ -18,8 +18,7 @@ import org.spongepowered.asm.mixin.injection.At;
 public abstract class DisplayCullingMixin {
   @ModifyReturnValue(method = "getBoundingBoxForCulling", at = @At("RETURN"), require = 0)
   private AABB openorigins$expandDisplayCullingBox(AABB original, Display display) {
-    if (!(display instanceof Display.BlockDisplay)
-        && !(display instanceof Display.ItemDisplay)) {
+    if (!com.openorigins.client.util.ExpandModelBox.eligible(display)) {
       return original;
     }
     if (!OpenOriginsConfig.getInstance().isEnabled(OriginFeature.EXPAND_MODEL_BOUNDING_BOX)) {
@@ -28,6 +27,6 @@ public abstract class DisplayCullingMixin {
     if (!ConnectionUtil.isConnected()) {
       return original;
     }
-    return original.inflate(4.5);
+    return original.inflate(com.openorigins.client.util.ExpandModelBox.INFLATE);
   }
 }

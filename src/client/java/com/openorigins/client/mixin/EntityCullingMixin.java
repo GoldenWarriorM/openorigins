@@ -21,16 +21,11 @@ import org.spongepowered.asm.mixin.injection.At;
 public abstract class EntityCullingMixin {
   @ModifyReturnValue(method = "getBoundingBoxForCulling", at = @At("RETURN"), require = 0)
   private AABB openorigins$expandCullingBox(AABB original, Entity entity) {
-    if (entity instanceof ArmorStand stand) {
-      if (stand.getVehicle() != null) {
-        return original;
-      }
-    } else if (!(entity instanceof net.minecraft.world.entity.Display.BlockDisplay)
-        && !(entity instanceof net.minecraft.world.entity.Display.ItemDisplay)) {
+    if (!com.openorigins.client.util.ExpandModelBox.eligible(entity)) {
       return original;
     }
     if (!OpenOriginsConfig.getInstance().isEnabled(OriginFeature.EXPAND_MODEL_BOUNDING_BOX)) return original;
     if (!ConnectionUtil.isConnected()) return original;
-    return original.inflate(4.5);
+    return original.inflate(com.openorigins.client.util.ExpandModelBox.INFLATE);
   }
 }
