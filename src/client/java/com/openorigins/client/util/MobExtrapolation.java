@@ -398,4 +398,33 @@ public final class MobExtrapolation {
 
   /** Reused render-path target; callers apply it synchronously and drop it. */
   private static final double[] SCRATCH = new double[3];
+
+  /** Shared apply path for both render-state mixins (Display and ArmorStand
+   *  hierarchies share x/y/z and nameTagAttachment on EntityRenderState). */
+  public static void apply(net.minecraft.world.entity.Entity e,
+      net.minecraft.client.renderer.entity.state.EntityRenderState state) {
+    if (!com.openorigins.client.OpenOriginsConfig.getInstance()
+        .isEnabled(com.openorigins.client.OriginFeature.ENTITY_EXTRAPOLATION)) {
+      return;
+    }
+    if (!com.openorigins.client.ConnectionUtil.isConnected()) {
+      return;
+    }
+    double[] o;
+    try {
+      o = renderOffset(e);
+    } catch (Throwable t) {
+      return;
+    }
+    if (o == null) {
+      return;
+    }
+    noteApplied();
+    state.x += o[0];
+    state.y += o[1];
+    state.z += o[2];
+    if (state.nameTagAttachment != null) {
+      state.nameTagAttachment = state.nameTagAttachment.add(o[0], o[1], o[2]);
+    }
+  }
 }
