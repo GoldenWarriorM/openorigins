@@ -28,8 +28,8 @@ public final class BadgerHud implements net.fabricmc.fabric.api.client.rendering
     rows.add(new Row(null, styledRow("Basic", "(2/5)"), 0xFFFFFFFF));
     rows.add(new Row(null, Component.translatable("hud.openorigins.badger_timeleft",
         styledValue("7h 56m")), 0xFFAAAAAA));
-    rows.add(new Row(null, Component.translatable("hud.openorigins.badger_reset", "6"),
-        0xFFAAAAAA));
+    rows.add(new Row(null, Component.translatable("hud.openorigins.badger_reset",
+        styledValue("6d")), 0xFFAAAAAA));
     return rows;
   }
 
@@ -95,7 +95,7 @@ public final class BadgerHud implements net.fabricmc.fabric.api.client.rendering
     }
     if (BadgerCache.daysUntilReset() > 0) {
       rows.add(new Row(null, Component.translatable("hud.openorigins.badger_reset",
-          BadgerCache.daysUntilReset()), 0xFFAAAAAA));
+          styledValue(BadgerCache.daysUntilReset() + "d")), 0xFFAAAAAA));
     }
     if (!BadgerCache.taskTimeLeft().isEmpty()) {
       rows.add(rows.size() - (BadgerCache.daysUntilReset() > 0 ? 1 : 0),
