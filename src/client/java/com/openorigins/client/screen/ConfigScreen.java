@@ -323,6 +323,7 @@ public class ConfigScreen extends Screen {
     } catch (Throwable ignored) {
     }
     com.openorigins.client.screen.FeatureList.setSpyListener(null);
+    FeatureList.StepperRow.clearStepperDrafts();
     if (this.minecraft != null) {
       this.minecraft.gui.setScreen(this.parent);
     }

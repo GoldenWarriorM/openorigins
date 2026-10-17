@@ -1149,6 +1149,14 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
     private final int defaultValue;
     private final Button resetButton;
     private net.minecraft.client.gui.components.EditBox field;
+    /** Uncommitted typed digits, kept across feed rebuilds; per labelKey. */
+    private static final java.util.Map<String, String> DRAFTS =
+        new java.util.concurrent.ConcurrentHashMap<>();
+
+    /** Drops queued typing drafts (screen closing / values committed). */
+    static void clearStepperDrafts() {
+      DRAFTS.clear();
+    }
 
     public StepperRow(FeatureList list, String labelKey, String tooltipKey, int min, int max,
         java.util.function.IntSupplier get, java.util.function.IntConsumer set, int defaultValue) {
@@ -1161,15 +1169,18 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
       this.defaultValue = defaultValue;
       this.minusButton = Button.builder(Component.literal("-"), b -> {
         this.set.accept(Math.max(this.min, this.get.getAsInt() - 1));
+        DRAFTS.remove(this.labelKey);
         this.list.refreshEntries();
       }).bounds(0, 0, 20, 20).build();
       this.plusButton = Button.builder(Component.literal("+"), b -> {
         this.set.accept(Math.min(this.max, this.get.getAsInt() + 1));
+        DRAFTS.remove(this.labelKey);
         this.list.refreshEntries();
       }).bounds(0, 0, 20, 20).build();
       this.resetButton = SpriteIconButton.builder(
           Component.translatable("config.openorigins.reset_row"), b -> {
         this.set.accept(this.defaultValue);
+        DRAFTS.remove(this.labelKey);
         this.list.refreshEntries();
       }, true)
           .width(20).sprite(RESET_ICON, 8, 8).withTootip().build();
@@ -1177,7 +1188,7 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
     }
 
     public void refreshEntry() {
-      if (this.field != null) {
+      if (this.field != null && !DRAFTS.containsKey(this.labelKey)) {
         String v = Integer.toString(this.get.getAsInt());
         if (!this.field.getValue().equals(v)) {
           this.field.setValue(v);
@@ -1204,18 +1215,21 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
             Component.translatable(this.labelKey));
         this.field.setTextColor(0x00000000);
         this.field.setMaxLength(Math.max(2, Integer.toString(this.max).length()));
-        this.field.setValue(Integer.toString(this.get.getAsInt()));
+        String draft = DRAFTS.get(this.labelKey);
+        this.field.setValue(draft != null ? draft : Integer.toString(this.get.getAsInt()));
         this.field.setResponder(s -> {
           String digits = s.replaceAll("[^0-9]", "");
           if (!digits.equals(s)) {
             this.field.setValue(digits);
             return;
           }
+          DRAFTS.put(this.labelKey, digits);
           if (!digits.isEmpty()) {
             try {
               int v = Integer.parseInt(digits);
               if (v >= this.min && v <= this.max) {
                 this.set.accept(v);
+                DRAFTS.remove(this.labelKey);
                 this.list.refreshEntries();
               }
             } catch (NumberFormatException ignored) {
