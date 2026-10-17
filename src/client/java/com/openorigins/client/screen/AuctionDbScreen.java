@@ -33,7 +33,7 @@ public final class AuctionDbScreen extends Screen {
   @Override
   protected void init() {
     int cx = this.width / 2;
-    int x0 = cx - 308;
+    int x0 = this.panelLeft();
     this.search = new EditBox(this.font, x0, 30, 280, 20,
         Component.translatable("menu.openorigins.ahdb.search_hint"));
     this.search.setMaxLength(48);
@@ -226,12 +226,18 @@ public final class AuctionDbScreen extends Screen {
     }
   }
 
+  /** Left edge of the 616-wide DB grid; at narrow windows it hugs the
+   *  screen edge instead of drawing off-screen. */
+  private int panelLeft() {
+    return Math.max(4, this.width / 2 - 308);
+  }
+
   private void drawDetailHeader(GuiGraphicsExtractor graphics) {
     AuctionPriceDb.Entry e = this.detail;
     if (e == null || this.minecraft == null) {
       return;
     }
-    int x = (this.width / 2 - 308 + 288);
+    int x = this.panelLeft() + 288;
     int y = 30;
     net.minecraft.client.gui.Font font = this.minecraft.font;
     ItemStack icon = AuctionPriceDb.iconFor(e.key);
@@ -244,7 +250,7 @@ public final class AuctionDbScreen extends Screen {
         : net.minecraft.network.chat.Component.literal(e.name), x, y + 4, 0xFFFFFFFF);
     y += 22;
     for (String line : this.detailLines) {
-      graphics.text(font, line, (this.width / 2 - 308 + 288), y, 0xFFAAAAAA);
+      graphics.text(font, line, this.panelLeft() + 288, y, 0xFFAAAAAA);
       y += 10;
     }
     if (!this.detailLines.isEmpty()) {
@@ -255,7 +261,7 @@ public final class AuctionDbScreen extends Screen {
       graphics.text(font,
           "Avg " + AuctionPriceDb.format(st.avg()) + "  Med " + AuctionPriceDb.format(st.med())
               + "  (" + st.n() + ") \ua8a6",
-          (this.width / 2 - 308 + 288), y, 0xFFAAAAAA);
+          (this.panelLeft() + 288), y, 0xFFAAAAAA);
     }
   }
 
