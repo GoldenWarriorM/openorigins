@@ -139,7 +139,8 @@ public abstract class OaChatEmojiMixin extends net.minecraft.client.gui.screens.
 
   @Inject(method = "keyPressed", at = @At("HEAD"), cancellable = true, require = 0)
   private void openorigins$closeEmojiFirst(KeyEvent event, CallbackInfoReturnable<Boolean> cir) {
-    if (openorigins$emojiPanel != null && event.key() == 256) {
+    if (openorigins$emojiPanel != null
+        && com.openorigins.client.util.VersionCompat.isEscape(event.key())) {
       this.removeWidget(openorigins$emojiPanel);
       openorigins$emojiPanel = null;
       cir.setReturnValue(true);
