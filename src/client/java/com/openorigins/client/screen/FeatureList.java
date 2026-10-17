@@ -751,19 +751,126 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
     }
   }
 
-  public static class FeatureEntry extends Entry {
-    private final FeatureList list;
+  /** Shared layout for rows shaped like: label left, optional group +/- glyph
+   *  in the gutter, right-aligned value toggle + reset sprite. FeatureEntry
+   *  and ToggleRow previously duplicated ~60 layout lines here. */
+  public abstract static class ToggleRowBase extends Entry {
+    protected final FeatureList list;
+    protected final Button mainButton;
+    protected final Button resetButton;
+    protected final GlyphToggleButton expandButton;
+
+    protected ToggleRowBase(FeatureList list, Button mainButton, Button resetButton,
+        GlyphToggleButton expandButton) {
+      this.list = list;
+      this.mainButton = mainButton;
+      this.resetButton = resetButton;
+      this.expandButton = expandButton;
+    }
+
+    /** Row label component (feature name or translatable key). */
+    protected abstract net.minecraft.network.chat.Component label();
+
+    /** Group +/- glyph factory shared by both row flavors. */
+    protected static GlyphToggleButton groupExpand(String group, FeatureList list) {
+      if (group == null) {
+        return null;
+      }
+      return new GlyphToggleButton(() -> {
+        EXPANDED.put(group, !isExpanded(group));
+        list.refreshEntries();
+      }, Component.translatable("config.openorigins.expand"));
+    }
+
+    /** Right-aligned reset sprite shared by both row flavors. */
+    protected static Button resetButton(FeatureList list, Runnable action) {
+      return SpriteIconButton.builder(
+          Component.translatable("config.openorigins.reset_row"), b -> {
+        action.run();
+        list.refreshEntries();
+      }, true)
+          .width(20).sprite(RESET_ICON, 8, 8).withTootip().build();
+    }
+
+    @Override
+    public void extractContent(GuiGraphicsExtractor graphics, int mouseX, int mouseY, boolean hovered,
+        float partialTick) {
+      if (this.isCollapsed()) {
+        return;
+      }
+      this.resetButton.setX(this.list.getRowRight() - this.resetButton.getWidth());
+      this.resetButton.setY(this.getContentY());
+      this.mainButton.setX(this.resetButton.getX() - 4 - this.mainButton.getWidth());
+      this.mainButton.setY(this.getContentY());
+      int labelX = this.getContentX();
+      if (this.expandButton != null) {
+        int gx = labelX - 20;
+        try {
+          int minGx = this.list.getX() + 2;
+          if (gx < minGx) {
+            labelX += minGx - gx;
+            gx = minGx;
+          }
+        } catch (Throwable ignored) {
+        }
+        this.expandButton.setX(gx);
+        this.expandButton.setY(this.getContentY());
+        this.expandButton.extractRenderState(graphics, mouseX, mouseY, partialTick);
+      }
+      this.mainButton.extractRenderState(graphics, mouseX, mouseY, partialTick);
+      this.resetButton.extractRenderState(graphics, mouseX, mouseY, partialTick);
+      net.minecraft.client.gui.Font font = net.minecraft.client.Minecraft.getInstance().font;
+      graphics.text(font, this.label(), labelX, this.getContentYMiddle() - 4, 0xFFFFFFFF);
+    }
+
+    @Override
+    public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
+      if (event.button() == com.openorigins.client.util.VersionCompat.mouseRight()
+          && this.expandButton != null && this.collapseGroup() != null) {
+        EXPANDED.put(this.collapseGroup(), !isExpanded(this.collapseGroup()));
+        this.list.refreshEntries();
+        return true;
+      }
+      return super.mouseClicked(event, doubleClick);
+    }
+
+    @Override
+    public List<? extends GuiEventListener> children() {
+      if (this.isCollapsed()) {
+        return List.of();
+      }
+      if (this.expandButton != null) {
+        return List.of(this.expandButton, this.mainButton, this.resetButton);
+      }
+      return List.of(this.mainButton, this.resetButton);
+    }
+
+    @Override
+    public List<? extends NarratableEntry> narratables() {
+      if (this.isCollapsed()) {
+        return List.of();
+      }
+      if (this.expandButton != null) {
+        return List.of(this.expandButton, this.mainButton, this.resetButton);
+      }
+      return List.of(this.mainButton, this.resetButton);
+    }
+  }
+
+  public static class FeatureEntry extends ToggleRowBase {
     private final OriginFeature feature;
     private final String group;
-    private final Button toggleButton;
-    private final Button resetButton;
-    private final GlyphToggleButton expandButton;
 
     public FeatureEntry(FeatureList list, OriginFeature feature, String group) {
-      this.list = list;
+      super(list, featureToggle(list, feature), featureReset(list, feature),
+          groupExpand(group, list));
       this.feature = feature;
       this.group = group;
-      this.toggleButton = Button.builder(Component.empty(), button -> {
+      this.refreshEntry();
+    }
+
+    private static Button featureToggle(FeatureList list, OriginFeature feature) {
+      return Button.builder(Component.empty(), button -> {
         OpenOriginsConfig config = OpenOriginsConfig.getInstance();
         config.setEnabled(feature, !config.isEnabled(feature));
         if (feature == com.openorigins.client.OriginFeature.ENHANCED_COSMETICS) {
@@ -776,27 +883,18 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
           .tooltip(net.minecraft.client.gui.components.Tooltip.create(
               featureTooltip(feature)))
           .build();
-      this.resetButton = SpriteIconButton.builder(
-          Component.translatable("config.openorigins.reset_row"), button -> {
+    }
+
+    private static Button featureReset(FeatureList list, OriginFeature feature) {
+      return resetButton(list, () -> {
         OpenOriginsConfig config = OpenOriginsConfig.getInstance();
         config.setEnabled(feature, feature.getDefaultValue());
-        list.refreshEntries();
-      }, true)
-          .width(20).sprite(RESET_ICON, 8, 8).withTootip().build();
-      if (group != null) {
-        this.expandButton = new GlyphToggleButton(() -> {
-          EXPANDED.put(group, !isExpanded(group));
-          list.refreshEntries();
-        }, Component.translatable("config.openorigins.expand"));
-      } else {
-        this.expandButton = null;
-      }
-      this.refreshEntry();
+      });
     }
 
     public void refreshEntry() {
       boolean on = OpenOriginsConfig.getInstance().isEnabled(this.feature);
-      this.toggleButton.setMessage(Component.translatable(on ? "options.on" : "options.off")
+      this.mainButton.setMessage(Component.translatable(on ? "options.on" : "options.off")
           .withStyle(on ? net.minecraft.ChatFormatting.GREEN : net.minecraft.ChatFormatting.RED));
       this.resetButton.active = on != this.feature.getDefaultValue();
       if (this.expandButton != null) {
@@ -835,64 +933,13 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
     }
 
     @Override
-    public void extractContent(GuiGraphicsExtractor graphics, int mouseX, int mouseY, boolean hovered,
-        float partialTick) {
-      this.resetButton.setX(this.list.getRowRight() - this.resetButton.getWidth());
-      this.resetButton.setY(this.getContentY());
-      this.toggleButton.setX(this.resetButton.getX() - 4 - this.toggleButton.getWidth());
-      this.toggleButton.setY(this.getContentY());
-      int labelX = this.getContentX();
-      if (this.expandButton != null) {
-        int gx = labelX - 20;
-        try {
-          int minGx = this.list.getX() + 2;
-          if (gx < minGx) {
-            labelX += minGx - gx;
-            gx = minGx;
-          }
-        } catch (Throwable ignored) {
-        }
-        this.expandButton.setX(gx);
-        this.expandButton.setY(this.getContentY());
-        this.expandButton.extractRenderState(graphics, mouseX, mouseY, partialTick);
-      }
-      this.toggleButton.extractRenderState(graphics, mouseX, mouseY, partialTick);
-      this.resetButton.extractRenderState(graphics, mouseX, mouseY, partialTick);
-      net.minecraft.client.gui.Font font = net.minecraft.client.Minecraft.getInstance().font;
-      graphics.text(font, Component.literal(this.feature.getName()), labelX,
-          this.getContentYMiddle() - 4, 0xFFFFFFFF);
-    }
-
-    @Override
-    public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
-      if (event.button() == com.openorigins.client.util.VersionCompat.mouseRight() && this.expandButton != null && this.group != null) {
-        EXPANDED.put(group, !isExpanded(group));
-        list.refreshEntries();
-        return true;
-      }
-      return super.mouseClicked(event, doubleClick);
-    }
-
-    @Override
-    public List<? extends GuiEventListener> children() {
-      if (this.expandButton != null) {
-        return List.of(this.expandButton, this.toggleButton, this.resetButton);
-      }
-      return List.of(this.toggleButton, this.resetButton);
-    }
-
-    @Override
-    public List<? extends NarratableEntry> narratables() {
-      if (this.expandButton != null) {
-        return List.of(this.expandButton, this.toggleButton, this.resetButton);
-      }
-      return List.of(this.toggleButton, this.resetButton);
+    protected Component label() {
+      return Component.literal(this.feature.getName());
     }
   }
 
   /** Label left, green/red ON/OFF toggle right. */
-  public static class ToggleRow extends Entry {
-    private final FeatureList list;
+  public static class ToggleRow extends ToggleRowBase {
     private final String labelKey;
     private final String tooltipKey;
     private final java.util.function.BooleanSupplier get;
@@ -901,9 +948,6 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
     private final java.util.function.Consumer<Boolean> set;
     private final String group;
     private final java.util.function.BooleanSupplier groupActive;
-    private final Button button;
-    private final Button resetButton;
-    private final GlyphToggleButton expandButton;
 
     public ToggleRow(FeatureList list, String labelKey, String tooltipKey,
         java.util.function.BooleanSupplier get, Runnable onPress) {
@@ -920,7 +964,8 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
         java.util.function.BooleanSupplier get, Runnable onPress,
         boolean defaultValue, java.util.function.Consumer<Boolean> set,
         String group, java.util.function.BooleanSupplier groupActive) {
-      this.list = list;
+      super(list, featureButton(labelKey, tooltipKey, get, onPress, list),
+          buildReset(list, defaultValue, set), groupExpand(group, list));
       this.labelKey = labelKey;
       this.tooltipKey = tooltipKey;
       this.get = get;
@@ -929,33 +974,28 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
       this.set = set;
       this.group = group;
       this.groupActive = groupActive;
-      this.button = Button.builder(Component.empty(), b -> {
-        this.onPress.run();
-        this.list.refreshEntries();
+      this.refreshEntry();
+    }
+
+    private static Button featureButton(String labelKey, String tooltipKey,
+        java.util.function.BooleanSupplier get, Runnable onPress, FeatureList list) {
+      return Button.builder(Component.empty(), b -> {
+        onPress.run();
+        list.refreshEntries();
       }).bounds(0, 0, 100, 20)
           .tooltip(net.minecraft.client.gui.components.Tooltip.create(
-              Component.translatable(this.tooltipKey)))
+              Component.translatable(tooltipKey)))
           .build();
-      this.resetButton = SpriteIconButton.builder(
-          Component.translatable("config.openorigins.reset_row"), b -> {
-        this.set.accept(this.defaultValue);
-        this.list.refreshEntries();
-      }, true)
-          .width(20).sprite(RESET_ICON, 8, 8).withTootip().build();
-      if (group != null) {
-        this.expandButton = new GlyphToggleButton(() -> {
-          EXPANDED.put(group, !isExpanded(group));
-          list.refreshEntries();
-        }, Component.translatable("config.openorigins.expand"));
-      } else {
-        this.expandButton = null;
-      }
-      this.refreshEntry();
+    }
+
+    private static Button buildReset(FeatureList list, boolean defaultValue,
+        java.util.function.Consumer<Boolean> set) {
+      return resetButton(list, () -> set.accept(defaultValue));
     }
 
     public void refreshEntry() {
       boolean on = this.get.getAsBoolean();
-      this.button.setMessage(Component.translatable(on ? "options.on" : "options.off")
+      this.mainButton.setMessage(Component.translatable(on ? "options.on" : "options.off")
           .withStyle(on ? net.minecraft.ChatFormatting.GREEN : net.minecraft.ChatFormatting.RED));
       this.resetButton.active = on != this.defaultValue;
       if (this.expandButton != null) {
@@ -978,67 +1018,8 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
     }
 
     @Override
-    public void extractContent(GuiGraphicsExtractor graphics, int mouseX, int mouseY, boolean hovered,
-        float partialTick) {
-      if (this.isCollapsed()) {
-        return;
-      }
-      this.resetButton.setX(this.list.getRowRight() - this.resetButton.getWidth());
-      this.resetButton.setY(this.getContentY());
-      this.button.setX(this.resetButton.getX() - 4 - this.button.getWidth());
-      this.button.setY(this.getContentY());
-      int labelX = this.getContentX();
-      if (this.expandButton != null) {
-        int gx = labelX - 20;
-        try {
-          int minGx = this.list.getX() + 2;
-          if (gx < minGx) {
-            labelX += minGx - gx;
-            gx = minGx;
-          }
-        } catch (Throwable ignored) {
-        }
-        this.expandButton.setX(gx);
-        this.expandButton.setY(this.getContentY());
-        this.expandButton.extractRenderState(graphics, mouseX, mouseY, partialTick);
-      }
-      this.button.extractRenderState(graphics, mouseX, mouseY, partialTick);
-      this.resetButton.extractRenderState(graphics, mouseX, mouseY, partialTick);
-      net.minecraft.client.gui.Font font = net.minecraft.client.Minecraft.getInstance().font;
-      graphics.text(font, Component.translatable(this.labelKey), labelX,
-          this.getContentYMiddle() - 4, 0xFFFFFFFF);
-    }
-
-    @Override
-    public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
-      if (event.button() == com.openorigins.client.util.VersionCompat.mouseRight() && this.expandButton != null && this.group != null) {
-        EXPANDED.put(group, !isExpanded(group));
-        list.refreshEntries();
-        return true;
-      }
-      return super.mouseClicked(event, doubleClick);
-    }
-
-    @Override
-    public List<? extends GuiEventListener> children() {
-      if (this.isCollapsed()) {
-        return List.of();
-      }
-      if (this.expandButton != null) {
-        return List.of(this.expandButton, this.button, this.resetButton);
-      }
-      return List.of(this.button, this.resetButton);
-    }
-
-    @Override
-    public List<? extends NarratableEntry> narratables() {
-      if (this.isCollapsed()) {
-        return List.of();
-      }
-      if (this.expandButton != null) {
-        return List.of(this.expandButton, this.button, this.resetButton);
-      }
-      return List.of(this.button, this.resetButton);
+    protected Component label() {
+      return Component.translatable(this.labelKey);
     }
   }
 
