@@ -413,7 +413,7 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
           if (feature == OriginFeature.BADGER_TASK_HUD) {
             CycleRow posRow = new CycleRow(this, "config.openorigins.position",
                 "config.openorigins.hud_position_hint", FeatureList::customizeLabel,
-                FeatureList::openPositionEditor, true,
+                FeatureList::openPositionEditor,
                 () -> {
                   OpenOriginsConfig.getInstance().setBadgerHudCorner(
                       OpenOriginsConfig.HudCorner.TOP_LEFT);
@@ -439,7 +439,7 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
             StepperRow extrapRow = new StepperRow(this, "config.openorigins.extrap_ms",
                 "config.openorigins.extrap_ms_hint", 0, 1000,
                 () -> OpenOriginsConfig.getInstance().getExtrapMs(),
-                v -> OpenOriginsConfig.getInstance().setExtrapMs(v), 150, true);
+                v -> OpenOriginsConfig.getInstance().setExtrapMs(v), 150);
             extrapRow.setCollapseGroup("extrap");
             out.add(extrapRow);
           }
@@ -471,7 +471,7 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
             "config.openorigins.scan_key_hint",
             () -> com.openorigins.client.HotkeyFeatures.isScanCaptureArmed() ? "..."
                 : com.openorigins.client.HotkeyFeatures.scanKeyName(),
-            () -> com.openorigins.client.HotkeyFeatures.beginScanCapture(), false,
+            () -> com.openorigins.client.HotkeyFeatures.beginScanCapture(),
             () -> {
               OpenOriginsConfig.getInstance().resetScanKey();
               com.openorigins.client.HotkeyFeatures.reloadScanKey();
@@ -482,7 +482,7 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
           out.add(new CycleRow(this, h.labelKey(), h.labelKey() + ".hint",
               () -> com.openorigins.client.HotkeyFeatures.isCapturing(h.mapping()) ? "..."
                   : com.openorigins.client.HotkeyFeatures.keyName(h.mapping()),
-              () -> com.openorigins.client.HotkeyFeatures.beginCapture(h.mapping()), false,
+              () -> com.openorigins.client.HotkeyFeatures.beginCapture(h.mapping()),
               () -> h.mapping().setKey(h.mapping().getDefaultKey()),
               () -> h.mapping().isDefault()));
         }
@@ -1028,7 +1028,6 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
     private final FeatureList list;
     private final String labelKey;
     private final String tooltipKey;
-    private final boolean indented;
     private final java.util.function.Supplier<String> value;
     private final Runnable cycle;
     private final Button button;
@@ -1038,17 +1037,16 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
     private java.util.function.Supplier<net.minecraft.network.chat.Component> suffix;
 
     public CycleRow(FeatureList list, String labelKey, String tooltipKey,
-        java.util.function.Supplier<String> value, Runnable cycle, boolean indented) {
-      this(list, labelKey, tooltipKey, value, cycle, indented, null, () -> true);
+        java.util.function.Supplier<String> value, Runnable cycle) {
+      this(list, labelKey, tooltipKey, value, cycle, null, () -> true);
     }
 
     public CycleRow(FeatureList list, String labelKey, String tooltipKey,
-        java.util.function.Supplier<String> value, Runnable cycle, boolean indented,
+        java.util.function.Supplier<String> value, Runnable cycle,
         Runnable reset, java.util.function.BooleanSupplier isDefault) {
       this.list = list;
       this.labelKey = labelKey;
       this.tooltipKey = tooltipKey;
-      this.indented = indented;
       this.value = value;
       this.cycle = cycle;
       this.reset = reset;
@@ -1150,20 +1148,12 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
     private final Button plusButton;
     private final int defaultValue;
     private final Button resetButton;
-    private final boolean indented;
     private net.minecraft.client.gui.components.EditBox field;
 
     public StepperRow(FeatureList list, String labelKey, String tooltipKey, int min, int max,
         java.util.function.IntSupplier get, java.util.function.IntConsumer set, int defaultValue) {
-      this(list, labelKey, tooltipKey, min, max, get, set, defaultValue, false);
-    }
-
-    public StepperRow(FeatureList list, String labelKey, String tooltipKey, int min, int max,
-        java.util.function.IntSupplier get, java.util.function.IntConsumer set, int defaultValue,
-        boolean indented) {
       this.list = list;
       this.labelKey = labelKey;
-      this.indented = indented;
       this.min = min;
       this.max = max;
       this.get = get;

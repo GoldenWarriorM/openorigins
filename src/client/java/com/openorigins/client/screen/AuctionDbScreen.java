@@ -393,10 +393,6 @@ public final class AuctionDbScreen extends Screen {
     }
   }
 
-  @Override
-  public void tick() {
-  }
-
   private static final class DbList
       extends FullRowList<Row> {
     private final AuctionDbScreen parent;

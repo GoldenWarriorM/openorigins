@@ -11,11 +11,9 @@ import net.minecraft.network.chat.Component;
 public class ConfigTabPage extends GridLayoutTab {
   private final FeatureList list;
   private final HeaderAndFooterLayout layout;
-  public final ConfigTab tab;
 
   public ConfigTabPage(ConfigTab tab, Component title, FeatureList list, HeaderAndFooterLayout layout) {
     super(title);
-    this.tab = tab;
     this.list = list;
     this.layout = layout;
   }

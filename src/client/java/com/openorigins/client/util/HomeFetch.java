@@ -1,13 +1,10 @@
 package com.openorigins.client.util;
 
-import com.openorigins.client.screen.TeleportMenuScreen;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.Supplier;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.screens.Screen;
 
 /**
  * Silent server-menu fetch for home details: opens {@code /homes}, captures
@@ -20,7 +17,6 @@ public final class HomeFetch {
   private static boolean layoutFetchTried;
   private static final Set<String> TRIED =
       Collections.newSetFromMap(new ConcurrentHashMap<>());
-  private static Supplier<Screen> returnTo = TeleportMenuScreen::new;
 
   public static void start() {
     if (!BackgroundMenu.tryArm("homes")) {
@@ -45,11 +41,6 @@ public final class HomeFetch {
   /** Makes the next ensureFresh() re-fetch even if data is brand new. */
   public static void forceRefresh() {
     lastFetchMs = 0L;
-  }
-
-  public static void start(Supplier<Screen> ret) {
-    returnTo = ret;
-    start();
   }
 
   public static boolean isArmed() {
