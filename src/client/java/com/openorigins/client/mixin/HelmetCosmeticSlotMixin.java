@@ -202,10 +202,6 @@ public abstract class HelmetCosmeticSlotMixin {
           com.openorigins.client.util.CosmeticCatalogCache.fetchWorn(
               () -> new net.minecraft.client.gui.screens.inventory.InventoryScreen(p));
         }
-        com.openorigins.client.util.DebugLog.info("[cosmetic-tip] memo {} for '{}'",
-            memo == null ? "MISS" : ("HIT size=" + memo.size()),
-            com.openorigins.client.util.CosmeticCatalogCache.normName(
-                cosmetic.getHoverName().getString()));
         java.util.List<net.minecraft.network.chat.Component> base;
         if (memo != null) {
           base = memo;

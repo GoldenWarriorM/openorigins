@@ -58,9 +58,6 @@ public abstract class ItemTooltipMixin {
     }
     ItemStack self = (ItemStack) (Object) this;
     Optional<String> key = CustomItemIds.resolve(self);
-    com.openorigins.client.util.DebugLog.info("[itemid] vanilla={} resolved={}",
-        BuiltInRegistries.ITEM.getKey(self.getItem()),
-        key.map(Object::toString).orElse("<empty>"));
     if (key.isEmpty()) {
       return;
     }

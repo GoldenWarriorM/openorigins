@@ -16,8 +16,6 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 /** Re-captures home lore when container contents arrive after opening. */
 @Mixin(ClientPacketListener.class)
 public abstract class ContainerSyncMixin {
-  private static String lastTopSig = "";
-
   private static void openorigins$recapture(String why) {
     if (com.openorigins.client.util.BackgroundMenu.isArmed()) {
       com.openorigins.client.util.BackgroundMenu.poll();
@@ -37,49 +35,11 @@ public abstract class ContainerSyncMixin {
           container.getMenu().containerId);
       com.openorigins.client.util.CosmeticCatalogCache.scan(container);
       com.openorigins.client.util.CosmeticCatalogCache.profilePoll(container);
-      try {
-        Object inv = mc.player != null ? mc.player.getInventory() : null;
-        StringBuilder sig = new StringBuilder();
-        StringBuilder dump = new StringBuilder();
-        int idx = 0;
-        for (net.minecraft.world.inventory.Slot slot : container.getMenu().slots) {
-          if (inv == null || slot.container != inv) {
-            if (slot.hasItem()) {
-              net.minecraft.world.item.ItemStack stack = slot.getItem();
-              String nm = stack.getHoverName().getString();
-              sig.append(idx).append('=').append(nm).append('x').append(stack.getCount()).append(';');
-              net.minecraft.world.item.component.ItemLore lore =
-                  stack.get(net.minecraft.core.component.DataComponents.LORE);
-              String first = "";
-              if (lore != null && !lore.lines().isEmpty()) {
-                first = lore.lines().get(0).getString();
-                if (first.length() > 50) {
-                  first = first.substring(0, 50);
-                }
-              }
-              if (dump.length() > 0) {
-                dump.append(" | ");
-              }
-              dump.append(idx).append(':').append(nm).append(" x").append(stack.getCount())
-                  .append(" [").append(first).append(']');
-            }
-          }
-          idx++;
-        }
-        String s = sig.toString();
-        if (!s.isEmpty() && !s.equals(lastTopSig)) {
-          lastTopSig = s;
-          com.openorigins.client.util.DebugLog.info("[menu-top] {}", dump);
-        }
-      } catch (Throwable ignored) {
-      }
     }
   }
 
   @Inject(method = "handleContainerContent", at = @At("TAIL"))
   private void openorigins$onContent(ClientboundContainerSetContentPacket packet, CallbackInfo ci) {
-    com.openorigins.client.util.DebugLog.info("[pkts] content window={} items={}",
-        packet.containerId(), packet.items().size());
     com.openorigins.client.util.BackgroundMenu.routeContent(
         packet.containerId(), packet.stateId(), packet.items(), packet.carriedItem());
     openorigins$recapture("content");
@@ -100,10 +60,6 @@ public abstract class ContainerSyncMixin {
 
   @Inject(method = "handleContainerSetSlot", at = @At("TAIL"))
   private void openorigins$onSlot(ClientboundContainerSetSlotPacket packet, CallbackInfo ci) {
-    if (packet.getContainerId() != 0) {
-      com.openorigins.client.util.DebugLog.info("[pkts] slot window={} slot={}",
-          packet.getContainerId(), packet.getSlot());
-    }
     com.openorigins.client.util.BackgroundMenu.routeSlot(
         packet.getContainerId(), packet.getSlot(), packet.getStateId(), packet.getItem());
     openorigins$recapture("slot");

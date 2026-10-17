@@ -5,8 +5,7 @@ import net.minecraft.client.renderer.entity.DisplayRenderer;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.entity.Display;
 import net.minecraft.world.entity.Entity;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -22,7 +21,6 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  */
 @Mixin(DisplayRenderer.ItemDisplayRenderer.class)
 public abstract class MoaFacingFixMixin {
-  private static final Logger LOG = LoggerFactory.getLogger("openorigins");
   private static final java.util.Set<Integer> loggedMounts =
       java.util.Collections.synchronizedSet(new java.util.HashSet<>());
 
@@ -81,7 +79,8 @@ public abstract class MoaFacingFixMixin {
     }
     state.entityYRot = baseYaw + 180.0f;
     if (loggedMounts.add(vehicle.getId())) {
-      LOG.info("[moa] flipping mount #{} parts 180 deg (visual only)", vehicle.getId());
+      com.openorigins.client.util.DebugLog.info(
+          "[moa] flipping mount #{} parts 180 deg (visual only)", vehicle.getId());
     }
   }
 }

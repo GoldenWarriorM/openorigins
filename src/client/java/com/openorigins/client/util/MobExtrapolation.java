@@ -324,10 +324,6 @@ public final class MobExtrapolation {
    * instead of stepping every tick. Returns null when there is nothing
    * sensible to show.
    */
-  /** TEMP: ids already reported by the applied-probe below. */
-  private static final java.util.Set<Integer> PROBED =
-      java.util.Collections.newSetFromMap(new java.util.concurrent.ConcurrentHashMap<>());
-
   public static double[] renderOffset(Entity e) {
     try {
       net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
@@ -340,23 +336,6 @@ public final class MobExtrapolation {
       if (t == null) {
         APPLIED.remove(e.getId());
         return null;
-      }
-      // TEMP: what is actually being shifted on screen.
-      if (PROBED.add(e.getId())) {
-        try {
-          String type = net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE
-              .getKey(e.getType()).toString();
-          String key = "-";
-          if (e instanceof net.minecraft.world.entity.Display.ItemDisplay d) {
-            try {
-              key = displayKey(d.getSlot(0).get());
-            } catch (Throwable ignored) {
-            }
-          }
-          com.openorigins.client.util.DebugLog.info("[extrap] +apply id={} type={} key={}",
-              e.getId(), type, key);
-        } catch (Throwable ignored) {
-        }
       }
       double tLen2 = t[0] * t[0] + t[1] * t[1] + t[2] * t[2];
       long nowMs = System.currentTimeMillis();
