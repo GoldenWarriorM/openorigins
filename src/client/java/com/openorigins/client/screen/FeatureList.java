@@ -479,7 +479,7 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
             () -> OpenOriginsConfig.getInstance().isScanKeyDefault()));
         for (com.openorigins.client.HotkeyFeatures.Hotkey h
             : com.openorigins.client.HotkeyFeatures.debugHotkeys()) {
-          out.add(new CycleRow(this, h.labelKey(), h.labelKey(),
+          out.add(new CycleRow(this, h.labelKey(), h.labelKey() + ".hint",
               () -> com.openorigins.client.HotkeyFeatures.isCapturing(h.mapping()) ? "..."
                   : com.openorigins.client.HotkeyFeatures.keyName(h.mapping()),
               () -> com.openorigins.client.HotkeyFeatures.beginCapture(h.mapping()), false,

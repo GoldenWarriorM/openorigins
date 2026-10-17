@@ -56,7 +56,7 @@ public final class AuctionDbScreen extends Screen {
             refresh();
           }).bounds(sideX, y, 100, 20)
               .tooltip(net.minecraft.client.gui.components.Tooltip.create(
-                  Component.literal(rr)))
+                  Component.translatable("menu.openorigins.ahdb.rarity", rr)))
               .build();
       y += 22;
       this.rarityButtons.add(b);
