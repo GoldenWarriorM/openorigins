@@ -173,25 +173,17 @@ public final class CosmeticCatalogCache {
       profileArmed = false;
       return false;
     }
-    boolean found = false;
+    boolean[] found = {false};
     try {
-      Object inv = m.player != null ? m.player.getInventory() : null;
-      for (Slot slot : menu.slots) {
-        if (!slot.hasItem()) {
-          continue;
-        }
-        if (inv != null && slot.container == inv) {
-          continue;
-        }
-        ItemStack stack = slot.getItem();
+      MenuLore.forEachTop(menu, (idx, stack) -> {
         if (PROFILE_TARGETS.contains(normName(stack.getHoverName().getString()))) {
           putClean(stack);
-          found = true;
+          found[0] = true;
         }
-      }
+      });
     } catch (Throwable ignored) {
     }
-    return found;
+    return found[0];
   }
 
   public static void profilePoll(AbstractContainerScreen<?> screen) {
@@ -243,20 +235,11 @@ public final class CosmeticCatalogCache {
   }
 
   private static void scanMenu0(net.minecraft.world.inventory.AbstractContainerMenu menu) {
-    Minecraft mc = Minecraft.getInstance();
-    Object playerInv = (mc != null && mc.player != null) ? mc.player.getInventory() : null;
-    boolean changed = false;
-    for (Slot slot : menu.slots) {
-      if (!slot.hasItem()) {
-        continue;
-      }
-      if (playerInv != null && slot.container == playerInv) {
-        continue;
-      }
-      ItemStack stack = slot.getItem();
+    final boolean[] changed = {false};
+    MenuLore.forEachTop(menu, (idx, stack) -> {
       ItemLore lore = stack.get(DataComponents.LORE);
       if (lore == null || lore.lines().isEmpty() || isMarketLore(stack)) {
-        continue;
+        return;
       }
       boolean catalog = false;
       for (Component line : lore.lines()) {
@@ -267,11 +250,11 @@ public final class CosmeticCatalogCache {
         }
       }
       if (!catalog) {
-        continue;
+        return;
       }
       String key = normName(stack.getHoverName().getString());
       if (key.isEmpty()) {
-        continue;
+        return;
       }
       List<Component> full = new java.util.ArrayList<>(lore.lines());
       full.add(0, stack.getHoverName().copy());
@@ -279,13 +262,12 @@ public final class CosmeticCatalogCache {
       List<Component> prev = CLEAN.get(key);
       if (prev == null || !sameText(prev, full)) {
         CLEAN.put(key, List.copyOf(full));
-        changed = true;
+        changed[0] = true;
       }
-    }
-    if (changed) {
+    });
+    if (changed[0]) {
       flushSave();
     }
-  
   }
 
 

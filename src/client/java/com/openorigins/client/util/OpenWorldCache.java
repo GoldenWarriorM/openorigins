@@ -344,22 +344,11 @@ public final class OpenWorldCache {
   }
 
   private static int scanMenu0(net.minecraft.world.inventory.AbstractContainerMenu menu) {
-    Minecraft mc = Minecraft.getInstance();
-    Object playerInv = (mc != null && mc.player != null) ? mc.player.getInventory() : null;
-    int found = 0;
-    List<Slot> slots = menu.slots;
-    for (int si = 0; si < slots.size(); si++) {
-      Slot slot = slots.get(si);
-      if (!slot.hasItem()) {
-        continue;
-      }
-      if (playerInv != null && slot.container == playerInv) {
-        continue;
-      }
-      ItemStack stack = slot.getItem();
+    int[] found = {0};
+    MenuLore.forEachTop(menu, (si, stack) -> {
       ItemLore lore = stack.get(DataComponents.LORE);
       if (lore == null || lore.lines().isEmpty()) {
-        continue;
+        return;
       }
       String name = stack.getHoverName().getString();
       String resetLine = null;
@@ -371,11 +360,11 @@ public final class OpenWorldCache {
         }
       }
       if (resetLine == null) {
-        continue;
+        return;
       }
       String color = colorOf(name, lore.lines());
       if (color == null) {
-        continue;
+        return;
       }
       if (!name.isBlank() && !NAMES.getOrDefault(color, "").equals(name)) {
         NAMES.put(color, name);
@@ -384,11 +373,11 @@ public final class OpenWorldCache {
       long now = System.currentTimeMillis();
       Long known = RESET_AT.get(color);
       if (known != null && known > now) {
-        continue;
+        return;
       }
       long dur = parseDurationMillis(resetLine);
       if (dur <= 0) {
-        continue;
+        return;
       }
       long at = now + dur;
       RESET_AT.put(color, at);
@@ -405,10 +394,9 @@ public final class OpenWorldCache {
       com.openorigins.client.util.DebugLog.info(
           "[openworld] {} reset at {} (in '{}', item '{}', lore: {})",
           color, new java.util.Date(at), resetLine, name, all);
-      found++;
-    }
-    return found;
-
+      found[0]++;
+    });
+    return found[0];
   }
 
 

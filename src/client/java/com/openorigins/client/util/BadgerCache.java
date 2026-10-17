@@ -13,7 +13,6 @@ import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.chat.Component;
@@ -185,40 +184,29 @@ public final class BadgerCache {
   }
 
   private static void scanMenu0(net.minecraft.world.inventory.AbstractContainerMenu menu) {
-    Minecraft mc = Minecraft.getInstance();
-    Object playerInv = (mc != null && mc.player != null) ? mc.player.getInventory() : null;
-    List<Required> req = new ArrayList<>();
-    List<Tier> tiers = new ArrayList<>();
-    int score = -1;
-    int high = -1;
-    int days = -1;
-    String timeLeft = null;
-    int delivered = 0;
-    for (Slot slot : menu.slots) {
-      if (!slot.hasItem()) {
-        continue;
-      }
-      if (playerInv != null && slot.container == playerInv) {
-        continue;
-      }
-      ItemStack stack = slot.getItem();
+    final List<Required> req = new ArrayList<>();
+    final List<Tier> tiers = new ArrayList<>();
+    // Lambda captures need holders: score (0), high (1), days (2), delivered (3).
+    final int[] counters = new int[4];
+    final String[] timeLeftRef = {null};
+    MenuLore.forEachTop(menu, (idx, stack) -> {
       String name = stack.getHoverName().getString();
       ItemLore lore = stack.get(DataComponents.LORE);
       List<Component> lines = lore == null ? List.of() : lore.lines();
       String lower = name.toLowerCase(Locale.ROOT);
       if (lower.equals("delivered!")) {
-        delivered++;
+        counters[3]++;
       }
       Matcher m = SCORE.matcher(lower);
       if (m.find()) {
-        score = Integer.parseInt(m.group(1));
+        counters[0] = Integer.parseInt(m.group(1));
       }
       Matcher d = DAYS.matcher(lower);
       if (d.find()) {
-        days = Integer.parseInt(d.group(1));
+        counters[2] = Integer.parseInt(d.group(1));
       }
       if (lower.startsWith("time left:")) {
-        timeLeft = name.substring(Math.min(name.length(), "time left:".length())).trim();
+        timeLeftRef[0] = name.substring(Math.min(name.length(), "time left:".length())).trim();
       }
       if (lower.contains("go to badger to accept") && !lines.isEmpty()) {
         Matcher t = TIER.matcher(lines.get(0).getString());
@@ -231,7 +219,7 @@ public final class BadgerCache {
         String s = line.getString().toLowerCase(Locale.ROOT);
         Matcher h = HIGH.matcher(s);
         if (h.find()) {
-          high = Integer.parseInt(h.group(1));
+          counters[1] = Integer.parseInt(h.group(1));
         }
       }
       if ((lines.isEmpty() || CustomItemIds.resolve(stack).isPresent()) && req.size() < 6) {
@@ -249,7 +237,12 @@ public final class BadgerCache {
           }
         }
       }
-    }
+    });
+    int score = counters[0];
+    int high = counters[1];
+    int days = counters[2];
+    int delivered = counters[3];
+    String timeLeft = timeLeftRef[0];
     if (score < 0) {
       return;
     }

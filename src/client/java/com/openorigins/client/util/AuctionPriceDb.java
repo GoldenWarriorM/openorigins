@@ -303,27 +303,16 @@ public final class AuctionPriceDb {
         .isEnabled(com.openorigins.client.OriginFeature.AH_PRICE_DB)) {
       return 0;
     }
-    net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
-    Object playerInv = (mc != null && mc.player != null) ? mc.player.getInventory() : null;
     long now = System.currentTimeMillis();
-    int n = 0;
-    int idx = 0;
-    for (Slot slot : menu.slots) {
-      idx++;
+    int[] n = {0};
+    MenuLore.forEachTop(menu, (idx, stack) -> {
       try {
-        if (!slot.hasItem()) {
-          continue;
-        }
-        if (playerInv != null && slot.container == playerInv) {
-          continue;
-        }
-        ItemStack stack = slot.getItem();
         if (stack.getCount() <= 0) {
-          continue;
+          return;
         }
         ItemLore lore = stack.get(DataComponents.LORE);
         if (lore == null || lore.lines().isEmpty()) {
-          continue;
+          return;
         }
         Double total = null;
         String seller = null;
@@ -344,7 +333,7 @@ public final class AuctionPriceDb {
           }
         }
         if (total == null || total <= 0 || seller == null) {
-          continue;
+          return;
         }
         long endsAt = parseEndsAt(loreLines, now);
         String hoverName = stack.getHoverName().getString();
@@ -356,14 +345,14 @@ public final class AuctionPriceDb {
         // listing end within tolerance (display minutes shift as time passes,
         // the true end doesn't). Page moves and re-opens can't duplicate.
         if (isSameLot(key, unit, stack.getCount(), seller, endsAt)) {
-          continue;
+          return;
         }
         String row = key + "|" + total + "|" + stack.getCount()
             + "|" + seller.toLowerCase(Locale.ROOT);
         Long last = SEEN.get(row);
         // No end to compare (or first sighting): re-observation window only.
         if (last != null && now - last < REOBSERVE_MS) {
-          continue;
+          return;
         }
         SEEN.put(row, now);
         record(key, hoverName, vanillaId(stack), unit, seller, now,
@@ -385,16 +374,16 @@ public final class AuctionPriceDb {
           }
         } catch (Throwable ignored) {
         }
-        n++;
+        n[0]++;
       } catch (Throwable ignored) {
       }
-    }
-    if (n > 0) {
+    });
+    if (n[0] > 0) {
       scheduleSave();
-      DebugLog.info("[ahdb] +{} listings ({} items tracked)", n, ITEMS.size());
+      DebugLog.info("[ahdb] +{} listings ({} items tracked)", n[0], ITEMS.size());
     }
     flushIfDue();
-    return n;
+    return n[0];
   }
 
   private static String itemKey(ItemStack stack) {
