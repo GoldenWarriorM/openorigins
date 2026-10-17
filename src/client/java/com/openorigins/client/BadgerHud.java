@@ -16,19 +16,32 @@ import net.minecraft.world.item.ItemStack;
 public final class BadgerHud implements net.fabricmc.fabric.api.client.rendering.v1.hud.HudElement {
   public static final Identifier ID = Identifier.fromNamespaceAndPath("openorigins", "badger_task");
 
-  public record Row(ItemStack icon, String text, int color) {}
+  public record Row(ItemStack icon, Component text, int color) {}
 
   /** Placeholder layout for the position editor when no task data exists. */
   public static List<Row> sampleRows() {
     List<Row> rows = new ArrayList<>();
-    rows.add(new Row(null, "Badger Task (streak 13)", 0xFFFFFFFF));
-    rows.add(new Row(null, "Red Mushroom 0/2", 0xFFFFFFFF));
-    rows.add(new Row(null, "Coal 0/10", 0xFFFFFFFF));
-    rows.add(new Row(null, "Lapis Lazuli 0/6", 0xFFFFFFFF));
-    rows.add(new Row(null, "Basic: (2/5)", 0xFFFFFFFF));
-    rows.add(new Row(null, "Time left: 7h 56m", 0xFFAAAAAA));
-    rows.add(new Row(null, "Streak resets in 6d", 0xFFAAAAAA));
+    rows.add(new Row(null, Component.literal("Badger Task (streak 13)"), 0xFFFFFFFF));
+    rows.add(new Row(null, Component.literal("Red Mushroom 0/2"), 0xFFFFFFFF));
+    rows.add(new Row(null, Component.literal("Coal 0/10"), 0xFFFFFFFF));
+    rows.add(new Row(null, Component.literal("Lapis Lazuli 0/6"), 0xFFFFFFFF));
+    rows.add(new Row(null, styledRow("Basic", "(2/5)"), 0xFFFFFFFF));
+    rows.add(new Row(null, Component.translatable("hud.openorigins.badger_timeleft",
+        styledValue("7h 56m")), 0xFFAAAAAA));
+    rows.add(new Row(null, Component.translatable("hud.openorigins.badger_reset", "6"),
+        0xFFAAAAAA));
     return rows;
+  }
+
+  /** Category label gray, live value white — stage and timer rows. */
+  static Component styledRow(String label, String value) {
+    return Component.literal(label + ": ").withStyle(net.minecraft.ChatFormatting.GRAY)
+        .append(Component.literal(value).withStyle(net.minecraft.ChatFormatting.WHITE));
+  }
+
+  /** Value part of a translatable "X: %s" row. */
+  static Component styledValue(String value) {
+    return Component.literal(value).withStyle(net.minecraft.ChatFormatting.WHITE);
   }
 
   /** True while the position editor is open (live HUD stays out of the way). */
@@ -56,7 +69,7 @@ public final class BadgerHud implements net.fabricmc.fabric.api.client.rendering
       return rows;
     }
     rows.add(new Row(null, Component.translatable("hud.openorigins.badger_task",
-        BadgerCache.streakScore()).getString(), 0xFFFFFFFF));
+        BadgerCache.streakScore()), 0xFFFFFFFF));
     for (BadgerCache.Required r : req) {
       ItemStack stack = BadgerCache.iconFor(r);
       if (stack.isEmpty()) {
@@ -65,23 +78,30 @@ public final class BadgerHud implements net.fabricmc.fabric.api.client.rendering
       int have = countInInventory(mc, r);
       boolean done = have >= r.count();
       String labelName = r.displayName().isEmpty() ? stack.getHoverName().getString() : r.displayName();
-      rows.add(new Row(stack, labelName + " " + have + "/" + r.count(),
+      rows.add(new Row(stack,
+          Component.literal(labelName + " " + have + "/" + r.count()),
           done ? 0xFF84BA4A : 0xFFFFFFFF));
     }
-    // Quest stage the player is on, e.g. "Basic: (2/5)" — matches the menu.
+    // Quest stage the player is on, e.g. "Basic: (2/5)" — label gray, value white.
     for (BadgerCache.Tier t : BadgerCache.tiers()) {
-      rows.add(new Row(null, t.name() + ": (" + t.done() + "/" + t.total() + ")",
-          t.done() >= t.total() ? 0xFF84BA4A : 0xFFFFFFFF));
+      String value = "(" + t.done() + "/" + t.total() + ")";
+      Component text = styledRow(t.name(), value);
+      if (t.done() >= t.total()) {
+        text = Component.literal(t.name() + ": ")
+            .withStyle(net.minecraft.ChatFormatting.GRAY)
+            .append(Component.literal(value).withStyle(net.minecraft.ChatFormatting.GREEN));
+      }
+      rows.add(new Row(null, text, 0xFFFFFFFF));
     }
     if (BadgerCache.daysUntilReset() > 0) {
       rows.add(new Row(null, Component.translatable("hud.openorigins.badger_reset",
-          BadgerCache.daysUntilReset()).getString(), 0xFFAAAAAA));
+          BadgerCache.daysUntilReset()), 0xFFAAAAAA));
     }
     if (!BadgerCache.taskTimeLeft().isEmpty()) {
       rows.add(rows.size() - (BadgerCache.daysUntilReset() > 0 ? 1 : 0),
           new Row(null, Component.translatable("hud.openorigins.badger_timeleft",
-              com.openorigins.client.util.OpenWorldCache.shortDuration(
-                  BadgerCache.taskTimeLeft())).getString(), 0xFFAAAAAA));
+              styledValue(com.openorigins.client.util.OpenWorldCache.shortDuration(
+                  BadgerCache.taskTimeLeft()))), 0xFFAAAAAA));
     }
     return rows;
   }
