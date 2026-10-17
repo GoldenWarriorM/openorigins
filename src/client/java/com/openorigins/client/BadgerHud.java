@@ -33,7 +33,22 @@ public final class BadgerHud implements net.fabricmc.fabric.api.client.rendering
   /** True while the position editor is open (live HUD stays out of the way). */
   public static boolean previewActive;
 
+  /** HUD is rebuilt at most 4×/s; buildRows allocates instead of per-frame. */
+  private static List<Row> cachedRows = List.of();
+  private static long cachedRowsAt;
+
   public static List<Row> buildRows(Minecraft mc, Font font) {
+    long now = System.currentTimeMillis();
+    if (now - cachedRowsAt < 250) {
+      return cachedRows;
+    }
+    List<Row> rows = buildRows0(mc, font);
+    cachedRowsAt = now;
+    cachedRows = rows;
+    return rows;
+  }
+
+  private static List<Row> buildRows0(Minecraft mc, Font font) {
     List<Row> rows = new ArrayList<>();
     List<BadgerCache.Required> req = BadgerCache.required();
     if (req.isEmpty()) {
@@ -103,9 +118,12 @@ public final class BadgerHud implements net.fabricmc.fabric.api.client.rendering
 
   public static void drawBox(GuiGraphicsExtractor graphics, Font font, List<Row> rows, int x,
       int y, boolean backdrop) {
+    drawBox(graphics, font, rows, x, y, backdrop, maxWidth(font, rows), totalHeight(rows));
+  }
+
+  public static void drawBox(GuiGraphicsExtractor graphics, Font font, List<Row> rows, int x,
+      int y, boolean backdrop, int maxW, int totalH) {
     if (backdrop) {
-      int maxW = maxWidth(font, rows);
-      int totalH = totalHeight(rows);
       int pad = 3;
       int cut = 1;
       int bx0 = x - pad;
@@ -167,7 +185,8 @@ public final class BadgerHud implements net.fabricmc.fabric.api.client.rendering
       } catch (Throwable ignored) {
       }
     }
-    drawBox(graphics, font, rows, x, y, OpenOriginsConfig.getInstance().isBadgerHudBackdrop());
+    drawBox(graphics, font, rows, x, y, OpenOriginsConfig.getInstance().isBadgerHudBackdrop(),
+        maxW, totalH);
   }
 
   private static int countInInventory(Minecraft mc, BadgerCache.Required r) {
