@@ -30,8 +30,12 @@ public final class HomeCreationConfirm {
   private static final java.util.Set<String> BLOCKED =
       java.util.Collections.newSetFromMap(new java.util.concurrent.ConcurrentHashMap<>());
 
+  /** Single home-name identity: same key the cache uses. Blocking/fresh
+   *  markers previously keyed by a milder normalizer, so a blocked name
+   *  ("my home") could fail to match the cache entry ("My_Home"->"myhome")
+   *  and reappear. */
   private static String norm(String name) {
-    return name == null ? "" : name.strip().toLowerCase(java.util.Locale.ROOT);
+    return HomeInfoCache.key(name);
   }
 
   /** Names the server disowned: never display until it confirms them. */
