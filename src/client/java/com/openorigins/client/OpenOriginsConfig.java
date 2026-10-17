@@ -218,6 +218,7 @@ public final class OpenOriginsConfig {
       }
     }
     save();
+    ConnectionUtil.invalidateServerCache();
   }
 
   public synchronized boolean addServer(String raw) {
@@ -227,6 +228,7 @@ public final class OpenOriginsConfig {
     }
     servers.add(norm);
     save();
+    ConnectionUtil.invalidateServerCache();
     return true;
   }
 
@@ -260,6 +262,7 @@ public final class OpenOriginsConfig {
   public synchronized void removeServer(String raw) {
     if (servers.remove(normalizeServerId(raw))) {
       save();
+      ConnectionUtil.invalidateServerCache();
     }
   }
 
@@ -425,6 +428,7 @@ public final class OpenOriginsConfig {
     scanKeyValue = -1;
     servers.clear();
     servers.addAll(DEFAULT_SERVERS);
+    ConnectionUtil.invalidateServerCache();
     useHandshake = true;
     titleJoinButton = true;
     pauseConfigButton = true;

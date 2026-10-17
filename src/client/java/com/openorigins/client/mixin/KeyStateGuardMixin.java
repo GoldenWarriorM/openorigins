@@ -20,13 +20,27 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 public abstract class KeyStateGuardMixin {
   private static final Set<Integer> LOGGED =
       Collections.newSetFromMap(new ConcurrentHashMap<>());
+  /** SDL key-state fetcher resolved once; can't consult on 26.2 (no SDL). */
+  private static volatile java.lang.reflect.Method sdlState;
+
+  private static java.lang.reflect.Method sdlState() {
+    java.lang.reflect.Method m = sdlState;
+    if (m == null) {
+      try {
+        m = Class.forName("org.lwjgl.sdl.SDLKeyboard").getMethod("SDL_GetKeyboardState");
+        sdlState = m;
+      } catch (Throwable t) {
+        throw new IllegalStateException(t);
+      }
+    }
+    return m;
+  }
 
   @Inject(method = "isKeyDown(I)Z", at = @At("HEAD"), cancellable = true, require = 0)
   private static void openorigins$guardKeyState(int code, CallbackInfoReturnable<Boolean> cir) {
     ByteBuffer buf;
     try {
-      Class<?> sdl = Class.forName("org.lwjgl.sdl.SDLKeyboard");
-      buf = (ByteBuffer) sdl.getMethod("SDL_GetKeyboardState").invoke(null);
+      buf = (ByteBuffer) sdlState().invoke(null);
     } catch (Throwable t) {
       return;
     }

@@ -72,11 +72,27 @@ public final class VersionCompat {
       return makeKey(code);
     }
     try {
-      Object scancode = InputConstants.Type.valueOf("SCANCODE");
+      Object scancode = scanCodeType();
       return (InputConstants.Key) getOrCreateMethod().invoke(scancode, code);
     } catch (Throwable t) {
       return InputConstants.UNKNOWN;
     }
+  }
+
+  private static volatile Object scanCodeType;
+
+  private static Object scanCodeType() {
+    Object t = scanCodeType;
+    if (t == null) {
+      synchronized (VersionCompat.class) {
+        t = scanCodeType;
+        if (t == null) {
+          t = InputConstants.Type.valueOf("SCANCODE");
+          scanCodeType = t;
+        }
+      }
+    }
+    return t;
   }
 
   /** Keyboard type object for persistence (MOUSE is referenced directly). */
@@ -110,14 +126,25 @@ public final class VersionCompat {
     }
   }
 
+  private static volatile java.lang.reflect.Field mappingKeyField;
+
   /** Key object behind a KeyMapping via its protected field (no getter on 26.2). */
   public static InputConstants.Key mappingKey(net.minecraft.client.KeyMapping mapping) {
     if (mapping == null) {
       return null;
     }
     try {
-      java.lang.reflect.Field f = net.minecraft.client.KeyMapping.class.getDeclaredField("key");
-      f.setAccessible(true);
+      java.lang.reflect.Field f = mappingKeyField;
+      if (f == null) {
+        synchronized (VersionCompat.class) {
+          f = mappingKeyField;
+          if (f == null) {
+            f = net.minecraft.client.KeyMapping.class.getDeclaredField("key");
+            f.setAccessible(true);
+            mappingKeyField = f;
+          }
+        }
+      }
       Object k = f.get(mapping);
       return k instanceof InputConstants.Key key ? key : null;
     } catch (Throwable t) {
@@ -143,24 +170,17 @@ public final class VersionCompat {
 
   /** Version-correct InputConstants int (key/mouse codes differ: GLFW vs SDL). */
   public static int inputCode(String field) {
-    Integer cached;
-    synchronized (VersionCompat.class) {
-      cached = codeCache.get(field);
-      if (cached == null) {
-        int v = -1;
-        try {
-          v = InputConstants.class.getField(field).getInt(null);
-        } catch (Throwable ignored) {
-        }
-        cached = v;
-        codeCache.put(field, v);
+    return codeCache.computeIfAbsent(field, f -> {
+      try {
+        return InputConstants.class.getField(f).getInt(null);
+      } catch (Throwable ignored) {
+        return -1;
       }
-    }
-    return cached;
+    });
   }
 
   private static final java.util.Map<String, Integer> codeCache =
-      new java.util.HashMap<>();
+      new java.util.concurrent.ConcurrentHashMap<>();
 
   public static int mouseLeft() {
     return inputCode("MOUSE_BUTTON_LEFT");
