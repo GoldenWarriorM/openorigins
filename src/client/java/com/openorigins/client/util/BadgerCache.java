@@ -231,7 +231,9 @@ public final class BadgerCache {
       }
       if (lower.contains("go to badger to accept") && !lines.isEmpty()) {
         Matcher t = TIER.matcher(lines.get(0).getString());
-        if (t.find()) {
+        if (t.find() && tiers.stream().noneMatch(x ->
+            x.name().equals(t.group(1).trim()))) {
+          // Several quest items repeat the current stage line; keep one.
           tiers.add(new Tier(t.group(1).trim(),
               Integer.parseInt(t.group(2)), Integer.parseInt(t.group(3))));
         }
