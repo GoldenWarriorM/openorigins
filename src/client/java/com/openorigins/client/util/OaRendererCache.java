@@ -22,11 +22,9 @@ public final class OaRendererCache {
         return null;
       }
       EntityRenderer<?, ?> hit = CACHE.get(e);
-      if (hit != null && isCrossWired(e, hit)) {
+      if (hit != null && !sane(e, hit)) {
         CACHE.remove(e);
-        com.openorigins.client.util.DebugLog.info(
-            "[oacache] dropped cross-wired renderer {} for {}#{}",
-            hit.getClass().getName(), e.getType(), e.getId());
+        noteMispair(e, hit);
         return null;
       }
       return hit;
@@ -36,20 +34,40 @@ public final class OaRendererCache {
   }
 
   /**
-   * Tripwire for the ItemFrame/Display crash: a display renderer must never
-   * serve a non-display entity and vice versa. On mismatch the entry is
-   * dropped so the dispatcher resolves fresh.
+   * Family sanity for the intermittent cross-wired renderer table (crash
+   * family: Interaction rendered by ItemFrameRenderer, ItemFrame by Display/
+   * LivingEntity renderers). A renderer must serve its own entity family —
+   * otherwise the typed cast inside extract/culling throws CCE. The MARKER
+   * NoopRenderer is the safe fallback: nothing draws, nothing casts.
    */
-  private static boolean isCrossWired(Entity e, EntityRenderer<?, ?> r) {
-    try {
-      boolean entityIsDisplay = e instanceof net.minecraft.world.entity.Display;
-      boolean rendererIsDisplay =
-          r.getClass().getName().contains("DisplayRenderer");
-      return entityIsDisplay != rendererIsDisplay;
-    } catch (Throwable t) {
-      return false;
+  public static boolean sane(Entity e, EntityRenderer<?, ?> r) {
+    if (e instanceof net.minecraft.world.entity.decoration.ItemFrame) {
+      return r instanceof net.minecraft.client.renderer.entity.ItemFrameRenderer;
     }
+    boolean display = e instanceof net.minecraft.world.entity.Display;
+    boolean living = e instanceof net.minecraft.world.entity.LivingEntity;
+    if (r instanceof net.minecraft.client.renderer.entity.DisplayRenderer) {
+      return display;
+    }
+    if (r instanceof net.minecraft.client.renderer.entity.LivingEntityRenderer) {
+      return living;
+    }
+    return true;
   }
+
+  /** Rate-limited mispair logging (one line per second max). */
+  public static synchronized void noteMispair(Entity e, EntityRenderer<?, ?> r) {
+    long now = System.currentTimeMillis();
+    if (now - lastMispairLog < 1000L) {
+      return;
+    }
+    lastMispairLog = now;
+    com.openorigins.client.util.DebugLog.warn(
+        "[oacache] mispaired renderer {} for {}#{}, replaced/dropped",
+        r.getClass().getName(), e.getType(), e.getId());
+  }
+
+  private static volatile long lastMispairLog;
 
   public static synchronized void put(Entity e, EntityRenderer<?, ?> r) {
     try {
