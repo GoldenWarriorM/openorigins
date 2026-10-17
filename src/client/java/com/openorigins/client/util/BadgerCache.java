@@ -54,6 +54,11 @@ public final class BadgerCache {
     return List.copyOf(REQUIRED);
   }
 
+  /** Quest stages parsed from the streaks menu, e.g. Basic (2/5). */
+  public static List<Tier> tiers() {
+    return List.copyOf(TIERS);
+  }
+
   /** Server-menu captions that leaked into REQUIRED before the sentinel
    *  fix; never legitimate badger task items. */
   private static boolean isMenuJunk(String name) {

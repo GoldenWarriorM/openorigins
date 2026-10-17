@@ -25,6 +25,7 @@ public final class BadgerHud implements net.fabricmc.fabric.api.client.rendering
     rows.add(new Row(null, "Red Mushroom 0/2", 0xFFFFFFFF));
     rows.add(new Row(null, "Coal 0/10", 0xFFFFFFFF));
     rows.add(new Row(null, "Lapis Lazuli 0/6", 0xFFFFFFFF));
+    rows.add(new Row(null, "Basic: (2/5)", 0xFFFFFFFF));
     rows.add(new Row(null, "Time left: 7h 56m", 0xFFAAAAAA));
     rows.add(new Row(null, "Streak resets in 6d", 0xFFAAAAAA));
     return rows;
@@ -66,6 +67,11 @@ public final class BadgerHud implements net.fabricmc.fabric.api.client.rendering
       String labelName = r.displayName().isEmpty() ? stack.getHoverName().getString() : r.displayName();
       rows.add(new Row(stack, labelName + " " + have + "/" + r.count(),
           done ? 0xFF84BA4A : 0xFFFFFFFF));
+    }
+    // Quest stage the player is on, e.g. "Basic: (2/5)" — matches the menu.
+    for (BadgerCache.Tier t : BadgerCache.tiers()) {
+      rows.add(new Row(null, t.name() + ": (" + t.done() + "/" + t.total() + ")",
+          t.done() >= t.total() ? 0xFF84BA4A : 0xFFFFFFFF));
     }
     if (BadgerCache.daysUntilReset() > 0) {
       rows.add(new Row(null, Component.translatable("hud.openorigins.badger_reset",
