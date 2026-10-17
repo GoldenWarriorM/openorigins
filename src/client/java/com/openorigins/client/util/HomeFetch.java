@@ -42,6 +42,11 @@ public final class HomeFetch {
     }
   }
 
+  /** Makes the next ensureFresh() re-fetch even if data is brand new. */
+  public static void forceRefresh() {
+    lastFetchMs = 0L;
+  }
+
   public static void start(Supplier<Screen> ret) {
     returnTo = ret;
     start();

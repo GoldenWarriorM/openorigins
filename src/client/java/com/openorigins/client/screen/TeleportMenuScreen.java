@@ -116,6 +116,16 @@ public class TeleportMenuScreen extends Screen implements HomePanelHost {
     }
     this.buildAll();
     HomeFetch.ensureFresh();
+    // Audit 38: arm the retry clock when the panel is empty, so a failed or
+    // lag-swallowed silent fetch retries itself instead of leaving the
+    // placeholder grid until a manual reopen. Capped to avoid loops.
+    if (HomeInfoCache.names().isEmpty()) {
+      if (this.retries < 3) {
+        this.retryAt = System.currentTimeMillis() + 5000L;
+      }
+    } else {
+      this.retries = 0;
+    }
   }
 
   @Override
@@ -157,7 +167,9 @@ public class TeleportMenuScreen extends Screen implements HomePanelHost {
     super.tick();
     if (this.retryAt > 0 && System.currentTimeMillis() >= this.retryAt) {
       this.retryAt = 0;
+      this.retries++;
       this.homes = null;
+      HomeFetch.forceRefresh();
       this.init();
     }
   }
