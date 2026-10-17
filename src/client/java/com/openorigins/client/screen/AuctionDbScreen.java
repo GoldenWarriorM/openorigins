@@ -114,7 +114,26 @@ public final class AuctionDbScreen extends Screen {
         }
       }
     }
+    // Restore scroll points across re-init (window resize).
+    if (this.savedScrolls != null) {
+      this.list.setScrollAmount(this.savedScrolls[0]);
+      this.detailList.setScrollAmount(this.savedScrolls[1]);
+      this.exclList.setScrollAmount(this.savedScrolls[2]);
+      this.savedScrolls = null;
+    }
   }
+
+  @Override
+  public void resize(int width, int height) {
+    this.savedScrolls = new double[] {
+        this.list == null ? 0 : this.list.scrollAmount(),
+        this.detailList == null ? 0 : this.detailList.scrollAmount(),
+        this.exclList == null ? 0 : this.exclList.scrollAmount(),
+    };
+    super.resize(width, height);
+  }
+
+  private double[] savedScrolls;
 
   private void refreshRarityButtons() {
     java.util.Map<String, Integer> counts = new java.util.HashMap<>();

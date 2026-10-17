@@ -18,6 +18,7 @@ public class SetHomeScreen extends Screen {
   private static volatile SetHomeScreen active;
 
   private EditBox nameBox;
+  private String draft;
   private boolean waiting;
   private long sentAt;
   private Component status;
@@ -46,11 +47,16 @@ public class SetHomeScreen extends Screen {
     this.nameBox = new EditBox(this.font, cx - 100, this.height / 2 - 10, 200, 20,
         Component.translatable("menu.openorigins.sethome.title"));
     this.nameBox.setMaxLength(32);
+    if (this.draft != null) {
+      // Survives re-init on window resize.
+      this.nameBox.setValue(this.draft);
+    }
     this.nameBox.setResponder(s -> {
       String filtered = s.replaceAll("[^a-zA-Z0-9_]", "");
       if (!filtered.equals(s)) {
         this.nameBox.setValue(filtered);
       }
+      this.draft = this.nameBox.getValue();
     });
     this.addRenderableWidget(this.nameBox);
     this.setFocused(this.nameBox);
