@@ -311,10 +311,21 @@ public final class AuctionDbScreen extends Screen {
   private static final class SaleRow extends ObjectSelectionList.Entry<SaleRow> {
     private final AuctionDbScreen parent;
     private final AuctionPriceDb.Sample sample;
+    private final String when;
+    private final String nick;
+    private static final java.time.format.DateTimeFormatter WHEN_FMT =
+        java.time.format.DateTimeFormatter.ofPattern("MM-dd HH:mm");
 
     SaleRow(AuctionDbScreen parent, AuctionPriceDb.Sample sample) {
       this.parent = parent;
       this.sample = sample;
+      this.when = java.time.LocalDateTime
+          .ofInstant(java.time.Instant.ofEpochMilli(sample.ts()),
+              java.time.ZoneId.systemDefault())
+          .format(WHEN_FMT);
+      String rawSeller = sample.seller().isEmpty() ? "-" : sample.seller();
+      int sp = rawSeller.lastIndexOf(' ');
+      this.nick = sp >= 0 ? rawSeller.substring(sp + 1) : rawSeller;
     }
 
     @Override
@@ -342,19 +353,13 @@ public final class AuctionDbScreen extends Screen {
       Minecraft mc = Minecraft.getInstance();
       boolean out = AuctionPriceDb.isExcluded(this.sample.seller());
       int main = out ? 0xFF777777 : 0xFFFFFFFF;
-      String when = java.time.LocalDateTime
-          .ofInstant(java.time.Instant.ofEpochMilli(this.sample.ts()),
-              java.time.ZoneId.systemDefault())
-          .format(java.time.format.DateTimeFormatter.ofPattern("MM-dd HH:mm"));
+      String when = this.when;
       String mark = out ? "✕ " : "";
       graphics.text(mc.font,
           mark + when + "  " + this.sample.count() + "x @ "
               + AuctionPriceDb.format(this.sample.unit()) + " \ua8a6",
           this.getContentX() + 2, this.getContentY() + 1, main);
-      String rawSeller = this.sample.seller().isEmpty() ? "-" : this.sample.seller();
-      int sp = rawSeller.lastIndexOf(' ');
-      String nick = sp >= 0 ? rawSeller.substring(sp + 1) : rawSeller;
-      graphics.text(mc.font, nick,
+      graphics.text(mc.font, this.nick,
           this.getContentX() + 10, this.getContentY() + 11, out ? 0xFF777777 : 0xFFAAAAAA);
     }
   }
@@ -392,6 +397,9 @@ public final class AuctionDbScreen extends Screen {
   private static final class Row extends ObjectSelectionList.Entry<Row> {
     private final AuctionPriceDb.Entry entry;
     private final ItemStack icon;
+    private String subText;
+    private Component subName;
+    private long subAt;
 
     Row(AuctionPriceDb.Entry entry) {
       this.entry = entry;
@@ -425,15 +433,18 @@ public final class AuctionDbScreen extends Screen {
       if (!this.icon.isEmpty()) {
         graphics.item(this.icon, x + 2, y + 2);
       }
-      AuctionPriceDb.Stats st = AuctionPriceDb.stats(this.entry.key);
-      String sub = st == null ? "" : "Avg " + AuctionPriceDb.format(st.avg()) + "  Med "
-          + AuctionPriceDb.format(st.med()) + "  (" + st.n() + ")";
-      Component name = AuctionPriceDb.styledName(this.entry.key);
-      if (name == null) {
-        name = Component.literal(this.entry.name);
+      // One refresh per second: stats() walks every sample, not per frame.
+      long now = System.currentTimeMillis();
+      if (this.subText == null || now - this.subAt > 1000) {
+        this.subAt = now;
+        AuctionPriceDb.Stats st = AuctionPriceDb.stats(this.entry.key);
+        this.subText = st == null ? "" : "Avg " + AuctionPriceDb.format(st.avg()) + "  Med "
+            + AuctionPriceDb.format(st.med()) + "  (" + st.n() + ")";
+        Component nm = AuctionPriceDb.styledName(this.entry.key);
+        this.subName = nm == null ? Component.literal(this.entry.name) : nm;
       }
-      graphics.text(mc.font, name, x + 24, y + 2, 0xFFFFFFFF);
-      graphics.text(mc.font, sub, x + 24, y + 12, 0xFFAAAAAA);
+      graphics.text(mc.font, this.subName, x + 24, y + 2, 0xFFFFFFFF);
+      graphics.text(mc.font, this.subText, x + 24, y + 12, 0xFFAAAAAA);
     }
   }
 }

@@ -16,11 +16,20 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 /** Re-captures home lore when container contents arrive after opening. */
 @Mixin(ClientPacketListener.class)
 public abstract class ContainerSyncMixin {
+  /** Full rescans are idempotent; one per burst is enough (menus change slow). */
+  private static final long RECAPTURE_COOLDOWN_MS = 100;
+  private static volatile long lastRecaptureMs;
+
   private static void openorigins$recapture(String why) {
     if (com.openorigins.client.util.BackgroundMenu.isArmed()) {
       com.openorigins.client.util.BackgroundMenu.poll();
       return;
     }
+    long now = System.currentTimeMillis();
+    if (now - lastRecaptureMs < RECAPTURE_COOLDOWN_MS) {
+      return;
+    }
+    lastRecaptureMs = now;
     Minecraft mc = Minecraft.getInstance();
     if (mc != null && mc.gui.screen() instanceof AbstractContainerScreen<?> container) {
       int n = HomeInfoCache.captureFrom(container);
