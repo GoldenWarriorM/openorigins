@@ -441,6 +441,23 @@ public final class BadgerCache {
     }
   }
 
+  /** Debug purge (DebugCaches): wipe state and disk JSON; next scan refills. */
+  public static synchronized void clearAll() {
+    REQUIRED.clear();
+    TIERS.clear();
+    ICONS.clear();
+    streakScore = 0;
+    highscore = 0;
+    daysUntilReset = 0;
+    taskTimeLeft = "";
+    taskTimeLeftMs = 0;
+    taskTimeLeftUntil = 0;
+    try {
+      Files.deleteIfExists(file());
+    } catch (Exception ignored) {
+    }
+  }
+
   public static synchronized void load() {
     try {
       Path f = file();

@@ -118,5 +118,9 @@
   "feature.openorigins.break_sync.desc": "Animates custom-block cracks to match server break time. The server freezes client progress via block_break_speed; learned per-block, per-tool durations fill the gap (visual only, never finishes early).",
   "hud.openorigins.badger_task": "Badger Task (streak %s)",
   "hud.openorigins.badger_timeleft": "Time left: %s",
-  "hud.openorigins.badger_reset": "Streak resets in %s"
+  "hud.openorigins.badger_reset": "Streak resets in %s",
+  "config.openorigins.clear_caches": "Clear Data Caches",
+  "config.openorigins.clear_caches_btn": "Clear caches",
+  "config.openorigins.clear_caches_done": "Cleared",
+  "config.openorigins.clear_caches_hint": "Wipes homes, worlds, badger, cosmetics and server-pack icon caches (memory and disk). The auction price database is kept. Everything refills as you use server menus."
 }

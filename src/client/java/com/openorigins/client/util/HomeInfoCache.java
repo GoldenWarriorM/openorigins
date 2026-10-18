@@ -787,6 +787,22 @@ public final class HomeInfoCache {
     return FabricLoader.getInstance().getConfigDir().resolve("openorigins_homes.json");
   }
 
+  /** Debug purge (DebugCaches): wipe state and disk JSON; menus refill it. */
+  public static synchronized void clearAll() {
+    CACHE.clear();
+    CONTAINER_NAMES.clear();
+    LAYOUT.clear();
+    NAMES.clear();
+    TOMBSTONES.clear();
+    lastHomesGuiMs = 0;
+    lastEmptyCompleteMs = 0;
+    lastZeroGuiMs = 0;
+    try {
+      Files.deleteIfExists(file());
+    } catch (Exception ignored) {
+    }
+  }
+
   private static String encodeLine(Component line) {
     ByteBuf buf = Unpooled.buffer();
     try {

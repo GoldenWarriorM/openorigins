@@ -486,6 +486,13 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
               () -> h.mapping().setKey(h.mapping().getDefaultKey()),
               () -> h.mapping().isDefault()));
         }
+        out.add(new CycleRow(this, "config.openorigins.clear_caches",
+            "config.openorigins.clear_caches_hint",
+            () -> net.minecraft.network.chat.Component.translatable(
+                com.openorigins.client.util.DebugCaches.justCleared()
+                    ? "config.openorigins.clear_caches_done"
+                    : "config.openorigins.clear_caches_btn").getString(),
+            com.openorigins.client.util.DebugCaches::clearAll));
       }
       }
     }

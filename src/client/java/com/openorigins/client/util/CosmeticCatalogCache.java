@@ -338,6 +338,16 @@ public final class CosmeticCatalogCache {
     return FabricLoader.getInstance().getConfigDir().resolve("openorigins_cosmetics.json");
   }
 
+  /** Debug purge (DebugCaches): wipe cleaned-lore cache and its disk JSON. */
+  public static synchronized void clearAll() {
+    CLEAN.clear();
+    PROFILE_TARGETS.clear();
+    try {
+      Files.deleteIfExists(file());
+    } catch (Exception ignored) {
+    }
+  }
+
   public static synchronized void save() {
     try {
       JsonArray arr = new JsonArray();

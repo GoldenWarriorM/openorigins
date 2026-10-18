@@ -28,6 +28,14 @@ public final class OpenWorldCache {
   private static final Map<String, Long> RESET_AT = new ConcurrentHashMap<>();
   private static final Map<String, String> NAMES = new ConcurrentHashMap<>();
   private static final Map<String, Integer> SLOTS = new ConcurrentHashMap<>();
+
+  /** Debug purge (DebugCaches): wipe the in-memory world snapshot. */
+  public static synchronized void clearAll() {
+    RESETS.clear();
+    RESET_AT.clear();
+    NAMES.clear();
+    SLOTS.clear();
+  }
   private static final String[] COLORS = {"blue", "green", "yellow", "red", "orange", "purple"};
   private static volatile String currentWorldColor;
 
