@@ -87,9 +87,67 @@ public final class BadgerCache {
   /** Number followed by a duration letter or the start of a duration word. */
   private static final Pattern TIME_PART = Pattern.compile("(\\d+)\\s*([dhms])");
 
+  /** Smallest parsed timer among "Time left:" name/lore candidates. */
+  private static String minOf(java.util.List<long[]> ms, java.util.List<String> raw) {
+    if (raw.isEmpty()) {
+      return null;
+    }
+    int best = 0;
+    for (int i = 1; i < ms.size(); i++) {
+      if (ms.get(i)[0] < ms.get(best)[0]) {
+        best = i;
+      }
+    }
+    return raw.get(best);
+  }
+
+  /** Smallest parsed timer among "Next available:" lore values. */
+  private static String minAvail(java.util.List<String> raw) {
+    if (raw.isEmpty()) {
+      return null;
+    }
+    int best = 0;
+    for (int i = 1; i < raw.size(); i++) {
+      if (parseTimeLeftMs(raw.get(i)) < parseTimeLeftMs(raw.get(best))) {
+        best = i;
+      }
+    }
+    return raw.get(best);
+  }
+
+  /**
+   * Commits a timer string under the countdown lock: the real task timer
+   * only counts down, so a bigger value from a foreign page must not
+   * replace a live (unexpired) smaller one. A parse-zero string (unknown
+   * format) only applies when no live timer exists.
+   */
+  private static void adoptAvailableTimer(String timeLeft) {
+    if (timeLeft == null || timeLeft.isBlank()) {
+      return;
+    }
+    long ms = parseTimeLeftMs(timeLeft);
+    long now = System.currentTimeMillis();
+    boolean curLive = taskTimeLeftMs > 0 && now < taskTimeLeftUntil;
+    synchronized (BadgerCache.class) {
+      if (curLive && ms >= taskTimeLeftMs) {
+        return;
+      }
+      taskTimeLeft = timeLeft;
+      taskTimeLeftMs = ms;
+      taskTimeLeftUntil = ms > 0 ? now + ms : 0;
+    }
+  }
+
+  /** Text after a lowercase prefix within a (lowercased, equal-length) line. */
+  private static String timeValue(String lower, String prefix) {
+    int i = lower.indexOf(prefix);
+    return i < 0 ? "" : lower.substring(i + prefix.length()).trim();
+  }
+
   /** Server-menu captions that leaked into REQUIRED before the sentinel
    *  fix; never legitimate badger task items. */
-  private static boolean isMenuJunk(String name) {    if (name == null || name.isBlank()) {
+  private static boolean isMenuJunk(String name) {
+    if (name == null || name.isBlank()) {
       return true;
     }
     String s = name.toLowerCase(java.util.Locale.ROOT).strip();
@@ -239,6 +297,8 @@ public final class BadgerCache {
     final java.util.List<long[]> timeCandidates = new ArrayList<>();
     final List<String> timeRaw = new ArrayList<>();
     final List<Boolean> timeFromLore = new ArrayList<>();
+    final List<String> nextAvailRaw = new ArrayList<>();
+    final boolean[] seenCompleted = {false};
     MenuLore.forEachTop(menu, (idx, stack) -> {
       String name = stack.getHoverName().getString();
       ItemLore lore = stack.get(DataComponents.LORE);
@@ -260,6 +320,12 @@ public final class BadgerCache {
         timeCandidates.add(new long[]{parseTimeLeftMs(raw)});
         timeRaw.add(raw);
         timeFromLore.add(Boolean.FALSE);
+      }
+      if (lower.contains("next available:")) {
+        nextAvailRaw.add(timeValue(lower, "next available:"));
+      }
+      if (lower.contains("tasks completed")) {
+        seenCompleted[0] = true;
       }
       if (lower.contains("go to badger to accept") && !lines.isEmpty()) {
         Matcher t = TIER.matcher(lines.get(0).getString());
@@ -284,6 +350,8 @@ public final class BadgerCache {
           timeCandidates.add(new long[]{parseTimeLeftMs(raw)});
           timeRaw.add(raw);
           timeFromLore.add(Boolean.TRUE);
+        } else if (s.contains("next available:")) {
+          nextAvailRaw.add(timeValue(s, "next available:"));
         }
       }
       if ((lines.isEmpty() || CustomItemIds.resolve(stack).isPresent()) && req.size() < 6) {
@@ -306,29 +374,31 @@ public final class BadgerCache {
     int high = counters[1];
     int days = counters[2];
     int delivered = counters[3];
-    if (score >= 0 && System.currentTimeMillis() - lastTempDump > 10_000
-        && !timeCandidates.isEmpty()) {
+    if (System.currentTimeMillis() - lastTempDump > 10_000
+        && (!timeCandidates.isEmpty() || !nextAvailRaw.isEmpty())) {
       lastTempDump = System.currentTimeMillis();
       StringBuilder sb = new StringBuilder("[badgerTEMP] candidates:");
       for (int i = 0; i < timeRaw.size(); i++) {
         sb.append(" '").append(timeRaw.get(i)).append("'")
             .append(timeFromLore.get(i) ? "[lore]" : "[name]");
       }
+      for (String raw : nextAvailRaw) {
+        sb.append(" '").append(raw).append("'[avail]");
+      }
       org.slf4j.LoggerFactory.getLogger("openorigins").info(sb.toString());
     }
-    // Several "Time left:" items can appear (task window ~24h and the streak
-    // timer the HUD tracks). The streak timer is always the smallest.
-    String timeLeft = null;
-    if (!timeCandidates.isEmpty()) {
-      int best = 0;
-      for (int i = 1; i < timeCandidates.size(); i++) {
-        if (timeCandidates.get(i)[0] < timeCandidates.get(best)[0]) {
-          best = i;
+    String timeLeft = minOf(timeCandidates, timeRaw);
+    if (score < 0) {
+      // Availability page (no streak-score lore): 'Tasks completed!' with a
+      // 'Next available: <timer>' — the real task timer source seen in the
+      // transport-menu lore captures. Adopting it keeps the HUD counting
+      // down while the accept page itself carries no timer item.
+      if (seenCompleted[0] && !nextAvailRaw.isEmpty()) {
+        String fl = minAvail(nextAvailRaw);
+        if (fl != null) {
+          adoptAvailableTimer(fl);
         }
       }
-      timeLeft = timeRaw.get(best);
-    }
-    if (score < 0) {
       return;
     }
     boolean changed = score != streakScore || high != highscore || days != daysUntilReset
@@ -341,16 +411,7 @@ public final class BadgerCache {
     if (days >= 0) {
       daysUntilReset = days;
     }
-    if (timeLeft != null) {
-      long ms = parseTimeLeftMs(timeLeft);
-      long now = System.currentTimeMillis();
-      boolean curLive = taskTimeLeftMs > 0 && now < taskTimeLeftUntil;
-      if (!curLive || ms <= 0 || ms < taskTimeLeftMs) {
-        taskTimeLeft = timeLeft;
-        taskTimeLeftMs = ms;
-        taskTimeLeftUntil = ms > 0 ? now + ms : 0;
-      }
-    }
+    adoptAvailableTimer(timeLeft);
     if (req.isEmpty() && !REQUIRED.isEmpty()) {
       if (delivered > 0) {
         // Everything turned in: the shrinkage is real (Delivered! markers),
