@@ -374,7 +374,7 @@ public final class BadgerCache {
     int high = counters[1];
     int days = counters[2];
     int delivered = counters[3];
-    if (System.currentTimeMillis() - lastTempDump > 10_000
+    if (score >= 0 && System.currentTimeMillis() - lastTempDump > 10_000
         && (!timeCandidates.isEmpty() || !nextAvailRaw.isEmpty())) {
       lastTempDump = System.currentTimeMillis();
       StringBuilder sb = new StringBuilder("[badgerTEMP] candidates:");
@@ -402,7 +402,8 @@ public final class BadgerCache {
       return;
     }
     boolean changed = score != streakScore || high != highscore || days != daysUntilReset
-        || !req.equals(REQUIRED) || !tiers.equals(TIERS)
+        || !req.equals(REQUIRED)
+        || (!tiers.isEmpty() && !tiers.equals(TIERS))
         || (timeLeft != null && !timeLeft.equals(taskTimeLeft));
     streakScore = score;
     if (high >= 0) {
@@ -418,6 +419,7 @@ public final class BadgerCache {
         // not a half-loaded menu. Clearing schedules a fresh-task fetch.
         forceAcceptUntil = 0;
         REQUIRED.clear();
+        TIERS.clear();
         com.openorigins.client.util.DebugLog.info("[badger] all delivered, task cleared");
       } else {
         com.openorigins.client.util.DebugLog.info("[badger] ignoring empty scan (lag?)");
@@ -444,8 +446,13 @@ public final class BadgerCache {
       REQUIRED.clear();
       REQUIRED.addAll(req);
     }
-    TIERS.clear();
-    TIERS.addAll(tiers);
+    // Tier lore ("Basic (2/5)" lines) only exists on quest pages; mid-accept
+    // or delivery scans list none, and wiping the list there made the HUD
+    // difficulty row blink away. Only overwrite with a non-empty tier list.
+    if (!tiers.isEmpty()) {
+      TIERS.clear();
+      TIERS.addAll(tiers);
+    }
     if (changed) {
       SaveBatch.mark(SAVER);
       com.openorigins.client.util.DebugLog.info(
