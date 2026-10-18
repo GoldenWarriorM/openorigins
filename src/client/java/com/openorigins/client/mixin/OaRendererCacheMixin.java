@@ -43,6 +43,14 @@ public abstract class OaRendererCacheMixin {
       // extract/culling throws CCE. Swap to the MARKER NoopRenderer — the
       // entity skips drawing for a frame instead of crashing the client.
       if (r != null && !OaRendererCache.sane(entity, r)) {
+        try {
+          EntityRenderer<?, ?> byType = this.renderers == null ? null
+              : this.renderers.get(entity.getType());
+          if (byType != null && !OaRendererCache.sane(entity, byType)) {
+            OaRendererCache.noteVanillaMapMispair(entity, byType);
+          }
+        } catch (Throwable ignored) {
+        }
         EntityRenderer<?, ?> noop = this.renderers == null ? null
             : this.renderers.get(net.minecraft.world.entity.EntityTypes.MARKER);
         // NoopRenderer is outside every typed family, sane for any entity.

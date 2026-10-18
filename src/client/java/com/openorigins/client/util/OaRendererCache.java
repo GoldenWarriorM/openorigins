@@ -34,23 +34,23 @@ public final class OaRendererCache {
   }
 
   /**
-   * Family sanity for the intermittent cross-wired renderer table (crash
-   * family: Interaction rendered by ItemFrameRenderer, ItemFrame by Display/
-   * LivingEntity renderers). A renderer must serve its own entity family —
-   * otherwise the typed cast inside extract/culling throws CCE. The MARKER
-   * NoopRenderer is the safe fallback: nothing draws, nothing casts.
+   * Family sanity for the intermittently cross-wired renderer table (crash
+   * family: Interaction rendered by ItemFrameRenderer, ItemFrame by
+   * Display/Living renderers, ItemDisplay by ItemFrameRenderer). A renderer
+   * from a typed family may only serve its matching entity family — the
+   * typed cast inside extract/culling otherwise throws CCE. Renderers
+   * outside the three families (NullRenderer etc.) are safe for anything.
+   * The MARKER NoopRenderer is the fallback: nothing draws, nothing casts.
    */
   public static boolean sane(Entity e, EntityRenderer<?, ?> r) {
-    if (e instanceof net.minecraft.world.entity.decoration.ItemFrame) {
-      return r instanceof net.minecraft.client.renderer.entity.ItemFrameRenderer;
+    if (r instanceof net.minecraft.client.renderer.entity.ItemFrameRenderer) {
+      return e instanceof net.minecraft.world.entity.decoration.ItemFrame;
     }
-    boolean display = e instanceof net.minecraft.world.entity.Display;
-    boolean living = e instanceof net.minecraft.world.entity.LivingEntity;
     if (r instanceof net.minecraft.client.renderer.entity.DisplayRenderer) {
-      return display;
+      return e instanceof net.minecraft.world.entity.Display;
     }
     if (r instanceof net.minecraft.client.renderer.entity.LivingEntityRenderer) {
-      return living;
+      return e instanceof net.minecraft.world.entity.LivingEntity;
     }
     return true;
   }
@@ -68,6 +68,21 @@ public final class OaRendererCache {
   }
 
   private static volatile long lastMispairLog;
+
+  /** Logs that the vanilla type table itself is mispaired (registry
+   *  corruption upstream, not a cache artefact); 10s rate limit. */
+  public static synchronized void noteVanillaMapMispair(Entity e, EntityRenderer<?, ?> r) {
+    long now = System.currentTimeMillis();
+    if (now - lastVanillaMapLog < 10_000L) {
+      return;
+    }
+    lastVanillaMapLog = now;
+    com.openorigins.client.util.DebugLog.warn(
+        "[oacache] vanilla renderer table mispaired for {} -> {}",
+        e.getType(), r.getClass().getName());
+  }
+
+  private static volatile long lastVanillaMapLog;
 
   public static synchronized void put(Entity e, EntityRenderer<?, ?> r) {
     try {
