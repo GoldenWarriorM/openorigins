@@ -59,10 +59,30 @@ public final class BadgerCache {
     return List.copyOf(TIERS);
   }
 
+  /** Parses "23 hours and 59 minutes" / "6h 55m" style timers to ms (0 on fail). */
+  static long parseTimeLeftMs(String raw) {
+    String s = raw == null ? "" : raw.toLowerCase(Locale.ROOT);
+    long ms = 0;
+    Matcher m = TIME_PART.matcher(s);
+    while (m.find()) {
+      long v = Long.parseLong(m.group(1));
+      switch (m.group(2)) {
+        case "d" -> ms += v * 86_400_000L;
+        case "h" -> ms += v * 3_600_000L;
+        case "m" -> ms += v * 60_000L;
+        case "s" -> ms += v * 1_000L;
+        default -> {}
+      }
+    }
+    return ms;
+  }
+
+  /** Number followed by a duration letter or the start of a duration word. */
+  private static final Pattern TIME_PART = Pattern.compile("(\\d+)\\s*([dhms])");
+
   /** Server-menu captions that leaked into REQUIRED before the sentinel
    *  fix; never legitimate badger task items. */
-  private static boolean isMenuJunk(String name) {
-    if (name == null || name.isBlank()) {
+  private static boolean isMenuJunk(String name) {    if (name == null || name.isBlank()) {
       return true;
     }
     String s = name.toLowerCase(java.util.Locale.ROOT).strip();
@@ -209,7 +229,8 @@ public final class BadgerCache {
     // reject menus that aren't the badger streaks menu. Regression from the
     // MenuLore refactor had zero-init, committing every menu's items.
     final int[] counters = {-1, -1, -1, 0};
-    final String[] timeLeftRef = {null};
+    final java.util.List<long[]> timeCandidates = new ArrayList<>();
+    final List<String> timeRaw = new ArrayList<>();
     MenuLore.forEachTop(menu, (idx, stack) -> {
       String name = stack.getHoverName().getString();
       ItemLore lore = stack.get(DataComponents.LORE);
@@ -227,7 +248,9 @@ public final class BadgerCache {
         counters[2] = Integer.parseInt(d.group(1));
       }
       if (lower.startsWith("time left:")) {
-        timeLeftRef[0] = name.substring(Math.min(name.length(), "time left:".length())).trim();
+        String raw = name.substring(Math.min(name.length(), "time left:".length())).trim();
+        timeCandidates.add(new long[]{parseTimeLeftMs(raw)});
+        timeRaw.add(raw);
       }
       if (lower.contains("go to badger to accept") && !lines.isEmpty()) {
         Matcher t = TIER.matcher(lines.get(0).getString());
@@ -265,7 +288,18 @@ public final class BadgerCache {
     int high = counters[1];
     int days = counters[2];
     int delivered = counters[3];
-    String timeLeft = timeLeftRef[0];
+    // Several "Time left:" items can appear (task window ~24h and the streak
+    // timer the HUD tracks). The streak timer is always the smallest.
+    String timeLeft = null;
+    if (!timeCandidates.isEmpty()) {
+      int best = 0;
+      for (int i = 1; i < timeCandidates.size(); i++) {
+        if (timeCandidates.get(i)[0] < timeCandidates.get(best)[0]) {
+          best = i;
+        }
+      }
+      timeLeft = timeRaw.get(best);
+    }
     if (score < 0) {
       return;
     }

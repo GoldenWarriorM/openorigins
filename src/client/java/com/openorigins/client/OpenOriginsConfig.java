@@ -268,7 +268,8 @@ public final class OpenOriginsConfig {
 
   public boolean isEnabled(OriginFeature f) {
     // Parked experiments stay off for everyone until re-enabled in code.
-    if (f == OriginFeature.BREAK_SYNC) {
+    if (f == OriginFeature.BREAK_SYNC || f == OriginFeature.AUCTION_PING) {
+      // Auction Ping parked (user decision, may return later).
       return false;
     }
     return enabled.getOrDefault(f, true);

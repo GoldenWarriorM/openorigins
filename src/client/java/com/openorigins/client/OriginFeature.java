@@ -9,7 +9,7 @@ public enum OriginFeature {
   HELMET_COSMETIC_SLOT(FeatureCategory.EXPERIMENTAL, false, "Helmet Cosmetic Slot"),
   EXPAND_MODEL_BOUNDING_BOX(FeatureCategory.FIXES, "Expand Model Bounding Box"),
   HIDE_NAMES(FeatureCategory.GENERAL, "Hide Names"),
-  AUCTION_PING(FeatureCategory.UI, "Auction Ping"),
+  AUCTION_PING(FeatureCategory.UI, false, "Auction Ping", true),
   PER_ITEM_PRICE(FeatureCategory.UI, "Show Per-Item Price"),
   AH_PRICE_DB(FeatureCategory.EXPERIMENTAL, "Auction Price Database"),
   CUTSCENE_ENHANCEMENTS(FeatureCategory.GENERAL, "Cutscene Enhancements"),

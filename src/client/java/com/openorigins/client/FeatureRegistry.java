@@ -22,7 +22,8 @@ public final class FeatureRegistry {
         (handler, client) -> com.openorigins.client.util.AuctionPriceDb.flushNow());
     net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents.JOIN.register(
         (handler, sender, client) -> com.openorigins.client.util.OaEmojiStore.clearUnlocked());
-    AuctionPing.register();
+    // AuctionPing parked (hidden feature): no chat listener while parked.
+
     CosmeticScanner.registerAutoScan();
     com.openorigins.client.util.MobExtrapolation.register();
     com.openorigins.client.util.OutboxStats.register();
