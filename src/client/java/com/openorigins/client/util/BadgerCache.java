@@ -44,6 +44,13 @@ public final class BadgerCache {
   private static volatile int highscore;
   private static volatile int daysUntilReset;
   private static volatile String taskTimeLeft = "";
+  /** Parsed ms of taskTimeLeft and when that window ends (commit time + ms).
+   *  The real task timer only counts down; a bigger value from another page
+   *  (daily window) must not replace a live smaller timer. */
+  private static volatile long taskTimeLeftMs;
+  private static volatile long taskTimeLeftUntil;
+  /** TEMP diagnostics; remove after the timer structure is confirmed. */
+  private static long lastTempDump;
 
   private static final Pattern SCORE = Pattern.compile("current streak score:\\s*(\\d+)");
   private static final Pattern HIGH = Pattern.compile("streak highscore:\\s*(\\d+)");
@@ -231,6 +238,7 @@ public final class BadgerCache {
     final int[] counters = {-1, -1, -1, 0};
     final java.util.List<long[]> timeCandidates = new ArrayList<>();
     final List<String> timeRaw = new ArrayList<>();
+    final List<Boolean> timeFromLore = new ArrayList<>();
     MenuLore.forEachTop(menu, (idx, stack) -> {
       String name = stack.getHoverName().getString();
       ItemLore lore = stack.get(DataComponents.LORE);
@@ -251,6 +259,7 @@ public final class BadgerCache {
         String raw = name.substring(Math.min(name.length(), "time left:".length())).trim();
         timeCandidates.add(new long[]{parseTimeLeftMs(raw)});
         timeRaw.add(raw);
+        timeFromLore.add(Boolean.FALSE);
       }
       if (lower.contains("go to badger to accept") && !lines.isEmpty()) {
         Matcher t = TIER.matcher(lines.get(0).getString());
@@ -266,6 +275,15 @@ public final class BadgerCache {
         Matcher h = HIGH.matcher(s);
         if (h.find()) {
           counters[1] = Integer.parseInt(h.group(1));
+        }
+        if (s.startsWith("time left:")) {
+          // Task items may carry their own expiry in lore; the menu header
+          // item's name shows the daily window instead.
+          String raw = line.getString().substring(
+              Math.min(line.getString().length(), "time left:".length())).trim();
+          timeCandidates.add(new long[]{parseTimeLeftMs(raw)});
+          timeRaw.add(raw);
+          timeFromLore.add(Boolean.TRUE);
         }
       }
       if ((lines.isEmpty() || CustomItemIds.resolve(stack).isPresent()) && req.size() < 6) {
@@ -288,6 +306,16 @@ public final class BadgerCache {
     int high = counters[1];
     int days = counters[2];
     int delivered = counters[3];
+    if (score >= 0 && System.currentTimeMillis() - lastTempDump > 10_000
+        && !timeCandidates.isEmpty()) {
+      lastTempDump = System.currentTimeMillis();
+      StringBuilder sb = new StringBuilder("[badgerTEMP] candidates:");
+      for (int i = 0; i < timeRaw.size(); i++) {
+        sb.append(" '").append(timeRaw.get(i)).append("'")
+            .append(timeFromLore.get(i) ? "[lore]" : "[name]");
+      }
+      org.slf4j.LoggerFactory.getLogger("openorigins").info(sb.toString());
+    }
     // Several "Time left:" items can appear (task window ~24h and the streak
     // timer the HUD tracks). The streak timer is always the smallest.
     String timeLeft = null;
@@ -314,7 +342,14 @@ public final class BadgerCache {
       daysUntilReset = days;
     }
     if (timeLeft != null) {
-      taskTimeLeft = timeLeft;
+      long ms = parseTimeLeftMs(timeLeft);
+      long now = System.currentTimeMillis();
+      boolean curLive = taskTimeLeftMs > 0 && now < taskTimeLeftUntil;
+      if (!curLive || ms <= 0 || ms < taskTimeLeftMs) {
+        taskTimeLeft = timeLeft;
+        taskTimeLeftMs = ms;
+        taskTimeLeftUntil = ms > 0 ? now + ms : 0;
+      }
     }
     if (req.isEmpty() && !REQUIRED.isEmpty()) {
       if (delivered > 0) {
@@ -417,6 +452,8 @@ public final class BadgerCache {
       highscore = root.has("highscore") ? root.get("highscore").getAsInt() : 0;
       daysUntilReset = root.has("days") ? root.get("days").getAsInt() : 0;
       taskTimeLeft = root.has("timeleft") ? root.get("timeleft").getAsString() : "";
+      taskTimeLeftMs = parseTimeLeftMs(taskTimeLeft);
+      taskTimeLeftUntil = taskTimeLeftMs > 0 ? System.currentTimeMillis() + taskTimeLeftMs : 0;
       REQUIRED.clear();
       JsonArray arr = root.getAsJsonArray("required");
       boolean junkDropped = false;
@@ -436,6 +473,8 @@ public final class BadgerCache {
         // The timer came from the same poisoned scan; drop it too and wait
         // for the next real streaks-menu scan to repopulate.
         taskTimeLeft = "";
+        taskTimeLeftMs = 0;
+        taskTimeLeftUntil = 0;
       }
       TIERS.clear();
       JsonArray ta = root.getAsJsonArray("tiers");
