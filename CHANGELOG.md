@@ -1,7 +1,5 @@
 # Changelog
 
----
-
 ## [2.0.0-beta1] — 2026-10-19
 
 First **2.0** beta. Covers everything since **1.0.1** (362 commits,
@@ -20,7 +18,7 @@ and a large performance and stability pass.
   icons, rarity filtering and per-entry sale history.
 - **Rebuilt settings UI** — left sidebar tabs, collapsible groups, search,
   per-row reset and inline hotkey rebinding.
-- **New fixes** — Moa Facing, Deny Spam Filter, Allay Arms, nametag rendering.
+- **New fixes** — Moa Facing Fix and Deny Spam Filter.
 
 ---
 
@@ -41,6 +39,11 @@ and a large performance and stability pass.
 - Persisted auction item icons with per-row reconstruction cache.
 - Ruby/gem price tails, wider rarity buttons and clamped layout on narrow windows.
 - Experimental hint block and a database-format instability notice.
+
+#### Auction House
+
+- Per-item price line on multi-item listings, styled like the server's own price
+  row. Single items are left untouched.
 
 #### Configuration UI
 
@@ -65,16 +68,10 @@ and a large performance and stability pass.
 - **Deny Spam Filter** — the first "you cannot do that here" denial is shown,
   repeats are throttled inside boss rooms (boss-bar detection, dead zones for
   command-less areas, and a slow-down fallback).
-- Network fixes subcategory with Custom Item IDs and strict recipe matching
-  (single resolved id, e.g. polymer).
-- Debug action to clear data caches (keeps the auction price database).
 
 #### Hotkeys
 
 - Auction house hotkey (`/ah`) and Auction Database screen hotkey.
-- Balloon teleport hotkeys: blue, green, yellow, red.
-- Badger HUD visibility toggle.
-- Teleport menu now defaults to `B`; Navigator `N` and Gesture Menu `G` kept.
 - Entity Extrapolation live toggle (Debug category).
 
 #### Experimental
@@ -92,6 +89,7 @@ and a large performance and stability pass.
 - Verbose debug logging toggle (off by default).
 - Rebindable scan/debug key for entity and container dumps, with persisted
   seen display keys.
+- Clear data caches action (keeps the auction price database).
 
 #### Other
 
@@ -118,13 +116,11 @@ and a large performance and stability pass.
 - **Teleport Menu:** radial menu with spawn, home realm and balloon destinations
   using the server's own icons (aspect ratio and UV mapping fixed), docked homes
   and worlds panels, scroll retention across reopens and empty-panel self-retry.
-- **Auction helpers:** per-item price line on multi-item listings, styled like
-  the server's own price row. Single items are left untouched.
-- **Nametag rendering:** player tags hook into the vanilla submit funnel with an
-  entity anchor from attachments; queued operations for not-yet-tracked entities
-  and tag state cleared on entity unload.
+  Default hotkey is now `B`.
 - **Culling:** expanded distance/angles for armor-stand rigs and static display
   models, including display model parts.
+- **Network fixes:** Custom Item IDs moved into the Network fixes tab and strict
+  recipe matching now resolves a single id for custom items (e.g. polymer).
 - **Performance:** hot-path reflection caching, config-set caching, batched
   persistence, capped/throttled price DB writes and rescans, O(n) group trees,
   cached sale rows and formatters, single-pass extrapolation scans, cached
@@ -137,22 +133,16 @@ and a large performance and stability pass.
 
 ### Fixed
 
-- Cross-wired renderer cache entries are now rejected and swapped to a no-op
-  fallback; strict family sanity checks added.
-- GUI blit pipelines and overloads resolved by full signature at runtime (fixes
-  crashes on 26.3); SDL key-state reads are guarded instead of crashing.
-- Escape key handling and unbound key display made version-agnostic.
-- Badger scans: restored score sentinel and load hygiene, kept the tier row
-  across tier-less accepts, and no longer overwrite valid timers with large
-  values.
-- Auction DB: icon reconstruction cached per row, layout clamped on narrow
-  windows, draft/scroll state preserved across re-initialization.
-- Orphaned background fetch windows are swallowed and stale menus dropped on
-  server close; only generic menus are swallowed, never real block containers.
+- Badger tasks: plural tasks-complete messages are detected, partial/empty scans
+  are ignored, the score sentinel and load hygiene are restored, the tier row is
+  kept across tier-less accepts, and valid timers are no longer overwritten by
+  stray large values.
+- Homes: expired homes no longer inherit the new cycle timer, realm visits are
+  filtered out, and blocked/fresh markers share one cache key.
+- Background menu: orphaned fetch windows are swallowed and stale menus dropped
+  on server close; only generic menus are swallowed, never real block containers.
 - Duplicate registry entries and stale scoreboard packets no longer kick the
   client.
-- Stepper draft values survive rebuilds; group trees, reset rows and streak
-  reset labels corrected (styling and offset fixes).
 - Removed dead code, unused lang keys and temporary diagnostic probes/logging.
 
 ### Notes
