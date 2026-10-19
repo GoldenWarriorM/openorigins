@@ -55,6 +55,25 @@ public final class OaRendererCache {
     return true;
   }
 
+  /** State-side family check: a typed renderer may only serve a matching
+   *  state class. Catches the submit path after a heal (state extracted by
+   *  the Noop fallback is a base EntityRenderState; a later DisplayRenderer
+   *  submit untangling it threw CCE — crash 2026-10-19). */
+  public static boolean stateMatches(
+      net.minecraft.client.renderer.entity.state.EntityRenderState s,
+      EntityRenderer<?, ?> r) {
+    if (r instanceof net.minecraft.client.renderer.entity.ItemFrameRenderer) {
+      return s instanceof net.minecraft.client.renderer.entity.state.ItemFrameRenderState;
+    }
+    if (r instanceof net.minecraft.client.renderer.entity.DisplayRenderer) {
+      return s instanceof net.minecraft.client.renderer.entity.state.DisplayEntityRenderState;
+    }
+    if (r instanceof net.minecraft.client.renderer.entity.LivingEntityRenderer) {
+      return s instanceof net.minecraft.client.renderer.entity.state.LivingEntityRenderState;
+    }
+    return true;
+  }
+
   /** Rate-limited mispair logging (one line per second max). */
   public static synchronized void noteMispair(Entity e, EntityRenderer<?, ?> r) {
     long now = System.currentTimeMillis();
@@ -68,6 +87,20 @@ public final class OaRendererCache {
   }
 
   private static volatile long lastMispairLog;
+
+  /** Submit-path variant: the state stands in for the entity in logs. */
+  public static synchronized void noteMispair(
+      net.minecraft.client.renderer.entity.state.EntityRenderState s,
+      EntityRenderer<?, ?> r) {
+    long now = System.currentTimeMillis();
+    if (now - lastMispairLog < 1000L) {
+      return;
+    }
+    lastMispairLog = now;
+    com.openorigins.client.util.DebugLog.warn(
+        "[oacache] mispaired renderer {} for state {}/{}, replaced/dropped",
+        r.getClass().getName(), s.entityType, s.getClass().getSimpleName());
+  }
 
   /** Logs that the vanilla type table itself is mispaired (registry
    *  corruption upstream, not a cache artefact); 10s rate limit. */

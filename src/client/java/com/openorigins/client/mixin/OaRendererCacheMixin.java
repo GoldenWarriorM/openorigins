@@ -15,7 +15,6 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 public abstract class OaRendererCacheMixin {
   @Shadow
   private java.util.Map<net.minecraft.world.entity.EntityType<?>, EntityRenderer<?, ?>> renderers;
-
   @Inject(method = "getRenderer(Lnet/minecraft/world/entity/Entity;)Lnet/minecraft/client/renderer/entity/EntityRenderer;",
       at = @At("HEAD"), cancellable = true, require = 0)
   private void openorigins$cachedRenderer(Entity entity,
@@ -66,6 +65,41 @@ public abstract class OaRendererCacheMixin {
         }
       }
       OaRendererCache.put(entity, r);
+    } catch (Throwable ignored) {
+    }
+  }
+
+  /**
+   * The submit path resolves the renderer via the state overload, which our
+   * entity lookup never sees. When the vanilla table heals between extract
+   * and submit (resource-pack reload), a state extracted by the Noop
+   * fallback reaches the now-correct typed renderer whose submit cast is
+   * typed — CCE. Fail the family check here the same way: NoopRenderer.
+   */
+  @Inject(method = "getRenderer(Lnet/minecraft/client/renderer/entity/state/EntityRenderState;)Lnet/minecraft/client/renderer/entity/EntityRenderer;",
+      at = @At("RETURN"), cancellable = true, require = 0)
+  private void openorigins$stateRenderer(
+      net.minecraft.client.renderer.entity.state.EntityRenderState state,
+      CallbackInfoReturnable<EntityRenderer<?, ?>> cir) {
+    try {
+      if (state == null) {
+        return;
+      }
+      EntityRenderer<?, ?> r = cir.getReturnValue();
+      if (r == null) {
+        return;
+      }
+      if (!OaRendererCache.stateMatches(state, r)) {
+        EntityRenderer<?, ?> noop = this.renderers == null ? null
+            : this.renderers.get(net.minecraft.world.entity.EntityTypes.MARKER);
+        if (noop != null && OaRendererCache.stateMatches(state, noop)) {
+          cir.setReturnValue(noop);
+          r = noop;
+          OaRendererCache.noteMispair(state, noop);
+        } else {
+          OaRendererCache.noteMispair(state, r);
+        }
+      }
     } catch (Throwable ignored) {
     }
   }
