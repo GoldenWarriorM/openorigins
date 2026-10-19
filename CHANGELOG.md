@@ -117,8 +117,6 @@ and a large performance and stability pass.
   using the server's own icons (aspect ratio and UV mapping fixed), docked homes
   and worlds panels, scroll retention across reopens and empty-panel self-retry.
   Default hotkey is now `B`.
-- **Culling:** expanded distance/angles for armor-stand rigs and static display
-  models, including display model parts.
 - **Network fixes:** Custom Item IDs moved into the Network fixes tab and strict
   recipe matching now resolves a single id for custom items (e.g. polymer).
 - **Performance:** hot-path reflection caching, config-set caching, batched
@@ -133,6 +131,8 @@ and a large performance and stability pass.
 
 ### Fixed
 
+- Culling: the expanded distance/angles for armor-stand rigs and static display
+  models (including display model parts) now actually apply.
 - Badger tasks: plural tasks-complete messages are detected, partial/empty scans
   are ignored, the score sentinel and load hygiene are restored, the tier row is
   kept across tier-less accepts, and valid timers are no longer overwritten by
