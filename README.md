@@ -41,7 +41,7 @@
 
 | Feature | Description |
 | --- | --- |
-| Server Command Hotkeys | Navigator menu on N, gestures on G; also bindable: teleport menu, spawn, realm, config, Badger HUD toggle, auction house, balloon teleports, entity extrapolation toggle. |
+| Server Command Hotkeys | Navigator menu on N, gestures on G, teleport menu on B; also bindable: spawn, realm, config, Badger HUD toggle, auction house, balloon teleports, entity extrapolation toggle. |
 | Teleport Menu | Radial menu with spawn, home realm and balloon destinations using the server's own icons, plus docked homes and worlds panels with live reset timers. |
 | Homes Panel | World-colored home icons, live reset timers and server-verbatim tooltips. Newly created homes appear instantly, no /homes re-fetch needed. |
 | Badger Task HUD | Tracks your active Badger streak task on the HUD: requirements, inventory progress and turn-in state, pinnable to any screen corner. |

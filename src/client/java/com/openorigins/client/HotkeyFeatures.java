@@ -165,7 +165,8 @@ public final class HotkeyFeatures {
     scanCategory = category;
     reloadScanKey();
     teleportMenuKey = KeyMappingHelper.registerKeyMapping(
-        new KeyMapping("key.openorigins.teleport_menu", InputConstants.UNKNOWN.getValue(), category));
+        new KeyMapping("key.openorigins.teleport_menu",
+            com.openorigins.client.util.VersionCompat.inputCode("KEY_B"), category));
     blueBalloonKey = KeyMappingHelper.registerKeyMapping(
         new KeyMapping("key.openorigins.balloon_blue", InputConstants.UNKNOWN.getValue(), category));
     greenBalloonKey = KeyMappingHelper.registerKeyMapping(
