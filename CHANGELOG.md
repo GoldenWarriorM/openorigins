@@ -2,148 +2,102 @@
 
 ## [2.0.0-beta1] — 2026-10-19
 
-First **2.0** beta. Covers everything since **1.0.1** (362 commits,
-134 files, +8734 / -601): a completely rebuilt configuration UI, a single jar
-for **Minecraft 26.2 and 26.3**, the Auction Price Database, several new fixes
-and a large performance and stability pass.
+First **2.0** beta. Covers everything since **1.0.1**: a rebuilt settings menu,
+support for Minecraft 26.2 and 26.3 in one jar, the Auction Price Database,
+several new fixes and a large performance pass.
 
-> Beta: features marked *Experimental* are still being tuned. Report issues
-> with your game log.
+> Beta: features marked *Experimental* are still being worked on.
 
 ### Highlights
 
-- **One jar for Minecraft 26.2 and 26.3** — all version-divergent APIs are now
-  resolved at runtime.
-- **Auction Price Database** — browse, search and analyze auction sales with
-  icons, rarity filtering and per-entry sale history.
-- **Rebuilt settings UI** — left sidebar tabs, collapsible groups, search,
-  per-row reset and inline hotkey rebinding.
-- **New fixes** — Moa Facing Fix and Deny Spam Filter.
-
----
+- One jar for Minecraft 26.2 and 26.3.
+- Auction Price Database: browse, search and check auction sales.
+- Rebuilt settings menu with tabs, search and hotkey rebinding.
+- New fixes: Moa facing and boss-room denial spam.
 
 ### Added
 
 #### Auction Price Database *(Experimental)*
 
-- Full auction-price browser screen with a searchable sale list and detail column.
-- Volume-weighted auction statistics and a dedicated per-item detail view.
-- Rarity sidebar with server-badge rarity buttons (prefix-only detection) and a
-  separate bucket for badgeless items.
-- Per-entry sale history, delete-entry and clear-database actions.
-- Seller-exclusion list with an excluded column; seller attribution per sample
-  with time-decayed de-duplication.
-- Lot identity based on sample comparison with end tolerance and time-left
-  samples; full-description item identity for accurate matching.
-- Search by description, plain and display-case nicknames.
-- Persisted auction item icons with per-row reconstruction cache.
-- Ruby/gem price tails, wider rarity buttons and clamped layout on narrow windows.
-- Experimental hint block and a database-format instability notice.
+- Browse and search auction sales, with item pictures and details.
+- Price statistics per item, including average and volume-weighted prices.
+- Rarity filter and a separate group for items without a badge.
+- Sale history per item, plus delete and clear actions.
+- Exclude sellers you don't want in the stats.
+- A notice when the database format may still change.
 
 #### Auction House
 
-- Per-item price line on multi-item listings, styled like the server's own price
-  row. Single items are left untouched.
+- Per-item price on multi-item listings, styled like the server's own row.
 
 #### Configuration UI
 
-- Left sidebar tab navigation: General, HUD & Slots, Client fixes,
-  Network fixes, Experimental, Servers, Debug.
-- Single settings feed with scroll-spy tabs and collapsible dependent subgroups
-  (right-click a parent row to toggle, group glyph in the left gutter).
-- Settings search and per-row reset buttons; global reset follows defaults.
-- Inline hotkey rebinding rows with capture, ESC to cancel, and *Not Bound*
-  display for unbound keys.
-- Per-feature tooltips, experimental styling, and a stepper field whose width
-  follows the maximum value.
-- Servers tab: server allowlist plus handshake mode (handshake-verified Origin
-  servers always apply).
-- Visual HUD position editor for the Badger task HUD.
+- Rebuilt settings menu with tabs on the left: General, HUD & Slots, Client
+  fixes, Network fixes, Experimental, Servers, Debug.
+- Collapsible groups you can open with a right-click.
+- Search for a setting, and reset any row back to its default.
+- Rebind hotkeys right from the settings.
+- Tooltips for every feature, plus a visual editor for the task HUD position.
+- Servers tab with a server address list and automatic Origin server detection.
 
 #### Client Fixes
 
-- **Moa Facing Fix** — the server assembles the Moa mount backwards; it now
-  faces its direction of travel (render-only, follows fresh vehicle yaw and
-  guards null render state on spawns).
-- **Deny Spam Filter** — the first "you cannot do that here" denial is shown,
-  repeats are throttled inside boss rooms (boss-bar detection, dead zones for
-  command-less areas, and a slow-down fallback).
+- **Moa Facing Fix** — the Moa mount no longer walks backwards.
+- **Deny Spam Filter** — "you cannot do that here" is shown once in boss rooms
+  instead of spamming you.
 
 #### Hotkeys
 
-- Auction house hotkey (`/ah`) and Auction Database screen hotkey.
-- Entity Extrapolation live toggle (Debug category).
+- Auction house (`/ah`) and Auction Price Database hotkeys.
+- Live toggle for Entity Extrapolation.
 
 #### Experimental
 
-- **Entity Extrapolation** — renders custom-mob bodies ahead of network updates
-  to match server hitboxes: tunable forward time (ms), EMA velocity smoothing,
-  per-frame damping, tracker cap/eviction and range filtering. Player mounts,
-  fishing rigs and mount trees are skipped; custom item displays are filtered by
-  item id.
+- **Entity Extrapolation** — shows custom mobs slightly ahead to match their
+  real hitboxes. Adjustable, with an optional hotkey to compare on the fly.
 
 #### Debug
 
-- Outbox Monitor: bottom-right request/response state monitor with 1m / 30m /
-  session rates (off by default).
-- Verbose debug logging toggle (off by default).
-- Rebindable scan/debug key for entity and container dumps, with persisted
-  seen display keys.
-- Clear data caches action (keeps the auction price database).
+- Outbox Monitor: a small panel showing what the mod sends to the server
+  (off by default).
+- Verbose debug logging (off by default).
+- Rebindable scan key for dumps.
+- Clear saved data caches (keeps the auction price database).
 
 #### Other
 
-- Quick-join Origin Realms button on the title screen, with toggles to hide the
-  title and pause buttons and an optional config button in the pause menu.
-- Default home-lore template bundled for empty caches; home lore is cloned in
-  the server's own style at creation time.
-- Reconnect toast and background request infrastructure that yields to manual
-  container activity.
+- Quick-join button on the title screen, plus options for the title and pause
+  menu buttons.
+- Default home tooltip text bundled for when no data is loaded yet.
 
 ### Changed
 
-- **Dual-version support:** single jar for Minecraft **26.2 and 26.3**
-  (`>=26.2 <26.4`). All divergent access goes through a runtime compatibility
-  layer: input codes, `KEYBOARD` vs `KEYSYM`/`SCANCODE`, key event fields,
-  `PoseStack` rotation and GUI blit pipelines/overloads.
-- **Badger Task HUD:** requirements from lore, inventory progress and turn-in
-  state, quest-stage tier row, deadline timer sourced from the "Next available"
-  lore line, tier de-duplication per stage name, cut-corner backdrop toggle and
-  cached row building. Accepts Delivered-marked scans and drops poisoned data.
-- **Homes Panel:** world-colored icons, live reset timers, server-verbatim
-  tooltips, capacity/max-slots hint. Newly created homes appear instantly;
-  expired homes no longer inherit the cycle timer; realm visits are filtered out.
-- **Teleport Menu:** radial menu with spawn, home realm and balloon destinations
-  using the server's own icons (aspect ratio and UV mapping fixed), docked homes
-  and worlds panels, scroll retention across reopens and empty-panel self-retry.
-  Default hotkey is now `B`.
-- **Network fixes:** Custom Item IDs moved into the Network fixes tab and strict
-  recipe matching now resolves a single id for custom items (e.g. polymer).
-- **Performance:** hot-path reflection caching, config-set caching, batched
-  persistence, capped/throttled price DB writes and rescans, O(n) group trees,
-  cached sale rows and formatters, single-pass extrapolation scans, cached
-  renderer lookups and entity-type filtering.
-- **UI polish:** sidebar/backdrop styling, gliding selection highlight, row
-  geometry shared across entry types, tab/content width consistency.
-- **Build/CI:** jar manifest stamped with `Implementation-Version: <ver>+<sha>`
-  and `Git-Commit`; commit-tagged CI artifacts; dedicated tag-driven release
-  workflow; actions upgraded off Node 20.
+- One jar now works on Minecraft 26.2 and 26.3.
+- **Badger Task HUD:** shows requirements and inventory progress, the current
+  stage tier and the reset timer, with an optional backdrop.
+- **Homes:** reset timers, world colours and tooltips now match the server, and
+  newly created homes appear right away.
+- **Teleport Menu:** radial menu with spawn, realm and balloon destinations
+  using the server's own icons. Default key is now `B`.
+- **Network fixes:** Custom Item IDs and strict recipe matching gathered in one
+  tab, and recipe matching now handles custom items better.
+- **Performance:** less stutter in busy areas, faster menus and less background
+  chatter.
+- **Look and feel:** cleaner rows, a smoother selection highlight and more
+  consistent sizing across menus.
 
 ### Fixed
 
-- Culling: the expanded distance/angles for armor-stand rigs and static display
-  models (including display model parts) now actually apply.
-- Badger tasks: plural tasks-complete messages are detected, partial/empty scans
-  are ignored, the score sentinel and load hygiene are restored, the tier row is
-  kept across tier-less accepts, and valid timers are no longer overwritten by
-  stray large values.
-- Homes: expired homes no longer inherit the new cycle timer, realm visits are
-  filtered out, and blocked/fresh markers share one cache key.
-- Background menu: orphaned fetch windows are swallowed and stale menus dropped
-  on server close; only generic menus are swallowed, never real block containers.
-- Duplicate registry entries and stale scoreboard packets no longer kick the
-  client.
-- Removed dead code, unused lang keys and temporary diagnostic probes/logging.
+- Culling: the expanded distance and angles for armor stands and display models
+  now actually work.
+- Badger tasks: fixed broken or missed scans, wrong reset timers and the stage
+  tier row.
+- Homes: fixed expired homes showing the wrong timer and world visits appearing
+  in the list.
+- Fixed leftover menu windows that could stay open or block other menus after
+  leaving a server.
+- Fixed duplicate registry entries and stale scoreboard packets kicking players.
+- Removed leftover debug logging, unused text and temporary probes.
 
 ### Notes
 
