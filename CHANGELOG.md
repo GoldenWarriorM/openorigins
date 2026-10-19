@@ -1,17 +1,13 @@
 # Changelog
 
-All notable changes to OpenOrigins are documented here.
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
-
 ---
 
 ## [2.0.0-beta1] — 2026-10-19
 
 First **2.0** beta. Covers everything since **1.0.1** (362 commits,
 134 files, +8734 / -601): a completely rebuilt configuration UI, a single jar
-for **Minecraft 26.2 and 26.3**, the Auction Price Database, Server Emoji,
-several new fixes and a large performance and stability pass.
+for **Minecraft 26.2 and 26.3**, the Auction Price Database, several new fixes
+and a large performance and stability pass.
 
 > Beta: features marked *Experimental* are still being tuned. Report issues
 > with your game log.
@@ -22,8 +18,6 @@ several new fixes and a large performance and stability pass.
   resolved at runtime.
 - **Auction Price Database** — browse, search and analyze auction sales with
   icons, rarity filtering and per-entry sale history.
-- **Server Emoji** — server emoji codes with a picker, harvested from the
-  server itself.
 - **Rebuilt settings UI** — left sidebar tabs, collapsible groups, search,
   per-row reset and inline hotkey rebinding.
 - **New fixes** — Moa Facing, Deny Spam Filter, Allay Arms, nametag rendering.
@@ -47,14 +41,6 @@ several new fixes and a large performance and stability pass.
 - Persisted auction item icons with per-row reconstruction cache.
 - Ruby/gem price tails, wider rarity buttons and clamped layout on narrow windows.
 - Experimental hint block and a database-format instability notice.
-
-#### Server Emoji *(Experimental)*
-
-- Emoji codes harvested from server suggestions and the server resource pack.
-- Clickable emoji picker above the chat, matching the original UI 1:1.
-- Automatic emoji conversion in chat and a live list in server order.
-- Emoji unlocking via tab-list entries, with persistence across sessions.
-- Toggle in HUD & Slots; bulk learning on join.
 
 #### Configuration UI
 
@@ -98,9 +84,6 @@ several new fixes and a large performance and stability pass.
   per-frame damping, tracker cap/eviction and range filtering. Player mounts,
   fishing rigs and mount trees are skipped; custom item displays are filtered by
   item id.
-- **Break Sync** — server-driven custom block break prediction with two-tier
-  break keys (block + tool aggregate fallback), proactive pacing and mismatch
-  learning. Hidden from the UI and off by default.
 
 #### Debug
 
@@ -135,8 +118,8 @@ several new fixes and a large performance and stability pass.
 - **Teleport Menu:** radial menu with spawn, home realm and balloon destinations
   using the server's own icons (aspect ratio and UV mapping fixed), docked homes
   and worlds panels, scroll retention across reopens and empty-panel self-retry.
-- **Auction helpers:** per-item price line styled like the server's own price
-  row; per-sale ping matching (Auction Ping feature itself is parked/hidden).
+- **Auction helpers:** per-item price line on multi-item listings, styled like
+  the server's own price row. Single items are left untouched.
 - **Nametag rendering:** player tags hook into the vanilla submit funnel with an
   entity anchor from attachments; queued operations for not-yet-tracked entities
   and tag state cleared on entity unload.
@@ -168,17 +151,9 @@ several new fixes and a large performance and stability pass.
   server close; only generic menus are swallowed, never real block containers.
 - Duplicate registry entries and stale scoreboard packets no longer kick the
   client.
-- Stepper draft values survive rebuilds; group trees, reset rows and streaker
-  labels corrected (styling and offset fixes).
+- Stepper draft values survive rebuilds; group trees, reset rows and streak
+  reset labels corrected (styling and offset fixes).
 - Removed dead code, unused lang keys and temporary diagnostic probes/logging.
-
-### Removed
-
-- Russian locale and Cyrillic string matching (locales are no longer bundled).
-- Rocket fuel HUD/bar and the emoji block picker.
-- `SpawnLoggerMixin` and all `TEMP`/probe-style diagnostics.
-- Auction Ping and Break Sync are parked: kept in code, hidden from the UI and
-  disabled by default.
 
 ### Notes
 
