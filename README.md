@@ -7,7 +7,7 @@
 ![Minecraft](https://img.shields.io/badge/Minecraft-26.2%20%7C%2026.3-blue)
 ![Fabric Loader](https://img.shields.io/badge/Fabric%20Loader-0.19.5-green)
 ![Fabric API](https://img.shields.io/badge/Fabric%20API-0.161.0%2B26.2-green)
-![Version](https://img.shields.io/badge/Version-1.0.1-orange)
+![Version](https://img.shields.io/badge/Version-2.0.0--beta1-orange)
 ![Side](https://img.shields.io/badge/Side-Client%20only-lightgrey)
 
 ---
