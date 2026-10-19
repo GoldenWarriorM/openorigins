@@ -149,5 +149,4 @@ and a large performance and stability pass.
 
 - Requires **Java 25**, Fabric Loader **0.19.5+** and Fabric API.
 - Client-side only: nothing changes in singleplayer or on other servers.
-- This file starts at 2.0.0-beta1; 1.0.1 was published before a changelog was
-  maintained.
+- This changelog starts at 2.0.0-beta1 and covers all changes since 1.0.1.
