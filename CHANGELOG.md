@@ -6,16 +6,16 @@ First **2.0** beta. Covers everything since **1.0.1**: a rebuilt settings menu,
 support for Minecraft 26.2 and 26.3 in one jar, the Auction Price Database,
 several new fixes and a large performance pass.
 
-> Beta: features marked *Experimental* are still being worked on.
+> Beta: features marked *Experimental* are still being worked on. Expect bugs and crashes.
 
-### Highlights
+## Highlights
 
 - One jar for Minecraft 26.2 and 26.3.
 - Auction Price Database: browse, search and check auction sales.
-- Rebuilt settings menu with tabs, search and hotkey rebinding.
-- New fixes: Moa facing and boss-room denial spam.
+- Rebuilt settings menu with brand new look, tabs and collapsible groups
+- New togglable fixes: Moa facing and boss-room denial spam.
 
-### Added
+## Added
 
 #### Auction Price Database *(Experimental)*
 
@@ -35,8 +35,7 @@ several new fixes and a large performance pass.
 - Rebuilt settings menu with tabs on the left: General, HUD & Slots, Client
   fixes, Network fixes, Experimental, Servers, Debug.
 - Collapsible groups you can open with a right-click.
-- Search for a setting, and reset any row back to its default.
-- Rebind hotkeys right from the settings.
+- Reset to default options
 - Tooltips for every feature, plus a visual editor for the task HUD position.
 - Servers tab with a server address list and automatic Origin server detection.
 
@@ -70,23 +69,21 @@ several new fixes and a large performance pass.
   menu buttons.
 - Default home tooltip text bundled for when no data is loaded yet.
 
-### Changed
+## Changed
 
 - One jar now works on Minecraft 26.2 and 26.3.
-- **Badger Task HUD:** shows requirements and inventory progress, the current
+- **Badger Task HUD:** shows requirements and progress, the current
   stage tier and the reset timer, with an optional backdrop.
 - **Homes:** reset timers, world colours and tooltips now match the server, and
-  newly created homes appear right away.
-- **Teleport Menu:** radial menu with spawn, realm and balloon destinations
-  using the server's own icons. Default key is now `B`.
+  newly created homes have correct descriptions right away.
+- **Teleport Menu:** Added default keybind `B`.
 - **Network fixes:** Custom Item IDs and strict recipe matching gathered in one
   tab, and recipe matching now handles custom items better.
-- **Performance:** less stutter in busy areas, faster menus and less background
-  chatter.
+- **Performance:** less stutter in busy areas, faster menus.
 - **Look and feel:** cleaner rows, a smoother selection highlight and more
   consistent sizing across menus.
 
-### Fixed
+## Fixed
 
 - Culling: the expanded distance and angles for armor stands and display models
   now actually work.
