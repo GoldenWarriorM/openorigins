@@ -1,18 +1,29 @@
 package com.openorigins.client.util;
 
+import java.util.HashMap;
 import java.util.Map;
-import java.util.WeakHashMap;
 import net.minecraft.client.renderer.entity.EntityRenderer;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityType;
 
 /**
- * Caches dispatcher renderer lookups per entity. The renderer for an entity
- * never changes (except avatar skins, which are excluded), so the per-frame
- * map lookups in EntityRenderDispatcher.getRenderer are skipped on hits.
- * Render-thread use; entries vanish with their entities.
+ * Caches dispatcher renderer lookups per entity type. The vanilla dispatcher
+ * resolves every non-avatar renderer purely from {@code entity.getType()}, so
+ * a type key is exact — and unlike an entity key it does not collide.
+ *
+ * <p>An earlier revision keyed this cache by {@code Entity}. {@code Entity}
+ * overrides {@code equals}/{@code hashCode} to compare numeric entity ids, and
+ * every synthetic display entity (spawner and trial spawner mobs) is created
+ * with id {@code -1}. All of them therefore hash to one slot: the first spawner
+ * mob cached its renderer, and the next (different) mob was handed that foreign
+ * renderer, crashing in the typed cast inside extract
+ * (blaze rendered by AbstractSkeletonRenderer, 2026-10-19).
+ *
+ * <p>Cleared on resource reload, which rebuilds the dispatcher renderer table.
+ * Render-thread use.
  */
 public final class OaRendererCache {
-  private static final Map<Entity, EntityRenderer<?, ?>> CACHE = new WeakHashMap<>();
+  private static final Map<EntityType<?>, EntityRenderer<?, ?>> CACHE = new HashMap<>();
 
   private OaRendererCache() {}
 
@@ -21,9 +32,9 @@ public final class OaRendererCache {
       if (e instanceof net.minecraft.world.entity.Avatar) {
         return null;
       }
-      EntityRenderer<?, ?> hit = CACHE.get(e);
+      EntityRenderer<?, ?> hit = CACHE.get(e.getType());
       if (hit != null && !sane(e, hit)) {
-        CACHE.remove(e);
+        CACHE.remove(e.getType());
         noteMispair(e, hit);
         return null;
       }
@@ -125,10 +136,7 @@ public final class OaRendererCache {
       if (e instanceof net.minecraft.world.entity.Avatar) {
         return;
       }
-      if (CACHE.size() > 4096) {
-        CACHE.clear();
-      }
-      CACHE.put(e, r);
+      CACHE.put(e.getType(), r);
     } catch (Throwable ignored) {
     }
   }

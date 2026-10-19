@@ -8,9 +8,10 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-/** Skips the per-frame renderer map lookup for already-seen entities. */
+/** Skips the per-frame renderer map lookup for already-seen entity types. */
 @Mixin(EntityRenderDispatcher.class)
 public abstract class OaRendererCacheMixin {
   @Shadow
@@ -100,6 +101,18 @@ public abstract class OaRendererCacheMixin {
           OaRendererCache.noteMispair(state, r);
         }
       }
+    } catch (Throwable ignored) {
+    }
+  }
+
+  /** A resource reload rebuilds the dispatcher's renderer table; the cached
+   *  instances are stale from that point on. */
+  @Inject(method = "onResourceManagerReload(Lnet/minecraft/server/packs/resources/ResourceManager;)V",
+      at = @At("RETURN"), require = 0)
+  private void openorigins$reloadRenderers(
+      net.minecraft.server.packs.resources.ResourceManager resourceManager, CallbackInfo ci) {
+    try {
+      OaRendererCache.clear();
     } catch (Throwable ignored) {
     }
   }
