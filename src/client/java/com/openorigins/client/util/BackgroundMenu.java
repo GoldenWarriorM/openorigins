@@ -32,6 +32,11 @@ public final class BackgroundMenu {
   private static long lastTryArmLogMs;
   private static long lastMismatchLogMs;
   private static final long MANUAL_COOLDOWN_MS = 15000;
+  /** Right-clicks on entities (NPCs) that can open a server menu of their own. */
+  private static volatile long lastEntityInteractMs;
+  private static volatile String lastEntityInteractName = "?";
+  private static final long ENTITY_INTERACT_GUARD_MS = 2500L;
+  private static String lastSwallowedTitle = "?";
   private static int attempts;
   private static String lastTopSig;
   private static volatile long lastEmptyFinishMs;
@@ -188,6 +193,29 @@ public final class BackgroundMenu {
     }
   }
 
+  /**
+   * The user right-clicked an entity. NPC menus arrive as generic, glyph-titled
+   * containers — exactly like our fetch answers — so the interaction is the
+   * only reliable signal that the next open belongs to the user. Never swallow
+   * the first open inside the guard window: on 2026-10-20 a pending /streaks
+   * fetch was armed in the same tick as the Badger NPC click, swallowed the
+   * task menu, closed its window id, and then the real streaks answer showed
+   * up in its place.
+   */
+  public static synchronized void noteEntityInteraction(net.minecraft.world.entity.Entity entity) {
+    lastEntityInteractMs = System.currentTimeMillis();
+    lastEntityInteractName = entity == null ? "?" : String.valueOf(entity.getType());
+    if (armed) {
+      com.openorigins.client.util.DebugLog.info(
+          "[bgmenu] entity interact {} while armed '{}' (its response stays background)",
+          lastEntityInteractName, pendingCommand);
+    }
+  }
+
+  private static boolean afterEntityInteraction(long now) {
+    return now - lastEntityInteractMs < ENTITY_INTERACT_GUARD_MS;
+  }
+
   /** A quest completed: the user is done touching containers, drop the cooldown. */
   public static synchronized void clearManualCooldown() {
     lastManualContainerMs = 0;
@@ -219,6 +247,15 @@ public final class BackgroundMenu {
       }
       return false;
     }
+    if (afterEntityInteraction(now)) {
+      if (now - lastTryArmLogMs > 15000) {
+        lastTryArmLogMs = now;
+        com.openorigins.client.util.DebugLog.info(
+            "[bgmenu] tryArm '{}' refused: entity interaction with {} {}ms ago",
+            command, lastEntityInteractName, now - lastEntityInteractMs);
+      }
+      return false;
+    }
     if (inDeadZone()) {
       if (now - lastTryArmLogMs > 15000) {
         lastTryArmLogMs = now;
@@ -234,6 +271,7 @@ public final class BackgroundMenu {
     windowId = -1;
     contentPackets = 0;
     lastTopSig = null;
+    lastSwallowedTitle = "?";
     pendingCommand = command;
     lastOwnSendMs = 0;
     attempts = 0;
@@ -343,8 +381,21 @@ public final class BackgroundMenu {
         }
       }
       if (!adopted) {
-        com.openorigins.client.util.DebugLog.info(
-            "[bgmenu] open window={} type={} title='{}' verdict=show (idle)", id, typeStr, titleStr);
+        if (armed && menu != null) {
+          // A second open while our window is still captured: the server has
+          // replaced it. This is exactly what a wrong swallow looks like
+          // (task menu swallowed, streaks answer shown in its place).
+          com.openorigins.client.util.DebugLog.warn(
+              "[bgmenu] open window={} title='{}' while ours={} '{}' is captured"
+                  + " -> dropping ours without close, shown (possible wrong swallow)",
+              id, titleStr, windowId, lastSwallowedTitle);
+          // Our id may now belong to the user's window: never close it.
+          disarm();
+        } else {
+          com.openorigins.client.util.DebugLog.info(
+              "[bgmenu] open window={} type={} title='{}' verdict=show (idle)",
+              id, typeStr, titleStr);
+        }
         return false;
       }
       com.openorigins.client.util.DebugLog.info(
@@ -379,6 +430,11 @@ public final class BackgroundMenu {
       // server-side, and clicks into it would all be rejected).
       verdict = "screen-open";
       disarm();
+    } else if (afterEntityInteraction(now)) {
+      // The user just clicked an NPC: this open is the NPC's menu, not our
+      // fetch answer. Do not swallow it; the real answer is adopted as an
+      // orphan and stays invisible.
+      verdict = "entity-interact";
     } else if (!isGenericRows(packet.getType())) {
       verdict = "not-generic";
     } else if (looksUserFacing(titleStr)) {
@@ -396,6 +452,7 @@ public final class BackgroundMenu {
         } else {
           menu = created;
           windowId = packet.getContainerId();
+          lastSwallowedTitle = titleStr;
           verdict = "swallowed";
           swallow = true;
           OutboxStats.ackExact("cmd /" + pendingCommand);
@@ -616,6 +673,11 @@ public final class BackgroundMenu {
       if (userActive()) {
         return;
       }
+      if (afterEntityInteraction(now)) {
+        // The user is opening an NPC menu right now; a fetch sent here would
+        // race its container (and the wrong window would be swallowed).
+        return;
+      }
       net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
       // Never fire a fetch command while the user looks at a real server
       // window: the response would race it (flash over the chest, or worse,
@@ -666,7 +728,8 @@ public final class BackgroundMenu {
         m.removed(mc.player);
       } catch (Throwable ignored) {
       }
-      com.openorigins.client.util.DebugLog.info("[bgmenu] closed window {}", id);
+      com.openorigins.client.util.DebugLog.info("[bgmenu] closed window {} (title '{}')", id,
+          lastSwallowedTitle);
     } catch (Throwable t) {
       com.openorigins.client.util.DebugLog.warn("[bgmenu] close failed: {}", t.toString());
     }
