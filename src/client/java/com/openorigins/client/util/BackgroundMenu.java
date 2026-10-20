@@ -536,14 +536,51 @@ public final class BackgroundMenu {
     pendingTeleport = worldColor;
   }
 
+  private static long lastTeleportMissLogMs;
+
+  private static void logTeleportMiss(String format, Object... args) {
+    long now = System.currentTimeMillis();
+    if (now - lastTeleportMissLogMs < 2000L) {
+      return;
+    }
+    lastTeleportMissLogMs = now;
+    com.openorigins.client.util.DebugLog.warn(format, args);
+  }
+
   /** Clicks a world button inside the background menu, then closes. */
   private static synchronized boolean tryTeleportClick() {
     String color = pendingTeleport;
     if (color == null || menu == null) {
       return false;
     }
+    // Only ever click a slot in the navigator menu the click was armed for.
+    // 2026-10-20: a queued world click leaked into a /homes menu and pressed
+    // a random slot (world teleport fired 64s late, after the wrong menu).
+    if (!"navigator worlds".equals(pendingCommand)) {
+      logTeleportMiss("[bgmenu] teleport to {} skipped: menu is '{}'", color, pendingCommand);
+      return false;
+    }
     int slot = com.openorigins.client.util.OpenWorldCache.slotFor(color);
     if (slot < 0 || slot >= menu.slots.size()) {
+      logTeleportMiss("[bgmenu] teleport to {}: slot {} not in menu (size {})",
+          color, slot, menu.slots.size());
+      return false;
+    }
+    String expected = com.openorigins.client.util.OpenWorldCache.worldName(color);
+    String actual = null;
+    try {
+      actual = menu.getSlot(slot).getItem().getHoverName().getString();
+    } catch (Throwable ignored) {
+      // fall through: no name check possible
+    }
+    if (actual == null || actual.isBlank()) {
+      return false;
+    }
+    if (expected != null && !actual.equalsIgnoreCase(expected)
+        && !actual.toLowerCase(java.util.Locale.ROOT)
+            .contains(expected.toLowerCase(java.util.Locale.ROOT))) {
+      logTeleportMiss("[bgmenu] teleport to {} aborted: slot {} holds '{}'",
+          color, slot, actual);
       return false;
     }
     net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();

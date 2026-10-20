@@ -207,6 +207,7 @@ public final class HotkeyFeatures {
       } else {
         joinTicks++;
         com.openorigins.client.util.BackgroundMenu.tick();
+        com.openorigins.client.util.OpenWorldCache.tick();
         if (!badgerFetchDone && joinTicks > 100
             && !com.openorigins.client.util.BackgroundMenu.isArmed()
             && com.openorigins.client.util.BackgroundMenu.tryArm("streaks")) {

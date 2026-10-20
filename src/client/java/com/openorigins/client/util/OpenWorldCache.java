@@ -166,19 +166,61 @@ public final class OpenWorldCache {
   }
 
   private static long lastAttempt;
+  private static volatile String pendingWorld;
+  private static volatile long pendingUntilMs;
+  private static long lastWaitLogMs;
 
-  /** Teleports via a background menu click (fetches first if the slot is unknown). */
+  /**
+   * Teleports via a background menu click. Explicit request from our own menu:
+   * the manual-container cooldown is bypassed (no container is open — the menu
+   * was opened from the world) and the request is retried until the fetch can
+   * start, instead of silently doing nothing (2026-10-20: click 9s after a
+   * chest was refused by the 15s cooldown with no log and no teleport).
+   */
   public static void teleportTo(String worldColor) {
     if (worldColor == null) {
       return;
     }
-    if (slotFor(worldColor) < 0) {
-      com.openorigins.client.util.BackgroundMenu.setPendingTeleport(worldColor);
-      fetch(() -> null);
+    pendingWorld = worldColor;
+    pendingUntilMs = System.currentTimeMillis() + 15000L;
+    com.openorigins.client.util.BackgroundMenu.clearManualCooldown();
+    startPendingTeleport();
+  }
+
+  /** Retried from the client tick while an explicit teleport is queued. */
+  public static void tick() {
+    if (pendingWorld == null) {
       return;
     }
-    com.openorigins.client.util.BackgroundMenu.setPendingTeleport(worldColor);
-    fetch(() -> null);
+    if (System.currentTimeMillis() > pendingUntilMs) {
+      com.openorigins.client.util.DebugLog.warn(
+          "[worlds] teleport to {} gave up: background fetch stayed blocked", pendingWorld);
+      pendingWorld = null;
+      return;
+    }
+    startPendingTeleport();
+  }
+
+  private static void startPendingTeleport() {
+    String color = pendingWorld;
+    if (color == null || com.openorigins.client.util.BackgroundMenu.isArmed()) {
+      return;
+    }
+    if (!com.openorigins.client.util.BackgroundMenu.tryArm("navigator worlds")) {
+      long now = System.currentTimeMillis();
+      if (now - lastWaitLogMs > 5000L) {
+        lastWaitLogMs = now;
+        com.openorigins.client.util.DebugLog.info(
+            "[worlds] teleport to {} queued: background fetch refused for now", color);
+      }
+      return;
+    }
+    pendingWorld = null;
+    // Arm first, then queue the click: it must only ever land in the
+    // navigator menu this fetch opens.
+    com.openorigins.client.util.BackgroundMenu.setPendingTeleport(color);
+    lastAttempt = System.currentTimeMillis();
+    com.openorigins.client.util.DebugLog.info("[worlds] teleport to {} requested", color);
   }
 
   /** Silent background fetch via the server open-world menu. */
