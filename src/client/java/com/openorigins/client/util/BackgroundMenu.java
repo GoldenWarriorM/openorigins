@@ -37,6 +37,15 @@ public final class BackgroundMenu {
   private static volatile String lastEntityInteractName = "?";
   private static final long ENTITY_INTERACT_GUARD_MS = 2500L;
   private static String lastSwallowedTitle = "?";
+  /**
+   * Answer titles seen per command. NPC menus and fetch answers are both
+   * glyph-titled generic chests, so the title is the only way to tell an
+   * in-flight answer from the NPC menu opened by the same click
+   * (2026-10-26: /streaks answer raced the Badger click and was shown).
+   */
+  private static final java.util.Map<String, java.util.LinkedHashSet<String>> knownTitles =
+      new java.util.HashMap<>();
+  private static final int MAX_KNOWN_TITLES = 4;
   private static int attempts;
   private static String lastTopSig;
   private static volatile long lastEmptyFinishMs;
@@ -216,6 +225,29 @@ public final class BackgroundMenu {
     return now - lastEntityInteractMs < ENTITY_INTERACT_GUARD_MS;
   }
 
+  private static void rememberTitle(String command, String title) {
+    if (command == null || command.isEmpty() || title == null || title.isEmpty()
+        || "?".equals(title)) {
+      return;
+    }
+    java.util.LinkedHashSet<String> titles =
+        knownTitles.computeIfAbsent(command, k -> new java.util.LinkedHashSet<>());
+    if (!titles.remove(title) && titles.size() >= MAX_KNOWN_TITLES) {
+      java.util.Iterator<String> it = titles.iterator();
+      it.next();
+      it.remove();
+    }
+    titles.add(title);
+  }
+
+  private static boolean titleKnownFor(String command, String title) {
+    if (command == null || title == null) {
+      return false;
+    }
+    java.util.Set<String> titles = knownTitles.get(command);
+    return titles != null && titles.contains(title);
+  }
+
   /** A quest completed: the user is done touching containers, drop the cooldown. */
   public static synchronized void clearManualCooldown() {
     lastManualContainerMs = 0;
@@ -361,12 +393,16 @@ public final class BackgroundMenu {
           && System.currentTimeMillis() < orphanUntilMs
           && (!userActive() || lateOrphanOurs())) {
         try {
-          if (isGenericRows(packet.getType()) && !looksUserFacing(titleStr)) {
+          // Only adopt an open whose title we have already seen as this
+          // command's answer. A different glyph title here is the user's NPC
+          // menu (2026-10-26: adopting it made the fetch guard swallow it).
+          if (isGenericRows(packet.getType()) && titleKnownFor(orphanCommand, titleStr)) {
             adopted = true;
             armed = true;
             attempts = 1;
             pendingCommand = orphanCommand;
-            deadline = System.currentTimeMillis() + 30000;
+            armedAtMs = System.currentTimeMillis();
+            deadline = armedAtMs + 30000;
             contentPackets = 0;
             lastTopSig = null;
             orphanCommand = null;
@@ -403,14 +439,15 @@ public final class BackgroundMenu {
           titleStr);
     }
     Minecraft mc = Minecraft.getInstance();
+    boolean knownAnswer = titleKnownFor(pendingCommand, titleStr);
     String verdict;
     boolean skipUserChecks;
     try {
-      skipUserChecks = armed && attempts > 0 && menu == null
+      skipUserChecks = knownAnswer || (armed && attempts > 0 && menu == null
           && System.currentTimeMillis() - lastManualContainerMs < 15000
-          && openContainerScreenShown(mc);
+          && openContainerScreenShown(mc));
     } catch (Throwable t) {
-      skipUserChecks = false;
+      skipUserChecks = knownAnswer;
     }
     boolean swallow = false;
     if (attempts == 0) {
@@ -430,10 +467,10 @@ public final class BackgroundMenu {
       // server-side, and clicks into it would all be rejected).
       verdict = "screen-open";
       disarm();
-    } else if (afterEntityInteraction(now)) {
+    } else if (afterEntityInteraction(now) && !knownAnswer) {
       // The user just clicked an NPC: this open is the NPC's menu, not our
-      // fetch answer. Do not swallow it; the real answer is adopted as an
-      // orphan and stays invisible.
+      // fetch answer. Do not swallow it. A fetch answer that races the click
+      // is recognised by its title and swallowed below instead.
       verdict = "entity-interact";
     } else if (!isGenericRows(packet.getType())) {
       verdict = "not-generic";
@@ -453,7 +490,8 @@ public final class BackgroundMenu {
           menu = created;
           windowId = packet.getContainerId();
           lastSwallowedTitle = titleStr;
-          verdict = "swallowed";
+          rememberTitle(pendingCommand, titleStr);
+          verdict = afterEntityInteraction(now) ? "swallowed-known-answer" : "swallowed";
           swallow = true;
           OutboxStats.ackExact("cmd /" + pendingCommand);
         }
