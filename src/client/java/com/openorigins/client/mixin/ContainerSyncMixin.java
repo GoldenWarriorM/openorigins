@@ -53,6 +53,7 @@ public abstract class ContainerSyncMixin {
         packet.containerId(), packet.stateId(), packet.items(), packet.carriedItem());
     openorigins$recapture("content");
     if (packet.containerId() == 0) {
+      com.openorigins.client.BadgerHud.noteInventoryChanged();
       java.util.List<net.minecraft.world.item.ItemStack> items = packet.items();
       for (int i = 9; i <= 44 && i < items.size(); i++) {
         com.openorigins.client.util.HelmetCosmeticTracker.noteInvSlot(i, items.get(i));
@@ -73,6 +74,7 @@ public abstract class ContainerSyncMixin {
         packet.getContainerId(), packet.getSlot(), packet.getStateId(), packet.getItem());
     openorigins$recapture("slot");
     if (packet.getContainerId() == 0) {
+      com.openorigins.client.BadgerHud.noteInventoryChanged();
       com.openorigins.client.util.HelmetCosmeticTracker.noteInvSlot(packet.getSlot(), packet.getItem());
       if (packet.getSlot() == 5) {
         noteArmor(packet.getItem());
@@ -96,6 +98,30 @@ public abstract class ContainerSyncMixin {
       net.minecraft.network.protocol.game.ClientboundSetCursorItemPacket packet, CallbackInfo ci) {
     com.openorigins.client.util.HelmetCosmeticTracker.offerReal(packet.contents(), true);
     com.openorigins.client.util.HelmetCosmeticTracker.noteCursor(packet.contents());
+  }
+
+  @Inject(method = "handleSetPlayerInventory", at = @At("TAIL"))
+  private void openorigins$onPlayerInventory(
+      net.minecraft.network.protocol.game.ClientboundSetPlayerInventoryPacket packet,
+      CallbackInfo ci) {
+    com.openorigins.client.BadgerHud.noteInventoryChanged();
+  }
+
+  /**
+   * Login and respawn swap in a new LocalPlayer with an empty inventory; the
+   * server's container-content packet fills it back in a moment later. Tell
+   * the HUD to keep the last known counts until then instead of flashing 0.
+   */
+  @Inject(method = "handleLogin", at = @At("TAIL"))
+  private void openorigins$onLogin(
+      net.minecraft.network.protocol.game.ClientboundLoginPacket packet, CallbackInfo ci) {
+    com.openorigins.client.BadgerHud.notePlayerReplaced();
+  }
+
+  @Inject(method = "handleRespawn", at = @At("TAIL"))
+  private void openorigins$onRespawn(
+      net.minecraft.network.protocol.game.ClientboundRespawnPacket packet, CallbackInfo ci) {
+    com.openorigins.client.BadgerHud.notePlayerReplaced();
   }
 
   /** Break-sync: server air-ack completes a predicted custom break. */

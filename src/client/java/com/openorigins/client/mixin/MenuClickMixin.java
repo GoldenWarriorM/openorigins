@@ -62,6 +62,11 @@ public abstract class MenuClickMixin {
   private void openorigins$optimistic(int slotIndex, int button, ContainerInput clickType,
       Player player, CallbackInfo ci) {
     AbstractContainerMenu menu = (AbstractContainerMenu) (Object) this;
+    if (!com.openorigins.client.util.BackgroundMenu.isBackground(menu)) {
+      // Clicks move items in the player inventory too (prediction runs here
+      // before the server answers): refresh the task HUD on the same frame.
+      com.openorigins.client.BadgerHud.noteInventoryChanged();
+    }
     if (menu.containerId != 0) {
       // A click in a real server window: user territory. Our own teleport
       // click inside the background menu must not disarm its own fetch.

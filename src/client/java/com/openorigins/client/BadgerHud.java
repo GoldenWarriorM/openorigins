@@ -47,19 +47,91 @@ public final class BadgerHud implements net.fabricmc.fabric.api.client.rendering
   /** True while the position editor is open (live HUD stays out of the way). */
   public static boolean previewActive;
 
-  /** HUD is rebuilt at most 4×/s; buildRows allocates instead of per-frame. */
+  /**
+   * HUD rows are rebuilt only when their input changes. Inventory packets and
+   * menu clicks mark the counts dirty, so a moved item shows up on the same
+   * frame. The periodic rescan is a safety net for changes that bypass those
+   * hooks (other mods, direct writes) — it only recomputes counts, not rows.
+   */
+  private static final long SAFETY_RESCAN_MS = 250;
+  /**
+   * Login and respawn replace the client player with an empty inventory; the
+   * server fills it back in with the container-content packet. Until that
+   * packet arrives the counts would read 0, so the last known rows stay up.
+   */
+  private static final long INVENTORY_SYNC_GRACE_MS = 3000;
+  private static volatile boolean inventoryDirty = true;
+  private static boolean inventoryPending;
+  private static long inventoryPendingSince;
+  private static long lastRescanMs;
   private static List<Row> cachedRows = List.of();
-  private static long cachedRowsAt;
+  private static int cachedTaskSig;
+  private static int cachedSig;
+  private static boolean hasCachedRows;
+
+  /** Called from the inventory packet/click hooks. */
+  public static void noteInventoryChanged() {
+    inventoryDirty = true;
+    inventoryPending = false;
+  }
+
+  /**
+   * Called from the login/respawn hooks: a fresh player has no inventory yet.
+   * Rows are held back until the server's inventory packet arrives, so the HUD
+   * never flashes "0/3" after a join or a dimension change.
+   */
+  public static void notePlayerReplaced() {
+    inventoryPending = true;
+    inventoryPendingSince = System.currentTimeMillis();
+  }
 
   public static List<Row> buildRows(Minecraft mc, Font font) {
     long now = System.currentTimeMillis();
-    if (now - cachedRowsAt < 250) {
-      return cachedRows;
+    if (inventoryPending) {
+      if (now - inventoryPendingSince < INVENTORY_SYNC_GRACE_MS) {
+        return cachedRows;
+      }
+      inventoryPending = false;
+      inventoryDirty = true;
+    }
+    int taskSig = taskSignature();
+    boolean rescan = inventoryDirty || now - lastRescanMs >= SAFETY_RESCAN_MS;
+    if (hasCachedRows && taskSig == cachedTaskSig) {
+      if (!rescan) {
+        return cachedRows;
+      }
+      if (31 * taskSig + countsHash(mc) == cachedSig) {
+        inventoryDirty = false;
+        lastRescanMs = now;
+        return cachedRows;
+      }
     }
     List<Row> rows = buildRows0(mc, font);
-    cachedRowsAt = now;
     cachedRows = rows;
+    cachedTaskSig = taskSig;
+    cachedSig = 31 * taskSig + countsHash(mc);
+    hasCachedRows = true;
+    inventoryDirty = false;
+    lastRescanMs = System.currentTimeMillis();
     return rows;
+  }
+
+  private static int taskSignature() {
+    int h = 1;
+    h = 31 * h + BadgerCache.requiredView().hashCode();
+    h = 31 * h + BadgerCache.streakScore();
+    h = 31 * h + BadgerCache.daysUntilReset();
+    h = 31 * h + Long.hashCode(BadgerCache.taskMinutesLeft());
+    h = 31 * h + BadgerCache.tiersView().hashCode();
+    return h;
+  }
+
+  private static int countsHash(Minecraft mc) {
+    int h = 1;
+    for (BadgerCache.Required r : BadgerCache.requiredView()) {
+      h = 31 * h + countInInventory(mc, r);
+    }
+    return h;
   }
 
   private static List<Row> buildRows0(Minecraft mc, Font font) {
@@ -209,20 +281,33 @@ public final class BadgerHud implements net.fabricmc.fabric.api.client.rendering
         maxW, totalH);
   }
 
+  private static final java.util.Map<String, net.minecraft.world.item.Item> ITEMS =
+      new java.util.concurrent.ConcurrentHashMap<>();
+
+  private static net.minecraft.world.item.Item itemFor(String id) {
+    if (id == null || id.isEmpty()) {
+      return null;
+    }
+    return ITEMS.computeIfAbsent(id, k -> {
+      net.minecraft.resources.Identifier key = net.minecraft.resources.Identifier.tryParse(k);
+      return key == null ? null
+          : net.minecraft.core.registries.BuiltInRegistries.ITEM.getValue(key);
+    });
+  }
+
   private static int countInInventory(Minecraft mc, BadgerCache.Required r) {
     if (mc.player == null) {
+      return 0;
+    }
+    net.minecraft.world.item.Item item = itemFor(r.itemId());
+    if (item == null) {
       return 0;
     }
     int total = 0;
     net.minecraft.world.entity.player.Inventory inv = mc.player.getInventory();
     for (int i = 0; i < inv.getContainerSize(); i++) {
       ItemStack stack = inv.getItem(i);
-      if (stack.isEmpty()) {
-        continue;
-      }
-      String id = net.minecraft.core.registries.BuiltInRegistries.ITEM
-          .getKey(stack.getItem()).toString();
-      if (!id.equals(r.itemId())) {
+      if (stack.isEmpty() || stack.getItem() != item) {
         continue;
       }
       if (!r.displayName().isEmpty()

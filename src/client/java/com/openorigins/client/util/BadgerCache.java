@@ -49,8 +49,6 @@ public final class BadgerCache {
    *  from the deadline): a persisted/undersircuted older value must not
    *  block fresher timers for hours. */
   private static volatile long timerDeadline;
-  /** TEMP diagnostics; remove after the timer structure is confirmed. */
-  private static long lastTempDump;
 
   private static final Pattern SCORE = Pattern.compile("current streak score:\\s*(\\d+)");
   private static final Pattern HIGH = Pattern.compile("streak highscore:\\s*(\\d+)");
@@ -61,9 +59,19 @@ public final class BadgerCache {
     return List.copyOf(REQUIRED);
   }
 
+  /** Live list for the HUD: CopyOnWriteArrayList, safe to iterate, no copy. */
+  public static List<Required> requiredView() {
+    return REQUIRED;
+  }
+
   /** Quest stages parsed from the streaks menu, e.g. Basic (2/5). */
   public static List<Tier> tiers() {
     return List.copyOf(TIERS);
+  }
+
+  /** Live list for the HUD: CopyOnWriteArrayList, safe to iterate, no copy. */
+  public static List<Tier> tiersView() {
+    return TIERS;
   }
 
   /** Parses "23 hours and 59 minutes" / "6h 55m" style timers to ms (0 on fail). */
@@ -199,6 +207,13 @@ public final class BadgerCache {
     return mm + "m";
   }
 
+  /** Whole minutes left on the timer (0 when unknown/expired); no allocation,
+   *  for cheap HUD cache signatures. */
+  public static long taskMinutesLeft() {
+    long rem = timerDeadline - System.currentTimeMillis();
+    return rem <= 0 ? 0 : rem / 60000;
+  }
+
   public static boolean hasTask() {
     return !REQUIRED.isEmpty();
   }
@@ -307,7 +322,6 @@ public final class BadgerCache {
     final int[] counters = {-1, -1, -1, 0};
     final java.util.List<long[]> timeCandidates = new ArrayList<>();
     final List<String> timeRaw = new ArrayList<>();
-    final List<Boolean> timeFromLore = new ArrayList<>();
     final List<String> loreRaw = new ArrayList<>();
     final List<String> nextAvailRaw = new ArrayList<>();
     final boolean[] seenCompleted = {false};
@@ -329,11 +343,10 @@ public final class BadgerCache {
       }
       if (lower.startsWith("time left:")) {
         // Name-based "Time left" is the daily-window header item (~24h), not
-        // the task timer — collected for the TEMP dump only, never adopted.
+        // the task timer — recorded but never adopted.
         String raw = name.substring(Math.min(name.length(), "time left:".length())).trim();
         timeCandidates.add(new long[]{parseTimeLeftMs(raw)});
         timeRaw.add(raw);
-        timeFromLore.add(Boolean.FALSE);
       }
       if (lower.contains("next available:")) {
         nextAvailRaw.add(timeValue(lower, "next available:"));
@@ -386,25 +399,6 @@ public final class BadgerCache {
     int high = counters[1];
     int days = counters[2];
     int delivered = counters[3];
-    if (System.currentTimeMillis() - lastTempDump > 10_000
-        && (!timeCandidates.isEmpty() || !nextAvailRaw.isEmpty()
-            || !loreRaw.isEmpty())) {
-      lastTempDump = System.currentTimeMillis();
-      StringBuilder sb = new StringBuilder("[badgerTEMP] quest:");
-      for (String raw : loreRaw) {
-        sb.append(" '").append(raw).append("'");
-      }
-      sb.append(" caps:");
-      for (int i = 0; i < timeRaw.size(); i++) {
-        sb.append(" '").append(timeRaw.get(i)).append("'")
-            .append(timeFromLore.get(i) ? "[lore]" : "[name]");
-      }
-      sb.append(" avail:");
-      for (String raw : nextAvailRaw) {
-        sb.append(" '").append(raw).append("'");
-      }
-      org.slf4j.LoggerFactory.getLogger("openorigins").info(sb.toString());
-    }
     long prevDeadline = timerDeadline;
     // Lore "Time left:" on quest items is the authoritative task timer (the
     // name-based header item counts the daily window instead). On the
