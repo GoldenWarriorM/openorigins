@@ -277,6 +277,13 @@ public final class AuctionDbScreen extends Screen {
     public int getRowWidth() {
       return this.getWidth();
     }
+
+    /** Vanilla draws the bar just right of the rows, i.e. outside the widget,
+     *  where it overlaps the next column or leaves the screen. Keep it inside. */
+    @Override
+    protected int scrollBarX() {
+      return this.getX() + this.getWidth() - 6;
+    }
   }
 
   private static final class SaleList extends FullRowList<SaleRow> {
@@ -406,11 +413,6 @@ public final class AuctionDbScreen extends Screen {
     public void setSelected(Row row) {
       super.setSelected(row);
       this.parent.showDetail(row == null ? null : row.entry);
-    }
-
-    @Override
-    protected int scrollBarX() {
-      return this.getX() + this.getWidth() - 6;
     }
   }
 
