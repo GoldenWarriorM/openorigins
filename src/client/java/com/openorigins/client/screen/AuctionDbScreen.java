@@ -32,9 +32,10 @@ public final class AuctionDbScreen extends Screen {
 
   @Override
   protected void init() {
+    this.layoutColumns();
     int cx = this.width / 2;
-    int x0 = this.panelLeft();
-    this.search = new EditBox(this.font, x0, 30, 280, 20,
+    int x0 = this.panelX;
+    this.search = new EditBox(this.font, x0, 30, this.leftW, 20,
         Component.translatable("menu.openorigins.ahdb.search_hint"));
     this.search.setMaxLength(48);
     this.search.setValue(this.searchText);
@@ -45,7 +46,7 @@ public final class AuctionDbScreen extends Screen {
     this.addRenderableWidget(this.search);
     this.setInitialFocus(this.search);
     this.rarityButtons.clear();
-    int sideX = x0 + 508;
+    int sideX = this.rightX;
     int y = 30;
     for (String r : AuctionPriceDb.RARITIES) {
       final String rr = r;
@@ -54,7 +55,7 @@ public final class AuctionDbScreen extends Screen {
             this.rarity = rr;
             refreshRarityButtons();
             refresh();
-          }).bounds(sideX, y, 100, 20)
+          }).bounds(sideX, y, this.rightW, 20)
               .tooltip(net.minecraft.client.gui.components.Tooltip.create(
                   Component.translatable("menu.openorigins.ahdb.rarity", rr)))
               .build();
@@ -63,15 +64,15 @@ public final class AuctionDbScreen extends Screen {
       this.addRenderableWidget(b);
     }
     refreshRarityButtons();
-    this.list = new DbList(this, this.minecraft, 280, this.height - 100, 56, 24);
+    this.list = new DbList(this, this.minecraft, this.leftW, this.height - 100, 56, 24);
     this.list.setX(x0);
     this.addRenderableWidget(this.list);
-    this.detailList = new SaleList(this.minecraft, 212, this.height - 194, 150, 22);
-    this.detailList.setX(x0 + 288);
+    this.detailList = new SaleList(this.minecraft, this.midW, this.height - 194, 150, 22);
+    this.detailList.setX(this.midX);
     this.addRenderableWidget(this.detailList);
-    int exX = x0 + 508;
+    int exX = this.rightX;
     int exTop = 30 + AuctionPriceDb.RARITIES.size() * 22 + 6;
-    this.exclList = new ExclList(this.minecraft, 100,
+    this.exclList = new ExclList(this.minecraft, this.rightW,
         Math.max(40, this.height - 44 - (exTop + 22)), exTop + 22, 12);
     this.exclList.setX(exX);
     this.addRenderableWidget(this.exclList);
@@ -226,10 +227,52 @@ public final class AuctionDbScreen extends Screen {
     }
   }
 
-  /** Left edge of the 616-wide DB grid; at narrow windows it hugs the
-   *  screen edge instead of drawing off-screen. */
-  private int panelLeft() {
-    return Math.max(4, this.width / 2 - 308);
+  /** Column geometry for the current window. Preferred sizes fit a 640 px
+   *  wide GUI; a 4:3 window at GUI scale 3 is only 480 px, so the columns
+   *  shrink to keep the rarity buttons on-screen. */
+  private static final int COL_GAP = 8;
+  private static final int PAD = 4;
+  private int panelX = PAD;
+  private int leftW = 280;
+  private int midW = 212;
+  private int rightW = 100;
+  private int midX = PAD + 288;
+  private int rightX = PAD + 508;
+
+  private void layoutColumns() {
+    int left = 280;
+    int mid = 212;
+    int right = 100;
+    int avail = Math.max(240, this.width - PAD * 2);
+    int over = left + mid + right + COL_GAP * 2 - avail;
+    if (over > 0) {
+      // Split the deficit between items and sales first; the right column
+      // (rarity buttons) only shrinks when the window is extremely narrow.
+      int cut = Math.min(over * left / (left + mid), left - 200);
+      left -= cut;
+      over -= cut;
+      cut = Math.min(over, mid - 150);
+      mid -= cut;
+      over -= cut;
+      cut = Math.min(over, right - 72);
+      right -= cut;
+      over -= cut;
+      if (over > 0) {
+        cut = Math.min(over, left - 120);
+        left -= cut;
+        over -= cut;
+        cut = Math.min(over, mid - 90);
+        mid -= cut;
+        over -= cut;
+      }
+    }
+    this.leftW = left;
+    this.midW = mid;
+    this.rightW = right;
+    int total = left + mid + right + COL_GAP * 2;
+    this.panelX = Math.max(PAD, (this.width - total) / 2);
+    this.midX = this.panelX + left + COL_GAP;
+    this.rightX = this.midX + mid + COL_GAP;
   }
 
   private void drawDetailHeader(GuiGraphicsExtractor graphics) {
@@ -237,9 +280,12 @@ public final class AuctionDbScreen extends Screen {
     if (e == null || this.minecraft == null) {
       return;
     }
-    int x = this.panelLeft() + 288;
+    int x = this.midX;
     int y = 30;
     net.minecraft.client.gui.Font font = this.minecraft.font;
+    // Narrow windows: keep the header text inside the middle column instead
+    // of letting it run under the rarity buttons.
+    graphics.enableScissor(this.midX, y, this.rightX - 2, this.height - 44);
     ItemStack icon = AuctionPriceDb.iconFor(e.key);
     if (!icon.isEmpty()) {
       graphics.item(icon, x, y);
@@ -250,7 +296,7 @@ public final class AuctionDbScreen extends Screen {
         : net.minecraft.network.chat.Component.literal(e.name), x, y + 4, 0xFFFFFFFF);
     y += 22;
     for (String line : this.detailLines) {
-      graphics.text(font, line, this.panelLeft() + 288, y, 0xFFAAAAAA);
+      graphics.text(font, line, this.midX, y, 0xFFAAAAAA);
       y += 10;
     }
     if (!this.detailLines.isEmpty()) {
@@ -261,8 +307,9 @@ public final class AuctionDbScreen extends Screen {
       graphics.text(font,
           "Avg " + AuctionPriceDb.format(st.avg()) + "  Med " + AuctionPriceDb.format(st.med())
               + "  (" + st.n() + ") \ua8a6",
-          (this.panelLeft() + 288), y, 0xFFAAAAAA);
+          (this.midX), y, 0xFFAAAAAA);
     }
+    graphics.disableScissor();
   }
 
   /** Base for the DB's three lists: rows span the full widget width
@@ -409,12 +456,15 @@ public final class AuctionDbScreen extends Screen {
       int main = out ? 0xFF777777 : 0xFFFFFFFF;
       String when = this.when;
       String mark = out ? "✕ " : "";
+      graphics.enableScissor(this.getContentX(), this.getContentY(),
+          this.getContentRight(), this.getContentBottom());
       graphics.text(mc.font,
           mark + when + "  " + this.sample.count() + "x @ "
               + AuctionPriceDb.format(this.sample.unit()) + " \ua8a6",
           this.getContentX() + 2, this.getContentY() + 1, main);
       graphics.text(mc.font, this.nick,
           this.getContentX() + 10, this.getContentY() + 11, out ? 0xFF777777 : 0xFFAAAAAA);
+      graphics.disableScissor();
     }
   }
 
@@ -474,8 +524,10 @@ public final class AuctionDbScreen extends Screen {
         Component nm = AuctionPriceDb.styledName(this.entry.key);
         this.subName = nm == null ? Component.literal(this.entry.name) : nm;
       }
+      graphics.enableScissor(x + 24, y, this.getContentRight(), this.getContentBottom());
       graphics.text(mc.font, this.subName, x + 24, y + 2, 0xFFFFFFFF);
       graphics.text(mc.font, this.subText, x + 24, y + 12, 0xFFAAAAAA);
+      graphics.disableScissor();
     }
   }
 }
