@@ -27,6 +27,6 @@ public abstract class DisplayCullingMixin {
     if (!ConnectionUtil.isConnected()) {
       return original;
     }
-    return original.inflate(com.openorigins.client.util.ExpandModelBox.INFLATE);
+    return original.inflate(com.openorigins.client.util.ExpandModelBox.inflate(display));
   }
 }

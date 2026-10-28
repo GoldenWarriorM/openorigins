@@ -26,6 +26,6 @@ public abstract class EntityCullingMixin {
     }
     if (!OpenOriginsConfig.getInstance().isEnabled(OriginFeature.EXPAND_MODEL_BOUNDING_BOX)) return original;
     if (!ConnectionUtil.isConnected()) return original;
-    return original.inflate(com.openorigins.client.util.ExpandModelBox.INFLATE);
+    return original.inflate(com.openorigins.client.util.ExpandModelBox.inflate(entity));
   }
 }

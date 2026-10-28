@@ -13,7 +13,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 /**
  * Frustum box alone is not enough: vanilla drops entities beyond
  * bbox_size * 64 blocks before frustum is even tested. Mirrors the
- * 4.5 culling expansion with a size floor so distant large models
+ * culling expansion with a size floor so distant large models
  * (windmills, NPC rigs) stay rendered. Worn (passenger) stands skipped.
  */
 @Mixin(Entity.class)
