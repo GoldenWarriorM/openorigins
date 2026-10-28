@@ -275,7 +275,14 @@ public final class AuctionDbScreen extends Screen {
 
     @Override
     public int getRowWidth() {
-      return this.getWidth();
+      return this.getWidth() - this.scrollbarWidth();
+    }
+
+    /** Rows keep their left-aligned layout; only the right edge stops short
+     *  of the bar so the selection outline is not covered by it. */
+    @Override
+    public int getRowLeft() {
+      return this.getX();
     }
 
     /** Vanilla draws the bar just right of the rows, i.e. outside the widget,
