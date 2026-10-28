@@ -42,8 +42,6 @@ several new fixes and a large performance pass.
 #### Client Fixes
 
 - **Moa Facing Fix** — the Moa mount no longer walks backwards.
-- **Deny Spam Filter** — "you cannot do that here" is shown once in boss rooms
-  instead of spamming you.
 
 #### Hotkeys
 

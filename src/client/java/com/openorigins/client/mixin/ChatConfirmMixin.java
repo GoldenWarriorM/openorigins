@@ -23,8 +23,6 @@ public abstract class ChatConfirmMixin {
     }
   }
 
-  private static volatile long lastCannotDoThatMs;
-
   /**
    * Swallows vanilla "unknown command" errors caused by our own background
    * fetches (boss rooms etc. where the commands don't exist). Never touches
@@ -40,26 +38,6 @@ public abstract class ChatConfirmMixin {
     try {
       text = packet.content().getString().toLowerCase(java.util.Locale.ROOT);
     } catch (Throwable t) {
-      return;
-    }
-    if (text.contains("you cannot do that here")) {
-      // Bow-spam in boss rooms: the action denial itself repeats, no command
-      // of ours is involved, so dead zones never get recorded there. Boss
-      // bars (non-open-world ones) are the direct signal instead.
-      if (!com.openorigins.client.OpenOriginsConfig.getInstance()
-          .isEnabled(com.openorigins.client.OriginFeature.DENY_SPAM_FILTER)) {
-        return;
-      }
-      if (!com.openorigins.client.util.BackgroundMenu.isInDeadZone()
-          && !com.openorigins.client.util.OpenWorldCache.isInBossRoom()) {
-        return;
-      }
-      long now = System.currentTimeMillis();
-      if (now - lastCannotDoThatMs < 10000) {
-        ci.cancel();
-      } else {
-        lastCannotDoThatMs = now;
-      }
       return;
     }
     if (!(text.contains("unknown or incomplete command") || text.contains("unknown command"))) {

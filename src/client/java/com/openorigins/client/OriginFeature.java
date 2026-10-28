@@ -20,7 +20,6 @@ public enum OriginFeature {
   REGISTRY_DESYNC_FIX(FeatureCategory.NETWORK_FIXES, "Registry Desync Fix"),
   BADGER_TASK_HUD(FeatureCategory.UI, "Badger Task HUD"),
   ALLAY_ARMS_FIX(FeatureCategory.FIXES, "Allay Arms Fix"),
-  DENY_SPAM_FILTER(FeatureCategory.FIXES, "Deny Spam Filter"),
   ENTITY_EXTRAPOLATION(FeatureCategory.EXPERIMENTAL, false, "Entity Extrapolation"),
   MOA_FACING_FIX(FeatureCategory.FIXES, "Moa Facing Fix"),
   BREAK_SYNC(FeatureCategory.EXPERIMENTAL, false, "Break Sync", true),
