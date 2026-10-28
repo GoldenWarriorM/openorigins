@@ -282,7 +282,18 @@ public final class AuctionDbScreen extends Screen {
      *  where it overlaps the next column or leaves the screen. Keep it inside. */
     @Override
     protected int scrollBarX() {
-      return this.getX() + this.getWidth() - 6;
+      return this.getX() + this.getWidth() - this.scrollbarWidth();
+    }
+
+    /** A press on the bar drags the list; it must not also activate the row
+     *  underneath (rows toggle ignore lists on any click). */
+    @Override
+    public java.util.Optional<net.minecraft.client.gui.components.events.GuiEventListener> getChildAt(
+        double x, double y) {
+      if (this.isOverScrollbar(x, y)) {
+        return java.util.Optional.empty();
+      }
+      return super.getChildAt(x, y);
     }
   }
 
