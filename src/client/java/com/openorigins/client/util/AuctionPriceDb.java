@@ -195,11 +195,36 @@ public final class AuctionPriceDb {
   private static final Pattern PRICE =
       Pattern.compile("(?i)^price:\\s*([\\d,]+(?:\\.\\d+)?)");
 
+  /** "Recently sold" rows in the same menu carry a "Sold: … ago" line. */
+  private static final Pattern SOLD_LINE = Pattern.compile("(?i)^sold:\\s");
+
+  static boolean isSoldRow(List<Component> lines) {
+    for (Component line : lines) {
+      if (SOLD_LINE.matcher(line.getString().strip()).find()) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /** Stored description of a recently-sold row (legacy polluted entries). */
+  static boolean isSoldDesc(String desc) {
+    if (desc == null || desc.isEmpty()) {
+      return false;
+    }
+    for (String line : desc.split("\n")) {
+      if (SOLD_LINE.matcher(line.strip()).find()) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   /** Lore lines that describe the listing itself, never the item. */
   private static final List<String> NOISE_CONTAINS = List.of(
       "price:", "seller:", "time left:", "created:", "world:", "position:",
       "click", "visit realm", "pin realm", "players:", "delivered", "expired", "reset",
-      "currently viewing", "auction sold");
+      "currently viewing", "auction sold", "sold:");
 
   /** Normalized display name without the server badge prefix. */
   static String normName(String name) {
@@ -317,6 +342,11 @@ public final class AuctionPriceDb {
         Double total = null;
         String seller = null;
         List<Component> loreLines = lore.lines();
+        // "Recently sold" rows have Price/Seller too, but a Sold: timestamp:
+        // they are past sales, not listings, and must not enter the DB.
+        if (isSoldRow(loreLines)) {
+          return;
+        }
         for (Component line : loreLines) {
           String s = line.getString().strip();
           Matcher m = PRICE.matcher(s);
@@ -756,6 +786,7 @@ public final class AuctionPriceDb {
           JsonParser.parseString(Files.readString(f, StandardCharsets.UTF_8)).getAsJsonObject();
       long now = System.currentTimeMillis();
       int n = 0;
+      int purged = 0;
       if (root.has("excluded")) {
         try {
           for (JsonElement el : root.getAsJsonArray("excluded")) {
@@ -804,6 +835,13 @@ public final class AuctionPriceDb {
             } catch (Exception ignored) {
             }
           }
+          // Legacy pollution: entries recorded from the "recently sold" view.
+          // Their key was built from the Sold: line, so nothing valid is lost.
+          if (isSoldDesc(e.descText)) {
+            purged++;
+            dirty = true;
+            continue;
+          }
           if (o.has("icon")) {
             e.iconRaw = o.get("icon");
           }
@@ -833,6 +871,11 @@ public final class AuctionPriceDb {
       }
       org.slf4j.LoggerFactory.getLogger("openorigins")
           .info("[ahdb] loaded {} items from disk", n);
+      if (purged > 0) {
+        org.slf4j.LoggerFactory.getLogger("openorigins")
+            .info("[ahdb] purged {} recently-sold rows", purged);
+        save();
+      }
     } catch (Exception ex) {
       org.slf4j.LoggerFactory.getLogger("openorigins")
           .warn("[ahdb] load failed: {}", ex.toString());

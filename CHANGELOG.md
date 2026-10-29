@@ -85,6 +85,7 @@ several new fixes and a large performance pass.
 
 - Culling: the expanded distance and angles for armor stands and display models
   now actually work.
+- Auction Price Database: recently sold items no longer affect prices.
 - Badger tasks: fixed broken or missed scans, wrong reset timers and the stage
   tier row.
 - Homes: fixed expired homes showing the wrong timer and world visits appearing
