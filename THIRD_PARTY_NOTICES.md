@@ -1,5 +1,47 @@
 # Third-party notices
 
-## OriginAddons (MIT)
-- Source: https://github.com/ItsVerday/OriginAddons (fork of mikarific/OriginAddons)
-- License: MIT, Copyright (c) 2023 Mikarific
+OpenOrigins itself is released under the MIT License (see `LICENSE`).
+
+## OriginAddons
+
+Bundled GUI textures, item overlays, tooltip/emoji resources and language
+strings under `assets/originaddons/` come from **OriginAddons**, which is
+licensed under the MIT License.
+
+- Source: https://github.com/ItsVerday/OriginAddons (fork of
+  https://github.com/mikarific/OriginAddons)
+- Copyright (c) 2023 Mikarific
+
+```
+MIT License
+
+Copyright (c) 2023 Mikarific
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```
+
+## Origins Enhanced
+
+OpenOrigins is an independent re-implementation of behaviour seen in
+**Origins Enhanced**. No Origins Enhanced code, binaries or art assets are
+bundled or redistributed in this repository or in the release jar.
+
+## Minecraft
+
+Minecraft assets and code are property of Mojang Studios and are not bundled.
