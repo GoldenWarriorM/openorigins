@@ -21,6 +21,7 @@
   - [Experimental](#experimental)
 - [Installation](#installation)
 - [Building from source](#building-from-source)
+- [License](#license)
 - [Disclaimer](#disclaimer)
 
 ## Features
@@ -81,6 +82,11 @@ One jar works on both Minecraft **26.2** and **26.3**. Client-side mod — does 
 ```
 
 Requires Java 25. The resulting jar is placed in `build/libs`.
+
+## License
+
+MIT — see [LICENSE](LICENSE). Third-party assets and their licenses are listed
+in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
 ## Disclaimer
 
