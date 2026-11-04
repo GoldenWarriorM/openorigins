@@ -13,7 +13,7 @@ several new fixes and a large performance pass.
 - One jar for Minecraft 26.2 and 26.3.
 - Auction Price Database: browse, search and check auction sales.
 - Rebuilt settings menu with brand new look, tabs and collapsible groups
-- New togglable fixes: Moa facing and boss-room denial spam.
+- New togglable fixes: Moa facing, model culling and block flicker.
 
 ## Added
 
@@ -83,7 +83,7 @@ several new fixes and a large performance pass.
 
 ## Fixed
 
-- Culling: the expanded distance and angles for armor stands and display models
+- Culling: expanded boxes for armor stands, display models and item frames
   now actually work.
 - Auction Price Database: recently sold items no longer affect prices.
 - Badger tasks: fixed broken or missed scans, wrong reset timers and the stage

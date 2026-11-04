@@ -29,12 +29,12 @@
 
 | Feature | Description |
 | --- | --- |
-| Armor Stand Interpolation | Animation smoothing network-wide, including custom NPCs, cutscenes and windmills — no more choppy animations. |
-| Discord Rich Presence | Precise location tracking: your Discord status shows where you are on Origin Realms — spawn, resource worlds and realms. |
-| Improved Culling | Large models no longer cut off abruptly: increased distance and viewing angles for armor-stand rigs and static Display-entity models. |
-| Cutscene Enhancements | Cutscenes lock to FOV 70 with a frozen mouse, exactly as staged — no more camera drift mid-scene. |
-| Back Swag Slot | The hidden back swag no longer obstructs your view in first person, plus a dedicated inventory slot so you always know what's on your back. |
-| Moa Facing Fix | The server assembles the Moa mount body backwards — this turns it to face the direction of travel (visual only). |
+| Smooth Animations | Interpolates armor-stand poses between server updates, including custom NPCs, cutscenes and windmills. |
+| Discord Rich Presence | Shows the current location name reported by the server in your Discord status. |
+| Model Culling | Expands the culling box of armor-stand rigs, display models and item frames (much more near the camera), so large builds do not disappear at screen edges. |
+| Cutscene Enhancements | Locks FOV to 70 and freezes mouse look while you are in a cutscene (spectator mode). |
+| Back Swag Render | Draws the back cosmetic on avatars, as reported by the server. |
+| Moa Facing Fix | The server builds the Moa mount body facing backwards; this rotates it to the travel direction (visual only). |
 | Allay Arms Fix | Custom allay arm models arrive detached; this shifts them back into place. |
 
 ### Interface
@@ -45,15 +45,15 @@
 | Teleport Menu | Custom radial menu on B with spawn, home realm and balloon destinations using the server's own icons, plus docked homes and worlds panels with live reset timers. |
 | Homes Panel | World-colored home icons, live reset timers and server-verbatim tooltips. Newly created homes appear instantly, no /homes re-fetch needed. |
 | Badger Task HUD | Tracks your active Badger streak task on the HUD: requirements, inventory progress and turn-in state, pinnable to any screen corner. |
-| Hide Names | In F1 all name tags are hidden — including quest icons and NPC interactions — for clean screenshots. |
+| Back Swag Slot | Read-only slot in the survival inventory showing the back item and its tooltip. |
+| Hide Names | Hides entity name tags while the HUD is hidden (F1). |
 | Auction House Helpers | Per-unit price line on multi-item listings, styled like the server's own price row. Single items are left untouched. |
-| Boss Room Comfort | "You cannot do that here" denial spam in boss rooms is throttled: the first denial shows, repeats collapse to one per 10 seconds. |
 
 ### Fixes
 
 | Feature | Description |
 | --- | --- |
-| Block Update Fixes | Eliminates the brief foliage flash when breaking blocks, and mimics vanilla client-side animations for custom block interactions. |
+| Block Enhancements | Freezes client-side tripwire and note-block shapes so custom blocks built on them stop flickering. |
 | Custom Item IDs | Advanced tooltips (F3+H) show the true originrealms: IDs of custom items. |
 | Network Fixes | A dedicated settings tab for client/server agreement issues: stale scoreboard packets and duplicate registry entries no longer kick you, plus strict recipe-book matching for custom items. |
 
@@ -61,8 +61,8 @@
 
 | Feature | Description |
 | --- | --- |
-| Helmet Cosmetic Slot | Shows your real helmet next to the cosmetic in the inventory, so you always know what's actually protecting your head. |
-| Entity Extrapolation | Renders Grimms slightly ahead of their network updates for better hitbox matching. |
+| Helmet Cosmetic Slot | Adds a slot next to the helmet slot for the cosmetic; the real helmet stays visible in the helmet slot. |
+| Entity Extrapolation | Renders custom mob bodies ahead of network updates (150 ms by default) to match the server's hitboxes (visual only). |
 
 And more to come.
 
