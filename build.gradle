@@ -30,6 +30,27 @@ dependencies {
   implementation "net.fabricmc:fabric-loader:${project.loader_version}"
   implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
   compileOnly "com.terraformersmc:modmenu:20.0.3"
+
+  testImplementation platform("org.junit:junit-bom:5.11.4")
+  testImplementation "org.junit.jupiter:junit-jupiter"
+  testRuntimeOnly "org.junit.platform:junit-platform-launcher"
+  testImplementation "com.google.code.gson:gson:2.11.0"
+}
+
+// Unit tests only see the client source set: the whole mod lives there.
+sourceSets {
+  test {
+    compileClasspath += sourceSets.client.output
+    runtimeClasspath += sourceSets.client.output
+  }
+}
+
+tasks.named("test") {
+  useJUnitPlatform()
+  testLogging {
+    events "failed"
+    exceptionFormat "full"
+  }
 }
 
 processResources {
