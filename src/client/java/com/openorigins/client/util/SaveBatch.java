@@ -46,4 +46,10 @@ public final class SaveBatch {
       }
     }
   }
+
+  /** Restores the pristine state between unit tests. */
+  static void resetForTest() {
+    depth = 0;
+    PENDING.clear();
+  }
 }

@@ -49,7 +49,18 @@ public final class OpenOriginsConfig {
 
   public static OpenOriginsConfig getInstance() { return INSTANCE; }
 
+  /** Redirects the properties file in unit tests (no FabricLoader available). */
+  private static volatile Path configPathOverride;
+
+  static void setConfigPathForTest(Path path) {
+    configPathOverride = path;
+  }
+
   public Path configPath() {
+    Path override = configPathOverride;
+    if (override != null) {
+      return override;
+    }
     return FabricLoader.getInstance().getConfigDir().resolve("openorigins.properties");
   }
 
