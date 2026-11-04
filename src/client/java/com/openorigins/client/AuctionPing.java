@@ -25,9 +25,8 @@ public final class AuctionPing {
         var client = net.minecraft.client.Minecraft.getInstance();
         if (client.player != null) {
           client.player.playSound(SoundEvents.EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f);
-          com.openorigins.client.screen.ReconnectToast.show(client.gui.toastManager(),
-              net.minecraft.network.chat.Component.literal("Auction"), message.copy(),
-              com.openorigins.client.screen.ReconnectToast.Mode.HEADER);
+          com.openorigins.client.util.NativeToast.show(
+              net.minecraft.network.chat.Component.literal("Auction"), message.copy());
         }
       }
     });

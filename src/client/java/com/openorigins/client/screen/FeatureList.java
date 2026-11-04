@@ -881,8 +881,7 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
         OpenOriginsConfig config = OpenOriginsConfig.getInstance();
         config.setEnabled(feature, !config.isEnabled(feature));
         if (feature == com.openorigins.client.OriginFeature.ENHANCED_COSMETICS) {
-          net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
-          ReconnectToast.show(mc.gui.toastManager(), Component.literal("OpenOrigins"),
+          com.openorigins.client.util.NativeToast.show(Component.literal("OpenOrigins"),
               Component.translatable("config.openorigins.reconnect_note"));
         }
         list.refreshEntries();
