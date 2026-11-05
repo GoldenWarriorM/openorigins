@@ -18,8 +18,9 @@ public abstract class CommandProbeMixin {
         com.openorigins.client.util.DebugLog.info("[cmd] own /{}", cmd.command());
       } else {
         com.openorigins.client.util.DebugLog.info("[cmd] user /{}", cmd.command());
+        // noteForeignCommand() itself ends the fetch only for menu commands:
+        // a plain command must not abandon the answer already in flight.
         com.openorigins.client.util.BackgroundMenu.noteForeignCommand(cmd.command());
-        com.openorigins.client.util.BackgroundMenu.finishIfArmed();
       }
     }
   }

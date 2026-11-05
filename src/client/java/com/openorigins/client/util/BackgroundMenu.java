@@ -32,6 +32,12 @@ public final class BackgroundMenu {
   private static long lastTryArmLogMs;
   private static long lastMismatchLogMs;
   private static final long MANUAL_COOLDOWN_MS = 15000;
+  /** The server rate-limits chat commands: never follow the user's own send
+   *  inside this window, or the answer is "you are speaking too fast". */
+  private static final long USER_QUIET_MS = 2500L;
+  /** A fetch is re-sent at most this many times: every extra send risks a
+   *  duplicate answer, and a duplicate answer is what leaks a menu. */
+  private static final int MAX_ATTEMPTS = 3;
   /** Right-clicks on entities (NPCs) that can open a server menu of their own. */
   private static volatile long lastEntityInteractMs;
   private static volatile String lastEntityInteractName = "?";
@@ -86,10 +92,19 @@ public final class BackgroundMenu {
     noteForeignCommand(null);
   }
 
-  /** Same, with the command text so menu answers can be told apart. */
+  /**
+   * Same, with the command text so menu answers can be told apart. A command
+   * that opens a menu of its own ends our fetch (that answer must stay
+   * visible); a plain command (home teleport, spawn...) does not, so the
+   * answer already in flight is still swallowed instead of popping over the
+   * player as a chest menu.
+   */
   public static synchronized void noteForeignCommand(String command) {
     lastForeignCmdMs = System.currentTimeMillis();
     lastForeignCommand = command == null ? null : command.strip().toLowerCase(java.util.Locale.ROOT);
+    if (!isNonMenuCommand(lastForeignCommand)) {
+      finishIfArmed();
+    }
   }
 
   private static volatile String lastForeignCommand;
@@ -97,15 +112,22 @@ public final class BackgroundMenu {
   /**
    * User commands that never open a menu: an orphaned answer arriving after
    * one of these is still ours (e.g. our bg /streaks answered right after
-   * the user hit /realm tp). Menu-opening commands are absent here on
-   * purpose: their answers stay visible.
+   * the user hit /realm tp), and a fetch already in flight keeps its claim on
+   * the next window (2026-11-05: closing the Badger quest and teleporting home
+   * with 'home base' let the /streaks answer through as a chest menu).
+   * Menu-opening commands are absent here on purpose: their answers stay
+   * visible.
    */
-  private static boolean isNonMenuCommand(String command) {
+  static boolean isNonMenuCommand(String command) {
     if (command == null || command.isEmpty()) {
       return false;
     }
     return command.equals("realm tp") || command.equals("spawn")
-        || command.startsWith("balloon ");
+        || command.startsWith("balloon ")
+        || command.startsWith("home ") || command.equals("home")
+        || command.startsWith("delhome ") || command.startsWith("sethome ")
+        || command.equals("tpa") || command.startsWith("tpa ")
+        || command.equals("tpaccept");
   }
 
   /** A late answer to our own send counts as ours when the user only typed
@@ -258,8 +280,12 @@ public final class BackgroundMenu {
     return armed && m != null && m == menu;
   }
 
+  /** True when the user asked for a menu themselves: that answer must show. */
   private static boolean userActive() {
-    return System.currentTimeMillis() - lastForeignCmdMs < 10000;
+    if (System.currentTimeMillis() - lastForeignCmdMs >= 10000) {
+      return false;
+    }
+    return !isNonMenuCommand(lastForeignCommand);
   }
 
   /** @return false if a fetch is already in flight. */
@@ -733,6 +759,34 @@ public final class BackgroundMenu {
     return contentPackets >= 2;
   }
 
+  /** Round-trip estimate in ms, 0 when unknown. */
+  private static long latencyMs() {
+    try {
+      Minecraft mc = Minecraft.getInstance();
+      if (mc == null || mc.getConnection() == null || mc.player == null) {
+        return 0;
+      }
+      net.minecraft.client.multiplayer.PlayerInfo info =
+          mc.getConnection().getPlayerInfo(mc.player.getUUID());
+      return info == null ? 0 : Math.max(0, info.getLatency());
+    } catch (Throwable t) {
+      return 0;
+    }
+  }
+
+  /**
+   * How long an unanswered fetch waits before it is re-sent. The old fixed 3s
+   * was shorter than the round-trip on a bad connection: the first answer and
+   * the retry's answer both arrived, the second hit the "server replaced our
+   * window" path and was shown to the player as a chest menu.
+   */
+  static long resendGapFor(long pingMs) {
+    if (pingMs <= 0) {
+      return 5000L;
+    }
+    return Math.min(20000L, Math.max(5000L, pingMs * 2L + 2500L));
+  }
+
   /** Force-closes on timeout. Call from client tick. */
   public static synchronized void tick() {
     if (!armed) {
@@ -744,8 +798,14 @@ public final class BackgroundMenu {
       finish();
       return;
     }
-    if (menu == null && pendingCommand != null && now - lastOwnSendMs > 3000 && attempts < 5) {
+    if (menu == null && pendingCommand != null && attempts < MAX_ATTEMPTS
+        && now - lastOwnSendMs > resendGapFor(latencyMs())) {
       if (userActive()) {
+        return;
+      }
+      if (now - lastForeignCmdMs < USER_QUIET_MS) {
+        // The user's own command just went out (a home teleport, a chest they
+        // opened): ours would land in the same burst and get rate-limited.
         return;
       }
       if (afterEntityInteraction(now)) {

@@ -2,7 +2,6 @@ package com.openorigins.client.screen;
 
 import com.openorigins.client.util.HomeFetch;
 import com.openorigins.client.util.HomeInfoCache;
-import com.openorigins.client.util.HomeListFetcher;
 import com.openorigins.client.util.OpenWorldCache;
 import com.openorigins.client.util.ServerPackIcons;
 import java.util.ArrayList;
@@ -56,7 +55,6 @@ public class TeleportMenuScreen extends Screen implements HomePanelHost {
   private int worldPanelCount;
   private long retryAt;
   private int retries;
-  private static boolean navigatorProbed;
 
   /** Radial center: screen center unless a side panel would overlap it. */
   private double radialCx() {
@@ -105,12 +103,6 @@ public class TeleportMenuScreen extends Screen implements HomePanelHost {
   @Override
   protected void init() {
     HomeInfoCache.backfillResets();
-    if (!navigatorProbed && this.minecraft != null && this.minecraft.player != null) {
-      navigatorProbed = true;
-      HomeListFetcher.fetchRaw("/navigator ", false, subs ->
-          org.slf4j.LoggerFactory.getLogger("openorigins")
-              .info("[openworld] navigator subs: {}", subs));
-    }
     if (this.homes == null && this.minecraft != null && this.minecraft.player != null) {
       this.homes = new ArrayList<>(HomeInfoCache.names());
     }
