@@ -40,7 +40,11 @@ public final class RemoteRegistry {
         .timeout(Duration.ofSeconds(15)).GET().build();
     return client.sendAsync(request, HttpResponse.BodyHandlers.ofString()).thenAccept(response -> {
       if (response.statusCode() == 200) {
-        parse(response.body());
+        Map<String, LocationData> parsed = parseLocations(response.body());
+        if (parsed != null) {
+          this.locations = parsed;
+          this.loaded = true;
+        }
       }
     }).exceptionally(t -> {
       com.openorigins.client.util.DebugLog.warn("[OpenOrigins] remote registry fetch failed, using empty registry");
@@ -48,7 +52,8 @@ public final class RemoteRegistry {
     });
   }
 
-  private void parse(String json) {
+  /** Parses the directory payload; null when the JSON is not usable. */
+  static Map<String, LocationData> parseLocations(String json) {
     try {
       Map<String, LocationData> parsed = new HashMap<>();
       JsonObject root = JsonParser.parseString(json).getAsJsonObject();
@@ -67,10 +72,10 @@ public final class RemoteRegistry {
           parsed.put(entry.getKey(), new LocationData(chatroom, icon));
         }
       }
-      this.locations = Collections.unmodifiableMap(parsed);
-      this.loaded = true;
+      return Collections.unmodifiableMap(parsed);
     } catch (Throwable t) {
       com.openorigins.client.util.DebugLog.warn("[OpenOrigins] remote registry parse failed");
+      return null;
     }
   }
 

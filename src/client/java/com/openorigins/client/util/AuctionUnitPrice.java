@@ -3,8 +3,6 @@ package com.openorigins.client.util;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.world.item.ItemStack;
@@ -17,9 +15,6 @@ import net.minecraft.world.item.ItemStack;
 public final class AuctionUnitPrice {
   private AuctionUnitPrice() {}
 
-  private static final Pattern PRICE =
-      Pattern.compile("(?i)^price:\\s*([\\d,]+(?:\\.\\d+)?)");
-
   /** @return true when a line was added. */
   public static boolean apply(ItemStack stack, List<Component> lines) {
     if (stack == null || stack.getCount() <= 1 || lines == null || lines.isEmpty()) {
@@ -28,14 +23,10 @@ public final class AuctionUnitPrice {
     int priceIdx = -1;
     double total = 0;
     for (int i = 0; i < lines.size(); i++) {
-      Matcher m = PRICE.matcher(lines.get(i).getString().strip());
-      if (m.find()) {
+      Double parsed = AuctionParse.parsePrice(lines.get(i).getString());
+      if (parsed != null) {
         priceIdx = i;
-        try {
-          total = Double.parseDouble(m.group(1).replace(",", ""));
-        } catch (NumberFormatException e) {
-          return false;
-        }
+        total = parsed;
         break;
       }
     }
@@ -43,12 +34,7 @@ public final class AuctionUnitPrice {
       return false;
     }
     double unit = total / stack.getCount();
-    String formatted;
-    if (unit == Math.floor(unit)) {
-      formatted = String.format(Locale.US, "%,d", (long) unit);
-    } else {
-      formatted = String.format(Locale.US, "%,.2f", unit);
-    }
+    String formatted = AuctionParse.formatUnit(unit);
     Component priceLine = lines.get(priceIdx);
     String prefix = Component.translatable("tooltip.openorigins.per_item_prefix").getString();
     lines.add(priceIdx + 1, buildUnitLine(priceLine, prefix, formatted));
@@ -66,7 +52,7 @@ public final class AuctionUnitPrice {
     }
     int priceIdx = -1;
     for (int i = 0; i < lines.size(); i++) {
-      if (PRICE.matcher(lines.get(i).getString().strip()).find()) {
+      if (AuctionParse.parsePrice(lines.get(i).getString()) != null) {
         priceIdx = i;
         break;
       }

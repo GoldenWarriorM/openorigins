@@ -10,8 +10,6 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.core.component.DataComponents;
@@ -50,11 +48,6 @@ public final class BadgerCache {
    *  block fresher timers for hours. */
   private static volatile long timerDeadline;
 
-  private static final Pattern SCORE = Pattern.compile("current streak score:\\s*(\\d+)");
-  private static final Pattern HIGH = Pattern.compile("streak highscore:\\s*(\\d+)");
-  private static final Pattern DAYS = Pattern.compile("days until streak resets:\\s*(\\d+)");
-  private static final Pattern TIER = Pattern.compile("(.+?):\\s*\\((\\d+)/(\\d+)\\)");
-
   public static List<Required> required() {
     return List.copyOf(REQUIRED);
   }
@@ -76,51 +69,17 @@ public final class BadgerCache {
 
   /** Parses "23 hours and 59 minutes" / "6h 55m" style timers to ms (0 on fail). */
   static long parseTimeLeftMs(String raw) {
-    String s = raw == null ? "" : raw.toLowerCase(Locale.ROOT);
-    long ms = 0;
-    Matcher m = TIME_PART.matcher(s);
-    while (m.find()) {
-      long v = Long.parseLong(m.group(1));
-      switch (m.group(2)) {
-        case "d" -> ms += v * 86_400_000L;
-        case "h" -> ms += v * 3_600_000L;
-        case "m" -> ms += v * 60_000L;
-        case "s" -> ms += v * 1_000L;
-        default -> {}
-      }
-    }
-    return ms;
+    return BadgerParse.parseTimeLeftMs(raw);
   }
 
-  /** Number followed by a duration letter or the start of a duration word. */
-  private static final Pattern TIME_PART = Pattern.compile("(\\d+)\\s*([dhms])");
-
   /** Smallest parsed timer among "Time left" candidates (pairs ms/raw). */
-  private static String minAvail(java.util.List<long[]> ms, java.util.List<String> raw) {
-    if (raw.isEmpty()) {
-      return null;
-    }
-    int best = 0;
-    for (int i = 1; i < ms.size(); i++) {
-      if (ms.get(i)[0] < ms.get(best)[0]) {
-        best = i;
-      }
-    }
-    return raw.get(best);
+  private static String minAvail(java.util.List<Long> ms, java.util.List<String> raw) {
+    return BadgerParse.minAvail(ms, raw);
   }
 
   /** Smallest parsed timer among "Next available:" lore values. */
   private static String minRaw(java.util.List<String> raw) {
-    if (raw.isEmpty()) {
-      return null;
-    }
-    int best = 0;
-    for (int i = 1; i < raw.size(); i++) {
-      if (parseTimeLeftMs(raw.get(i)) < parseTimeLeftMs(raw.get(best))) {
-        best = i;
-      }
-    }
-    return raw.get(best);
+    return BadgerParse.minRaw(raw);
   }
 
   /**
@@ -142,21 +101,13 @@ public final class BadgerCache {
 
   /** Text after a lowercase prefix within a (lowercased, equal-length) line. */
   private static String timeValue(String lower, String prefix) {
-    int i = lower.indexOf(prefix);
-    return i < 0 ? "" : lower.substring(i + prefix.length()).trim();
+    return BadgerParse.timeValue(lower, prefix);
   }
 
   /** Server-menu captions that leaked into REQUIRED before the sentinel
    *  fix; never legitimate badger task items. */
   private static boolean isMenuJunk(String name) {
-    if (name == null || name.isBlank()) {
-      return true;
-    }
-    String s = name.toLowerCase(java.util.Locale.ROOT).strip();
-    return s.equals("your listings") || s.equals("refresh") || s.equals("shrink view")
-        || s.equals("← back") || s.equals("back") || s.equals("events")
-        || s.equals("your profile") || s.equals("badges") || s.equals("realms")
-        || s.equals("social") || s.equals("close") || s.equals("learn more");
+    return BadgerParse.isMenuJunk(name);
   }
 
   private static String iconKey(String itemId, String displayName) {
@@ -320,7 +271,7 @@ public final class BadgerCache {
     // reject menus that aren't the badger streaks menu. Regression from the
     // MenuLore refactor had zero-init, committing every menu's items.
     final int[] counters = {-1, -1, -1, 0};
-    final java.util.List<long[]> timeCandidates = new ArrayList<>();
+    final java.util.List<Long> timeCandidates = new ArrayList<>();
     final List<String> timeRaw = new ArrayList<>();
     final List<String> loreRaw = new ArrayList<>();
     final List<String> nextAvailRaw = new ArrayList<>();
@@ -333,19 +284,19 @@ public final class BadgerCache {
       if (lower.equals("delivered!")) {
         counters[3]++;
       }
-      Matcher m = SCORE.matcher(lower);
-      if (m.find()) {
-        counters[0] = Integer.parseInt(m.group(1));
+      Integer score = BadgerParse.parseScore(lower);
+      if (score != null) {
+        counters[0] = score;
       }
-      Matcher d = DAYS.matcher(lower);
-      if (d.find()) {
-        counters[2] = Integer.parseInt(d.group(1));
+      Integer resetDays = BadgerParse.parseDaysUntilReset(lower);
+      if (resetDays != null) {
+        counters[2] = resetDays;
       }
       if (lower.startsWith("time left:")) {
         // Name-based "Time left" is the daily-window header item (~24h), not
         // the task timer — recorded but never adopted.
         String raw = name.substring(Math.min(name.length(), "time left:".length())).trim();
-        timeCandidates.add(new long[]{parseTimeLeftMs(raw)});
+        timeCandidates.add(parseTimeLeftMs(raw));
         timeRaw.add(raw);
       }
       if (lower.contains("next available:")) {
@@ -355,19 +306,17 @@ public final class BadgerCache {
         seenCompleted[0] = true;
       }
       if (lower.contains("go to badger to accept") && !lines.isEmpty()) {
-        Matcher t = TIER.matcher(lines.get(0).getString());
-        if (t.find() && tiers.stream().noneMatch(x ->
-            x.name().equals(t.group(1).trim()))) {
+        BadgerParse.Tier t = BadgerParse.parseTier(lines.get(0).getString());
+        if (t != null && tiers.stream().noneMatch(x -> x.name().equals(t.name()))) {
           // Several quest items repeat the current stage line; keep one.
-          tiers.add(new Tier(t.group(1).trim(),
-              Integer.parseInt(t.group(2)), Integer.parseInt(t.group(3))));
+          tiers.add(new Tier(t.name(), t.done(), t.total()));
         }
       }
       for (Component line : lines) {
         String s = line.getString().toLowerCase(Locale.ROOT);
-        Matcher h = HIGH.matcher(s);
-        if (h.find()) {
-          counters[1] = Integer.parseInt(h.group(1));
+        Integer high = BadgerParse.parseHighscore(s);
+        if (high != null) {
+          counters[1] = high;
         }
         if (s.startsWith("time left:")) {
           // Task items carry their own expiry in lore; the name-based
