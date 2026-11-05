@@ -24,12 +24,23 @@ public final class OutboxStats {
   private static int session;
   private static long lastMs;
 
+  /** Wall clock, replaceable in tests to keep rate windows deterministic. */
+  private static volatile java.util.function.LongSupplier clock = System::currentTimeMillis;
+
+  static void setClockForTest(java.util.function.LongSupplier source) {
+    clock = source == null ? System::currentTimeMillis : source;
+  }
+
+  private static long now() {
+    return clock.getAsLong();
+  }
+
   public static synchronized void record(String label) {
     record(label, 10000L);
   }
 
   public static synchronized void record(String label, long timeoutMs) {
-    long now = System.currentTimeMillis();
+    long now = now();
     prune(now);
     all.addLast(new Entry(now, label, timeoutMs, -1));
     session++;
@@ -43,7 +54,7 @@ public final class OutboxStats {
 
   /** Marks the newest pending entry matching the predicate as answered. */
   public static synchronized void ack(Predicate<String> match) {
-    long now = System.currentTimeMillis();
+    long now = now();
     ArrayDeque<Entry> rebuilt = null;
     var it = all.descendingIterator();
     while (it.hasNext()) {
@@ -68,13 +79,13 @@ public final class OutboxStats {
   }
 
   public static synchronized int lastMinute() {
-    long now = System.currentTimeMillis();
+    long now = now();
     prune(now);
     return countSince(now - 60000L);
   }
 
   public static synchronized int lastHalfHour() {
-    long now = System.currentTimeMillis();
+    long now = now();
     prune(now);
     return all.size();
   }

@@ -16,6 +16,7 @@ if (JavaVersion.current() < JavaVersion.VERSION_25) {
 dependencyResolutionManagement {
   repositories {
     maven { name = "Fabric"; url = "https://maven.fabricmc.net/" }
+    mavenCentral()
   }
 }
 rootProject.name = "openorigins"

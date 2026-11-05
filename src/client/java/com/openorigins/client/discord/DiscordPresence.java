@@ -29,6 +29,12 @@ public final class DiscordPresence {
     if (clientId == null || clientId.isEmpty()) {
       return;
     }
+    writeState(buildRefreshJson(clientId, details, state, largeImage, largeText, startTimestamp));
+  }
+
+  /** Pure state payload; separated from the file write so it can be tested. */
+  static String buildRefreshJson(String clientId, String details, String state, String largeImage,
+      String largeText, long startTimestamp) {
     StringBuilder json = new StringBuilder("{\"client_id\":");
     appendJsonFieldValue(json, clientId);
     json.append(",\"details\":");
@@ -41,7 +47,7 @@ public final class DiscordPresence {
     appendJsonFieldValue(json, stripCodes(largeText));
     json.append(",\"start\":").append(startTimestamp > 0 ? startTimestamp / 1000 : 0);
     json.append('}');
-    writeState(json.toString());
+    return json.toString();
   }
 
   public static void clear() {
@@ -75,7 +81,7 @@ public final class DiscordPresence {
   }
 
   /** Strips Minecraft formatting codes and server icon glyphs (Yi block, PUA). */
-  private static String stripCodes(String value) {
+  static String stripCodes(String value) {
     if (value == null) {
       return null;
     }

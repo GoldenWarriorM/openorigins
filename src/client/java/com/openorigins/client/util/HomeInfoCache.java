@@ -72,37 +72,11 @@ public final class HomeInfoCache {
 
   /** Parses lines like "5 home slots" / "Home slots: 5" from rank perk lore. */
   static int parseCapacity(String line) {
-    String s = line.toLowerCase(java.util.Locale.ROOT);
-    if (!(s.contains("home") || s.contains("slot"))) {
-      return 0;
-    }
-    java.util.regex.Matcher m = java.util.regex.Pattern.compile(
-        "(\\d+)\\s*(?:x\\s*)?(?:home|house)?\\s*slots?|(?:home|house)s?\\s*slots?\\s*[:x]?\\s*(\\d+)")
-        .matcher(s);
-    if (m.find()) {
-      String num = m.group(1) != null ? m.group(1) : m.group(2);
-      try {
-        int v = Integer.parseInt(num);
-        return (v > 0 && v <= 100) ? v : 0;
-      } catch (NumberFormatException ignored) {
-      }
-    }
-    return 0;
+    return HomeParse.parseCapacity(line);
   }
 
   public static String key(String name) {
-    if (name == null) {
-      return "";
-    }
-    StringBuilder sb = new StringBuilder();
-    String lower = name.toLowerCase(Locale.ROOT);
-    for (int i = 0; i < lower.length(); i++) {
-      char c = lower.charAt(i);
-      if (c != ' ' && c != '_' && !Character.isISOControl(c)) {
-        sb.append(c);
-      }
-    }
-    return sb.toString();
+    return HomeParse.key(name);
   }
 
   public static boolean has(String name) {
@@ -113,19 +87,11 @@ public final class HomeInfoCache {
     if (name == null || name.isBlank() || lore == null || lore.isEmpty()) {
       return;
     }
-    String color = null;
+    java.util.List<String> plain = new ArrayList<>(lore.size());
     for (Component line : lore) {
-      String s = line.getString().toLowerCase(Locale.ROOT);
-      if (s.contains("world:")) {
-        for (String c : new String[]{"blue", "green", "yellow", "red", "orange", "purple"}) {
-          if (s.contains(c)) {
-            color = c;
-            break;
-          }
-        }
-        break;
-      }
+      plain.add(line.getString());
     }
+    String color = HomeParse.worldColor(plain);
     String k = key(name);
     Info prev = CACHE.get(k);
     List<Component> copy = List.copyOf(lore);

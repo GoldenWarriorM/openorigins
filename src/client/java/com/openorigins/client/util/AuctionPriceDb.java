@@ -16,8 +16,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.chat.Component;
@@ -43,29 +41,11 @@ public final class AuctionPriceDb {
       List.of("ALL", "COMMON", "LIMITED", "RARE", "EPIC", "LEGENDARY", "NONE", "RENAMED");
 
   /** Server badge glyph (name prefix) per rarity. */
-  public static final java.util.Map<String, String> RARITY_GLYPHS = Map.of(
-      "LIMITED", "ꑶ",
-      "COMMON", "ꑲ",
-      "RARE", "ꑳ",
-      "EPIC", "ꑴ",
-      "LEGENDARY", "ꑵ");
-
-  private static final java.util.Map<String, String> GLYPH_RARITY = Map.of(
-      "ꑶ", "LIMITED",
-      "ꑲ", "COMMON",
-      "ꑳ", "RARE",
-      "ꑴ", "EPIC",
-      "ꑵ", "LEGENDARY");
+  public static final java.util.Map<String, String> RARITY_GLYPHS = AuctionParse.RARITY_GLYPHS;
 
   /** Rarity from the server badge prefix; plain names get their own bucket. */
   public static String rarityOf(String name) {
-    if (name != null && !name.isEmpty()) {
-      String g = GLYPH_RARITY.get(name.substring(0, 1));
-      if (g != null) {
-        return g;
-      }
-    }
-    return "NONE";
+    return AuctionParse.rarityOf(name);
   }
 
   /** Backwards-compatible overload (vanilla component is ignored). */
@@ -120,15 +100,7 @@ public final class AuctionPriceDb {
 
   /** Nick without the rank badge prefix ("… Zoltraq" -> "zoltraq"). */
   public static String sellerNick(String seller) {
-    if (seller == null) {
-      return "";
-    }
-    String s = seller.strip();
-    int sp = s.lastIndexOf(' ');
-    if (sp >= 0) {
-      s = s.substring(sp + 1);
-    }
-    return s.toLowerCase(Locale.ROOT);
+    return AuctionParse.sellerNick(seller);
   }
 
   public static boolean isExcluded(String seller) {
@@ -157,85 +129,32 @@ public final class AuctionPriceDb {
     save();
   }
 
-  private static final Pattern TIME_LEFT_NUM =
-      Pattern.compile("(\\d+)\\s*(day|hour|min)", Pattern.CASE_INSENSITIVE);
-
   /** Listing end instant from "Time left: 17 hours and 50 minutes", else -1. */
   static long parseEndsAt(List<Component> lines, long now) {
-    try {
-      for (Component line : lines) {
-        String s = line.getString().strip().toLowerCase(Locale.ROOT);
-        if (!s.startsWith("time left:")) {
-          continue;
-        }
-        Matcher m = TIME_LEFT_NUM.matcher(s);
-        long ms = 0;
-        boolean any = false;
-        while (m.find()) {
-          long v = Long.parseLong(m.group(1));
-          String unit = m.group(2).toLowerCase(Locale.ROOT);
-          if (unit.startsWith("day")) {
-            ms += v * 24L * 60 * 60 * 1000;
-          } else if (unit.startsWith("hour")) {
-            ms += v * 60L * 60 * 1000;
-          } else {
-            ms += v * 60L * 1000;
-          }
-          any = true;
-        }
-        if (any && ms > 0) {
-          return now + ms;
-        }
-      }
-    } catch (Throwable ignored) {
-    }
-    return -1;
+    return AuctionParse.parseEndsAt(strings(lines), now);
   }
 
-  private static final Pattern PRICE =
-      Pattern.compile("(?i)^price:\\s*([\\d,]+(?:\\.\\d+)?)");
-
   /** "Recently sold" rows in the same menu carry a "Sold: … ago" line. */
-  private static final Pattern SOLD_LINE = Pattern.compile("(?i)^sold:\\s");
-
   static boolean isSoldRow(List<Component> lines) {
-    for (Component line : lines) {
-      if (SOLD_LINE.matcher(line.getString().strip()).find()) {
-        return true;
-      }
-    }
-    return false;
+    return AuctionParse.isSoldRow(strings(lines));
   }
 
   /** Stored description of a recently-sold row (legacy polluted entries). */
   static boolean isSoldDesc(String desc) {
-    if (desc == null || desc.isEmpty()) {
-      return false;
-    }
-    for (String line : desc.split("\n")) {
-      if (SOLD_LINE.matcher(line.strip()).find()) {
-        return true;
-      }
-    }
-    return false;
+    return AuctionParse.isSoldDesc(desc);
   }
 
-  /** Lore lines that describe the listing itself, never the item. */
-  private static final List<String> NOISE_CONTAINS = List.of(
-      "price:", "seller:", "time left:", "created:", "world:", "position:",
-      "click", "visit realm", "pin realm", "players:", "delivered", "expired", "reset",
-      "currently viewing", "auction sold", "sold:");
+  private static List<String> strings(List<Component> lines) {
+    List<String> out = new ArrayList<>(lines.size());
+    for (Component line : lines) {
+      out.add(line == null ? "" : line.getString());
+    }
+    return out;
+  }
 
   /** Normalized display name without the server badge prefix. */
   static String normName(String name) {
-    if (name == null) {
-      return "";
-    }
-    String s = name.strip();
-    while (!s.isEmpty() && s.codePointAt(0) > 0x2500) {
-      s = s.substring(Character.charCount(s.codePointAt(0))).strip();
-    }
-    return s.toLowerCase(Locale.ROOT);
+    return AuctionParse.normName(name);
   }
 
   /**
@@ -243,80 +162,7 @@ public final class AuctionPriceDb {
    * first descriptive line and a hash of all of them. Returns {suffix, label}.
    */
   static String[] variantOf(String name, List<Component> loreLines) {
-    List<String> desc = new ArrayList<>();
-    boolean enchanted = false;
-    for (Component line : loreLines) {
-      String s = line.getString().strip();
-      if (s.isEmpty()) {
-        continue;
-      }
-      String lower = s.toLowerCase(Locale.ROOT);
-      boolean noise = false;
-      for (String n : NOISE_CONTAINS) {
-        if (lower.contains(n)) {
-          noise = true;
-          break;
-        }
-      }
-      if (noise) {
-        continue;
-      }
-      // Enchant sockets and everything below are cut: only enchanted-vs-
-      // clean matters (socket combos are unbounded).
-      if (lower.contains("enchant slot")) {
-        for (Component rest : loreLines.subList(loreLines.indexOf(line) + 1, loreLines.size())) {
-          String rs = rest.getString().strip();
-          if (rs.startsWith("+") && !rs.toLowerCase(Locale.ROOT).contains("available slot")) {
-            enchanted = true;
-            break;
-          }
-        }
-        break;
-      }
-      // Fill-state counters change over time ("Enchant Slots: (0/2)" vs
-      // "(2/2)"): same item, not a new variant.
-      s = s.replaceAll("\\(\\d+\\s*/\\s*\\d+\\)", "").replaceAll(" +", " ").strip();
-      if (s.isEmpty() || !s.matches(".*[A-Za-z0-9].*")) {
-        continue;
-      }
-      desc.add(s);
-    }
-    String nn = normName(name);
-    String suffix = "";
-    String label = "";
-    if (!nn.isEmpty()) {
-      suffix = "|n=" + nn;
-    }
-    if (!desc.isEmpty()) {
-      try {
-        java.security.MessageDigest md = java.security.MessageDigest.getInstance("SHA-1");
-        byte[] hash =
-            md.digest(String.join("\n", desc).getBytes(java.nio.charset.StandardCharsets.UTF_8));
-        StringBuilder hex = new StringBuilder();
-        for (int i = 0; i < 5; i++) {
-          hex.append(String.format("%02x", hash[i]));
-        }
-        suffix += "|v=" + hex;
-        label = desc.get(0);
-        if (label.length() > 30) {
-          label = label.substring(0, 30) + "…";
-        }
-      } catch (Throwable ignored) {
-      }
-    }
-    if (hasEnchantSection(loreLines)) {
-      suffix += enchanted ? "|e=1" : "|e=0";
-    }
-    return new String[]{suffix, label, String.join("\n", desc)};
-  }
-
-  private static boolean hasEnchantSection(List<Component> loreLines) {
-    for (Component line : loreLines) {
-      if (line.getString().toLowerCase(Locale.ROOT).contains("enchant slot")) {
-        return true;
-      }
-    }
-    return false;
+    return AuctionParse.variantOf(name, strings(loreLines));
   }
 
   /** Scans a menu (background or visible) for auction listings. */
@@ -349,12 +195,9 @@ public final class AuctionPriceDb {
         }
         for (Component line : loreLines) {
           String s = line.getString().strip();
-          Matcher m = PRICE.matcher(s);
-          if (m.find()) {
-            try {
-              total = Double.parseDouble(m.group(1).replace(",", ""));
-            } catch (NumberFormatException ignored) {
-            }
+          Double parsed = AuctionParse.parsePrice(s);
+          if (parsed != null) {
+            total = parsed;
           } else if (s.toLowerCase(Locale.ROOT).startsWith("seller:")) {
             seller = s.substring("seller:".length()).strip();
             if (seller.isEmpty()) {
@@ -499,32 +342,17 @@ public final class AuctionPriceDb {
     }
     // Volume-weighted: a 128-stack lot moves the market more than a single.
     List<double[]> vals = new ArrayList<>(e.samples.size());
-    long totalW = 0;
-    double totalV = 0;
     for (Sample s : e.samples) {
       if (isExcluded(s.seller())) {
         continue;
       }
-      long w = Math.max(1, s.count());
-      vals.add(new double[]{s.unit(), w});
-      totalW += w;
-      totalV += s.unit() * w;
+      vals.add(new double[]{s.unit(), Math.max(1, s.count())});
     }
-    vals.sort(java.util.Comparator.comparingDouble(a -> a[0]));
-    if (vals.isEmpty() || totalW <= 0) {
+    AuctionParse.Aggregate agg = AuctionParse.aggregate(vals);
+    if (agg == null) {
       return null;
     }
-    long half = (totalW + 1) / 2;
-    long acc = 0;
-    double med = vals.get(vals.size() - 1)[0];
-    for (double[] v : vals) {
-      acc += (long) v[1];
-      if (acc >= half) {
-        med = v[0];
-        break;
-      }
-    }
-    return new Stats(totalV / totalW, med, e.samples.size());
+    return new Stats(agg.avg(), agg.med(), e.samples.size());
   }
 
   /** Case-insensitive name/id search plus rarity filter, most-sampled first. */
@@ -656,10 +484,7 @@ public final class AuctionPriceDb {
   }
 
   public static String format(double v) {
-    if (v == Math.floor(v) && !Double.isInfinite(v)) {
-      return String.format(Locale.US, "%,d", (long) v);
-    }
-    return String.format(Locale.US, "%,.2f", v);
+    return AuctionParse.formatUnit(v);
   }
 
   private static Path file() {
