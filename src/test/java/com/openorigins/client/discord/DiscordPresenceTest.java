@@ -63,6 +63,23 @@ class DiscordPresenceTest {
   }
 
   @Test
+  void emptyConfigClientIdFallsBackToTheBuiltInAppId() {
+    assertEquals(DiscordPresence.DEFAULT_CLIENT_ID, DiscordPresence.resolveClientId(null));
+    assertEquals(DiscordPresence.DEFAULT_CLIENT_ID, DiscordPresence.resolveClientId(""));
+    assertEquals(DiscordPresence.DEFAULT_CLIENT_ID, DiscordPresence.resolveClientId("   "));
+    assertEquals("999", DiscordPresence.resolveClientId(" 999 "));
+  }
+
+  @Test
+  void refreshPayloadCarriesTheDefaultClientIdWhenConfigIsEmpty() {
+    JsonObject json = JsonParser.parseString(DiscordPresence.buildRefreshJson(
+        DiscordPresence.resolveClientId(""), "Online", "Exploring", null, null, 0))
+        .getAsJsonObject();
+
+    assertEquals(DiscordPresence.DEFAULT_CLIENT_ID, json.get("client_id").getAsString());
+  }
+
+  @Test
   void stripCodesRemovesFormattingAndServerGlyphs() {
     assertEquals("Hello World", DiscordPresence.stripCodes("§aHello §lWorld"));
     assertEquals("Item", DiscordPresence.stripCodes("ꑲ Item"));

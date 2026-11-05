@@ -17,6 +17,14 @@ import org.slf4j.LoggerFactory;
  */
 public final class DiscordPresence {
   private static final Logger LOGGER = LoggerFactory.getLogger("openorigins");
+
+  /**
+   * Discord application id used when the config leaves {@code discord.client.id}
+   * empty. Must stay in sync with CLIENT_ID in the host-side daemon, which falls
+   * back to the same value.
+   */
+  static final String DEFAULT_CLIENT_ID = "1555715005708636250";
+
   private static volatile String lastWritten = "";
 
   private DiscordPresence() {}
@@ -26,10 +34,17 @@ public final class DiscordPresence {
 
   public static void refresh(String clientId, String details, String state, String largeImage,
       String largeText, long startTimestamp) {
-    if (clientId == null || clientId.isEmpty()) {
-      return;
+    writeState(buildRefreshJson(resolveClientId(clientId), details, state, largeImage, largeText,
+        startTimestamp));
+  }
+
+  /** An empty config value falls back to the built-in app id instead of muting presence. */
+  static String resolveClientId(String clientId) {
+    if (clientId == null) {
+      return DEFAULT_CLIENT_ID;
     }
-    writeState(buildRefreshJson(clientId, details, state, largeImage, largeText, startTimestamp));
+    String trimmed = clientId.trim();
+    return trimmed.isEmpty() ? DEFAULT_CLIENT_ID : trimmed;
   }
 
   /** Pure state payload; separated from the file write so it can be tested. */
