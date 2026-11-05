@@ -61,6 +61,14 @@ public final class BackgroundMenu {
 
   private static volatile boolean expectOwnSend;
 
+  /** Menu-opening command from our own UI waiting for the fetch to finish. */
+  private static volatile String queuedMenuCommand;
+  private static long queuedUntilMs;
+  private static long lastFinishMs;
+  private static final long QUEUE_TIMEOUT_MS = 10000L;
+  /** The server needs a moment to accept our close before the next open. */
+  private static final long CLOSE_SETTLE_MS = 250L;
+
   /** Our own command send, marked so manual input is never confused. */
   public static long lastOwnSendMsForProbe() {
     return lastOwnSendMs;
@@ -87,6 +95,59 @@ public final class BackgroundMenu {
     } catch (Throwable ignored) {
       expectOwnSend = false;
     }
+  }
+
+  /**
+   * Sends a menu-opening command from our hotkeys, but only once no server
+   * chest is in flight: a second /navigator while the previous answer is still
+   * open makes two windows overlap, and an answer then lands in the wrong one.
+   * Teleports never come here — making them wait would be worse than the bug.
+   *
+   * @return true when the command went out now, false when it was queued.
+   */
+  public static synchronized boolean requestMenuCommand(String command) {
+    if (command == null || command.isBlank()) {
+      return false;
+    }
+    Minecraft mc = Minecraft.getInstance();
+    if (mc == null || mc.player == null) {
+      return false;
+    }
+    long now = System.currentTimeMillis();
+    if (!armed && !openContainerScreenShown(mc) && now - lastFinishMs >= CLOSE_SETTLE_MS) {
+      mc.player.connection.sendCommand(command);
+      OutboxStats.record("key /" + command);
+      return true;
+    }
+    queuedMenuCommand = command;
+    queuedUntilMs = now + QUEUE_TIMEOUT_MS;
+    com.openorigins.client.util.DebugLog.info(
+        "[bgmenu] menu command '{}' queued: a fetch is in flight", command);
+    return false;
+  }
+
+  /** Sends a queued menu command once the previous chest is really gone. */
+  private static void flushQueuedMenuCommand(long now) {
+    String command = queuedMenuCommand;
+    if (command == null) {
+      return;
+    }
+    if (now > queuedUntilMs) {
+      queuedMenuCommand = null;
+      com.openorigins.client.util.DebugLog.info("[bgmenu] queued '{}' expired", command);
+      return;
+    }
+    if (armed || now - lastFinishMs < CLOSE_SETTLE_MS) {
+      return;
+    }
+    Minecraft mc = Minecraft.getInstance();
+    if (mc == null || mc.player == null || openContainerScreenShown(mc)) {
+      return;
+    }
+    queuedMenuCommand = null;
+    mc.player.connection.sendCommand(command);
+    OutboxStats.record("key /" + command);
+    com.openorigins.client.util.DebugLog.info("[bgmenu] queued '{}' sent", command);
   }
 
   /** A chat command not sent by us (user typed it): back off. */
@@ -349,6 +410,8 @@ public final class BackgroundMenu {
   /** Public disarm for connection teardown. */
   public static synchronized void disarmNow() {
     disarm();
+    queuedMenuCommand = null;
+    queuedUntilMs = 0;
   }
 
   /**
@@ -763,10 +826,11 @@ public final class BackgroundMenu {
 
   /** Force-closes on timeout. Call from client tick. */
   public static synchronized void tick() {
+    long now = System.currentTimeMillis();
+    flushQueuedMenuCommand(now);
     if (!armed) {
       return;
     }
-    long now = System.currentTimeMillis();
     if (now > deadline) {
       com.openorigins.client.util.DebugLog.info("[bgmenu] deadline, closing");
       finish();
@@ -831,6 +895,7 @@ public final class BackgroundMenu {
   private static synchronized void finish() {    AbstractContainerMenu m = menu;
     menu = null;
     armed = false;
+    lastFinishMs = System.currentTimeMillis();
     pendingTeleport = null;
     if (com.openorigins.client.util.HomeInfoCache.layout().isEmpty()) {
       lastEmptyFinishMs = System.currentTimeMillis();

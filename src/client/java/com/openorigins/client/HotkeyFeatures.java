@@ -265,12 +265,11 @@ public final class HotkeyFeatures {
       }
       if (!ConnectionUtil.isConnected() || client.player == null) return;
       while (navigatorKey.consumeClick()) {
-        client.player.connection.sendCommand("navigator");
-        com.openorigins.client.util.OutboxStats.record("key /navigator");
+        // Chest menus go out one at a time: this waits for the fetch in flight.
+        com.openorigins.client.util.BackgroundMenu.requestMenuCommand("navigator");
       }
       while (gestureKey.consumeClick()) {
-        client.player.connection.sendCommand("gesture");
-        com.openorigins.client.util.OutboxStats.record("key /gesture");
+        com.openorigins.client.util.BackgroundMenu.requestMenuCommand("gesture");
       }
       while (spawnKey.consumeClick()) {
         if (com.openorigins.client.util.CommandDebounce.accept("spawn")) {
@@ -285,8 +284,7 @@ public final class HotkeyFeatures {
         }
       }
       while (auctionHouseKey.consumeClick()) {
-        client.player.connection.sendCommand("ah");
-        com.openorigins.client.util.OutboxStats.record("key /ah");
+        com.openorigins.client.util.BackgroundMenu.requestMenuCommand("ah");
       }
       while (auctionDbKey.consumeClick()) {
         if (client.gui.screen() == null) {
