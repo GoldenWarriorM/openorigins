@@ -35,9 +35,11 @@ public final class BackgroundMenu {
   /** The server rate-limits chat commands: never follow the user's own send
    *  inside this window, or the answer is "you are speaking too fast". */
   private static final long USER_QUIET_MS = 2500L;
-  /** A fetch is re-sent at most this many times: every extra send risks a
-   *  duplicate answer, and a duplicate answer is what leaks a menu. */
-  private static final int MAX_ATTEMPTS = 3;
+  /** A fetch is sent exactly once per arm. A retry produces a second answer,
+   *  and that duplicate answer is what pops a server menu in the player's
+   *  face; a lost answer only leaves the cache stale until the next trigger
+   *  (join, menu open, quest completion) a minute later. */
+  private static final long GIVE_UP_MS = 8000L;
   /** Right-clicks on entities (NPCs) that can open a server menu of their own. */
   private static volatile long lastEntityInteractMs;
   private static volatile String lastEntityInteractName = "?";
@@ -759,34 +761,6 @@ public final class BackgroundMenu {
     return contentPackets >= 2;
   }
 
-  /** Round-trip estimate in ms, 0 when unknown. */
-  private static long latencyMs() {
-    try {
-      Minecraft mc = Minecraft.getInstance();
-      if (mc == null || mc.getConnection() == null || mc.player == null) {
-        return 0;
-      }
-      net.minecraft.client.multiplayer.PlayerInfo info =
-          mc.getConnection().getPlayerInfo(mc.player.getUUID());
-      return info == null ? 0 : Math.max(0, info.getLatency());
-    } catch (Throwable t) {
-      return 0;
-    }
-  }
-
-  /**
-   * How long an unanswered fetch waits before it is re-sent. The old fixed 3s
-   * was shorter than the round-trip on a bad connection: the first answer and
-   * the retry's answer both arrived, the second hit the "server replaced our
-   * window" path and was shown to the player as a chest menu.
-   */
-  static long resendGapFor(long pingMs) {
-    if (pingMs <= 0) {
-      return 5000L;
-    }
-    return Math.min(20000L, Math.max(5000L, pingMs * 2L + 2500L));
-  }
-
   /** Force-closes on timeout. Call from client tick. */
   public static synchronized void tick() {
     if (!armed) {
@@ -798,8 +772,18 @@ public final class BackgroundMenu {
       finish();
       return;
     }
-    if (menu == null && pendingCommand != null && attempts < MAX_ATTEMPTS
-        && now - lastOwnSendMs > resendGapFor(latencyMs())) {
+    if (menu == null && pendingCommand != null) {
+      if (attempts > 0) {
+        // One send per arm. No resend: an unanswered command deserves a later
+        // trigger, not a second window that has to be told apart from the
+        // first answer. The orphan claim keeps a late answer swallowed.
+        if (now - lastOwnSendMs > GIVE_UP_MS) {
+          com.openorigins.client.util.DebugLog.info(
+              "[bgmenu] no answer to '{}' in {}ms, giving up", pendingCommand, GIVE_UP_MS);
+          disarm();
+        }
+        return;
+      }
       if (userActive()) {
         return;
       }
@@ -818,9 +802,9 @@ public final class BackgroundMenu {
       // window: the response would race it (flash over the chest, or worse,
       // a swallowed window the server still treats as open).
       if (mc != null && mc.player != null && !openContainerScreenShown(mc)) {
-        attempts++;
+        attempts = 1;
         sendCommand(pendingCommand);
-        com.openorigins.client.util.DebugLog.info("[bgmenu] sending '{}' (attempt {})", pendingCommand, attempts);
+        com.openorigins.client.util.DebugLog.info("[bgmenu] sending '{}'", pendingCommand);
       }
     }
   }

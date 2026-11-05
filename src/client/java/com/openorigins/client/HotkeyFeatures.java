@@ -273,12 +273,16 @@ public final class HotkeyFeatures {
         com.openorigins.client.util.OutboxStats.record("key /gesture");
       }
       while (spawnKey.consumeClick()) {
-        client.player.connection.sendCommand("spawn");
-        com.openorigins.client.util.OutboxStats.record("key /spawn");
+        if (com.openorigins.client.util.CommandDebounce.accept("spawn")) {
+          client.player.connection.sendCommand("spawn");
+          com.openorigins.client.util.OutboxStats.record("key /spawn");
+        }
       }
       while (realmKey.consumeClick()) {
-        client.player.connection.sendCommand("realm tp");
-        com.openorigins.client.util.OutboxStats.record("key /realm tp");
+        if (com.openorigins.client.util.CommandDebounce.accept("realm tp")) {
+          client.player.connection.sendCommand("realm tp");
+          com.openorigins.client.util.OutboxStats.record("key /realm tp");
+        }
       }
       while (auctionHouseKey.consumeClick()) {
         client.player.connection.sendCommand("ah");
@@ -290,20 +294,28 @@ public final class HotkeyFeatures {
         }
       }
       while (blueBalloonKey.consumeClick()) {
-        client.player.connection.sendCommand("balloon blue-balloon");
-        com.openorigins.client.util.OutboxStats.record("key /balloon blue-balloon");
+        if (com.openorigins.client.util.CommandDebounce.accept("balloon blue-balloon")) {
+          client.player.connection.sendCommand("balloon blue-balloon");
+          com.openorigins.client.util.OutboxStats.record("key /balloon blue-balloon");
+        }
       }
       while (greenBalloonKey.consumeClick()) {
-        client.player.connection.sendCommand("balloon green-balloon");
-        com.openorigins.client.util.OutboxStats.record("key /balloon green-balloon");
+        if (com.openorigins.client.util.CommandDebounce.accept("balloon green-balloon")) {
+          client.player.connection.sendCommand("balloon green-balloon");
+          com.openorigins.client.util.OutboxStats.record("key /balloon green-balloon");
+        }
       }
       while (yellowBalloonKey.consumeClick()) {
-        client.player.connection.sendCommand("balloon yellow-balloon");
-        com.openorigins.client.util.OutboxStats.record("key /balloon yellow-balloon");
+        if (com.openorigins.client.util.CommandDebounce.accept("balloon yellow-balloon")) {
+          client.player.connection.sendCommand("balloon yellow-balloon");
+          com.openorigins.client.util.OutboxStats.record("key /balloon yellow-balloon");
+        }
       }
       while (redBalloonKey.consumeClick()) {
-        client.player.connection.sendCommand("balloon red-balloon");
-        com.openorigins.client.util.OutboxStats.record("key /balloon red-balloon");
+        if (com.openorigins.client.util.CommandDebounce.accept("balloon red-balloon")) {
+          client.player.connection.sendCommand("balloon red-balloon");
+          com.openorigins.client.util.OutboxStats.record("key /balloon red-balloon");
+        }
       }
     });
   }

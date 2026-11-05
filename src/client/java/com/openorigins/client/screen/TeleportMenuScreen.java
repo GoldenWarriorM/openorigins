@@ -1,5 +1,6 @@
 package com.openorigins.client.screen;
 
+import com.openorigins.client.util.CommandDebounce;
 import com.openorigins.client.util.HomeFetch;
 import com.openorigins.client.util.HomeInfoCache;
 import com.openorigins.client.util.OpenWorldCache;
@@ -178,7 +179,8 @@ public class TeleportMenuScreen extends Screen implements HomePanelHost {
         ServerPackIcons.LoadedIcon li = icon.get();
         this.addRenderableWidget(new PackIconButton(x, y, ICON_SIZE,
             Component.translatable(entry.labelKey), li.textureId(), li.width(), li.height(), () -> {
-              if (this.minecraft != null && this.minecraft.player != null) {
+              if (this.minecraft != null && this.minecraft.player != null
+                  && CommandDebounce.accept(entry.command)) {
                 this.minecraft.player.connection.sendCommand(entry.command);
                 com.openorigins.client.util.OutboxStats.record("menu /" + entry.command);
               }
@@ -186,7 +188,8 @@ public class TeleportMenuScreen extends Screen implements HomePanelHost {
             }));
       } else {
         this.addRenderableWidget(Button.builder(Component.translatable(entry.labelKey), button -> {
-          if (this.minecraft != null && this.minecraft.player != null) {
+          if (this.minecraft != null && this.minecraft.player != null
+              && CommandDebounce.accept(entry.command)) {
             this.minecraft.player.connection.sendCommand(entry.command);
             com.openorigins.client.util.OutboxStats.record("menu /" + entry.command);
           }
@@ -322,8 +325,11 @@ public class TeleportMenuScreen extends Screen implements HomePanelHost {
   private void teleportHome(String name) {
     if (this.minecraft != null && this.minecraft.player != null) {
       // Server home ids use underscores; display names use spaces.
-      this.minecraft.player.connection.sendCommand("home " + name.replace(' ', '_'));
-      com.openorigins.client.util.OutboxStats.record("menu /home " + name);
+      String command = "home " + name.replace(' ', '_');
+      if (CommandDebounce.accept(command)) {
+        this.minecraft.player.connection.sendCommand(command);
+        com.openorigins.client.util.OutboxStats.record("menu /home " + name);
+      }
     }
     this.onClose();
   }
