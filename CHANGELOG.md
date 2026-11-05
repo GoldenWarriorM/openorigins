@@ -1,5 +1,22 @@
 # Changelog
 
+## [2.0.0-beta2] — 2026-11-05
+
+Small beta with a single fix for Discord Rich Presence.
+
+> Beta: features marked *Experimental* are still being worked on. Expect bugs and crashes.
+
+## Fixed
+
+- **Discord Rich Presence** works again: the mod no longer stops publishing your
+  activity when the Discord app id setting is empty, and falls back to the built-in
+  app id instead.
+
+### Notes
+
+- Requires **Java 25**, Fabric Loader **0.19.5+** and Fabric API.
+- Client-side only: nothing changes in singleplayer or on other servers.
+
 ## [2.0.0-beta1] — 2026-10-19
 
 First **2.0** beta. Covers everything since **1.0.1**: a rebuilt settings menu,
