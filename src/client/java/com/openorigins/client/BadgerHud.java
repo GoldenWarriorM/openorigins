@@ -246,6 +246,19 @@ public final class BadgerHud implements net.fabricmc.fabric.api.client.rendering
   @Override
   public void extractRenderState(GuiGraphicsExtractor graphics, DeltaTracker delta) {
     Minecraft mc = Minecraft.getInstance();
+    // Chest menus draw a dim layer (and a blur) over the HUD layer, which turns
+    // these rows into a dark smudge. ScreenHudMixin draws them again above that
+    // layer, so skip the copy underneath; every other menu keeps the dimmed HUD.
+    if (mc != null && mc.gui != null
+        && mc.gui.screen() instanceof net.minecraft.client.gui.screens.inventory.AbstractContainerScreen<?>) {
+      return;
+    }
+    draw(graphics);
+  }
+
+  /** Draws the corner box: from the HUD layer, or above an open menu's dim layer. */
+  public static void draw(GuiGraphicsExtractor graphics) {
+    Minecraft mc = Minecraft.getInstance();
     if (mc == null || !OpenOriginsConfig.getInstance().isEnabled(OriginFeature.BADGER_TASK_HUD)
         || !OpenOriginsConfig.getInstance().isBadgerHudVisible()) {
       return;
