@@ -44,7 +44,7 @@ public class SetHomeScreen extends Screen {
   protected void init() {
     active = this;
     int cx = this.width / 2;
-    this.nameBox = new EditBox(this.font, cx - 100, this.height / 2 - 10, 200, 20,
+    this.nameBox = new LatinNameBox(this.font, cx - 100, this.height / 2 - 10, 200, 20,
         Component.translatable("menu.openorigins.sethome.title"));
     this.nameBox.setMaxLength(32);
     if (this.draft != null) {
@@ -59,11 +59,70 @@ public class SetHomeScreen extends Screen {
       this.draft = this.nameBox.getValue();
     });
     this.addRenderableWidget(this.nameBox);
-    this.setFocused(this.nameBox);
     this.addRenderableWidget(Button.builder(Component.translatable("gui.done"), b -> this.doDone())
         .bounds(cx - 105, this.height / 2 + 20, 100, 20).build());
     this.addRenderableWidget(Button.builder(Component.translatable("gui.cancel"), b -> this.doCancel())
         .bounds(cx + 5, this.height / 2 + 20, 100, 20).build());
+    this.focusNameBox();
+  }
+
+  /**
+   * Vanilla runs this after every init/rebuild, and its tab navigation moves the
+   * caret on to the next widget (the Done button). The name box is the whole
+   * point of this menu, so it takes the focus back there.
+   */
+  @Override
+  protected void setInitialFocus() {
+    if (this.nameBox == null) {
+      this.setFocused(null);
+      return;
+    }
+    this.focusNameBox();
+  }
+
+  /** Focuses the field the way EditBox understands it: its own flag drives the caret. */
+  private void focusNameBox() {
+    this.setFocused(this.nameBox);
+    this.nameBox.setFocused(true);
+    this.nameBox.moveCursorToEnd(false);
+  }
+
+  /**
+   * Name box that reads a Cyrillic layout as the QWERTY keys in the same places
+   * (йцукен -> qwerty), so a name can be typed without switching the layout.
+   */
+  private static final class LatinNameBox extends EditBox {
+    /** ЙЦУКЕН rows; every letter sits on the Latin key at the same index. */
+    private static final String RU = "йцукенгшщзхъфывапролджэячсмитьбюё";
+    private static final String EN = "qwertyuiop[]asdfghjkl;'zxcvbnm,.`";
+
+    LatinNameBox(net.minecraft.client.gui.Font font, int x, int y, int w, int h,
+        Component hint) {
+      super(font, x, y, w, h, hint);
+    }
+
+    @Override
+    public void insertText(String text) {
+      super.insertText(swap(text));
+    }
+
+    private static String swap(String text) {
+      if (text == null || text.isEmpty()) {
+        return text;
+      }
+      StringBuilder out = new StringBuilder(text.length());
+      for (int i = 0; i < text.length(); i++) {
+        char c = text.charAt(i);
+        int at = RU.indexOf(Character.toLowerCase(c));
+        if (at < 0) {
+          out.append(c);
+          continue;
+        }
+        char latin = EN.charAt(at);
+        out.append(Character.isUpperCase(c) ? Character.toUpperCase(latin) : latin);
+      }
+      return out.toString();
+    }
   }
 
   @Override
