@@ -1,5 +1,22 @@
 # Changelog
 
+## [2.0.0-beta3] — 2026-11-06
+
+> Beta: features marked *Experimental* are still being worked on. Expect bugs and crashes.
+
+## Fixed
+
+- Server menus no longer leak or pile up.
+- Chest commands go out one at a time.
+- Repeated clicks no longer teleport twice.
+- Badger task HUD is readable in chests.
+- Home name field: caret on open and QWERTY typing from a Cyrillic layout.
+
+### Notes
+
+- Requires **Java 25**, Fabric Loader **0.19.5+** and Fabric API.
+- Client-side only: nothing changes in singleplayer or on other servers.
+
 ## [2.0.0-beta2] — 2026-11-05
 
 Small beta with a single fix for Discord Rich Presence.
