@@ -14,6 +14,9 @@
 
 ### Notes
 
+- **Allay Arms Fix** is no longer needed: Origin Realms fixed it on the server.
+  Turn it off manually for now — in **2.0.0-beta4** it will be disabled by default
+  and hidden from the settings.
 - Requires **Java 25**, Fabric Loader **0.19.5+** and Fabric API.
 - Client-side only: nothing changes in singleplayer or on other servers.
 
