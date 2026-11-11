@@ -21,8 +21,9 @@ public class HomeIconButton extends AbstractButton {
   private final int texH;
   private final boolean face;
   private final String homeName;
-  private final String subLabel;
-  private final int subColor;
+  /** Read per frame: countdowns have to tick while the menu stays open. */
+  private final java.util.function.Supplier<String> subLabel;
+  private final java.util.function.IntSupplier subColor;
   private final Runnable leftAction;
   private final Runnable rightAction;
 
@@ -35,6 +36,14 @@ public class HomeIconButton extends AbstractButton {
 
   public HomeIconButton(int x, int y, int size, Component message, Identifier textureId,
       int texW, int texH, boolean face, String homeName, String subLabel, int subColor,
+      Component tooltip, Runnable leftAction, Runnable rightAction) {
+    this(x, y, size, message, textureId, texW, texH, face, homeName,
+        () -> subLabel, () -> subColor, tooltip, leftAction, rightAction);
+  }
+
+  public HomeIconButton(int x, int y, int size, Component message, Identifier textureId,
+      int texW, int texH, boolean face, String homeName,
+      java.util.function.Supplier<String> subLabel, java.util.function.IntSupplier subColor,
       Component tooltip, Runnable leftAction, Runnable rightAction) {
     super(x, y, size, size, message);
     this.textureId = textureId;
@@ -113,10 +122,12 @@ public class HomeIconButton extends AbstractButton {
       int sw = mc.font.width(s);
       graphics.text(mc.font, s, this.getX() + this.getWidth() / 2 - sw / 2,
           this.getY() + this.getHeight() + 2, 0xFFFFFFFF);
-      if (this.subLabel != null && !this.subLabel.isEmpty()) {
-        int subW = mc.font.width(this.subLabel);
-        graphics.text(mc.font, this.subLabel, this.getX() + this.getWidth() / 2 - subW / 2,
-            this.getY() + this.getHeight() + 11, this.subColor);
+      String sub = this.subLabel == null ? null : this.subLabel.get();
+      if (sub != null && !sub.isEmpty()) {
+        int subW = mc.font.width(sub);
+        graphics.text(mc.font, sub, this.getX() + this.getWidth() / 2 - subW / 2,
+            this.getY() + this.getHeight() + 11,
+            this.subColor == null ? 0xFFAAAAAA : this.subColor.getAsInt());
       }
     }
   }

@@ -216,7 +216,7 @@ public final class HotkeyFeatures {
         }
         if (!worldsFetchDone && joinTicks > 120
             && !com.openorigins.client.util.BackgroundMenu.isArmed()
-            && com.openorigins.client.util.OpenWorldCache.worlds().isEmpty()
+            && com.openorigins.client.util.OpenWorldCache.needsFetch()
             && com.openorigins.client.util.BackgroundMenu.tryArm("navigator worlds")) {
           worldsFetchDone = true;
         }

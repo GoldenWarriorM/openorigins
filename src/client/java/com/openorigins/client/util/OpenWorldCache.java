@@ -230,23 +230,33 @@ public final class OpenWorldCache {
     lastAttempt = System.currentTimeMillis();
   }
 
+  /**
+   * True when no known world carries a usable reset timer: either the list is
+   * unknown, or every timer restored from disk has already run out. Names
+   * survive restarts, so "the list is non-empty" alone is not enough to skip
+   * a refresh — that left the panel showing "..." for hours.
+   */
+  public static boolean needsFetch() {
+    List<WorldEntry> known = worlds();
+    if (known.isEmpty()) {
+      return true;
+    }
+    long now = System.currentTimeMillis();
+    for (WorldEntry w : known) {
+      if (resetAt(w.color()) > now) {
+        return false;
+      }
+    }
+    return true;
+  }
+
   /** Fetch worlds list once at join / when expired (throttled). */
   public static void ensureWorlds() {
     if (System.currentTimeMillis() - lastAttempt < 60000L) {
       return;
     }
-    if (!worlds().isEmpty()) {
-      boolean alive = false;
-      long now = System.currentTimeMillis();
-      for (WorldEntry w : worlds()) {
-        if (resetAt(w.color()) > now) {
-          alive = true;
-          break;
-        }
-      }
-      if (alive) {
-        return;
-      }
+    if (!needsFetch()) {
+      return;
     }
     fetch(() -> null);
   }

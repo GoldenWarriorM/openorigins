@@ -53,10 +53,21 @@ public class TeleportMenuScreen extends Screen implements HomePanelHost {
   private static final double HIT_RADIUS_MAX = RADIUS + ICON_SIZE;
   /** Hover fill inside the sector. */
   private static final int HOVER_FILL = 0x3AFF8C00;
-  /** Fades in pixels: inner arc, outer arc, radial edges. */
-  private static final double INNER_RAMP = 1.0;
-  private static final double OUTER_RAMP = 1.0;
-  private static final double EDGE_RAMP = 1.0;
+  /** Pixel size of the hover fill: the sector sits on a coarse grid, so its
+   *  border reads as chunky pixels instead of a smooth vector fan. */
+  private static final int HOVER_PIXEL = 3;
+  /** Coverage steps: quantised alpha plus a per-pixel dither, no smooth ramp. */
+  private static final double ALPHA_STEPS = 4.0;
+  /** Visible fade at the border, in pixels: inner arc, outer arc, radial edges. */
+  private static final double INNER_RAMP = HOVER_PIXEL;
+  private static final double OUTER_RAMP = HOVER_PIXEL;
+  private static final double EDGE_RAMP = HOVER_PIXEL;
+  /** Rim light just inside the border: brighter pixels, added on top. */
+  private static final double RIM_PX = 4.0;
+  private static final int RIM_TINT = 0xFFC070;
+  private static final int RIM_ALPHA = 0x50;
+  /** Brightness jitter of one hover pixel, as a fraction of the fill alpha. */
+  private static final double NOISE = 0.5;
 
   private List<String> homes;
   private int panelX;
@@ -307,22 +318,20 @@ public class TeleportMenuScreen extends Screen implements HomePanelHost {
       int x = this.worldPanelX + col * cellW;
       int y = this.worldPanelY + row * (HOME_ICON + HOME_LABEL_H + HOME_GAP);
       String shortName = w.name().replace(" Open World", "");
-      String cd = com.openorigins.client.util.OpenWorldCache.countdown(w.color());
-      long left = com.openorigins.client.util.OpenWorldCache.remaining(w.color());
-      int subColor = 0xFFAAAAAA;
-      if (left > 0 && left < 30 * 60000L) {
-        subColor = 0xFFFF5555;
-      } else if (left > 0 && left < 60 * 60000L) {
-        subColor = 0xFFFFAA00;
-      }
-      String sub = cd != null ? cd : "...";
+      final String color = w.color();
+      // Read per frame: the panel can stay open for hours and an answer can
+      // land after it was built, so a captured string would freeze (or keep
+      // the "..." placeholder forever).
+      java.util.function.Supplier<String> sub =
+          () -> countdownText(color);
+      java.util.function.IntSupplier subColor = () -> countdownColor(color);
+      String cd = countdownText(color);
       net.minecraft.network.chat.Component tip = net.minecraft.network.chat.Component.literal(w.name());
       if (cd != null) {
         tip = tip.copy().append(net.minecraft.network.chat.Component.literal("\n"))
             .append(net.minecraft.network.chat.Component.translatable(
                 "menu.openorigins.homes.reset", cd).withStyle(net.minecraft.ChatFormatting.GRAY));
       }
-      final String color = w.color();
       Optional<ServerPackIcons.LoadedIcon> icon = ServerPackIcons.get(
           "textures/custom/ui/homes/open_world_" + color + ".png");
       if (icon.isPresent()) {
@@ -340,6 +349,24 @@ public class TeleportMenuScreen extends Screen implements HomePanelHost {
             }));
       }
     }
+  }
+
+  /** Live world countdown, "..." while no timer is known. */
+  private static String countdownText(String color) {
+    String cd = com.openorigins.client.util.OpenWorldCache.countdown(color);
+    return cd != null ? cd : "...";
+  }
+
+  /** Grey normally, orange under an hour, red under half an hour left. */
+  private static int countdownColor(String color) {
+    long left = com.openorigins.client.util.OpenWorldCache.remaining(color);
+    if (left > 0 && left < 30 * 60000L) {
+      return 0xFFFF5555;
+    }
+    if (left > 0 && left < 60 * 60000L) {
+      return 0xFFFFAA00;
+    }
+    return 0xFFAAAAAA;
   }
 
   private void teleportHome(String name) {
@@ -562,8 +589,10 @@ public class TeleportMenuScreen extends Screen implements HomePanelHost {
       maxY = Math.max(maxY, p[1]);
     }
     double[] xs = new double[poly.length];
-    for (int y = (int) Math.floor(minY); y < (int) Math.ceil(maxY); y++) {
-      double scan = y + 0.5;
+    int px = HOVER_PIXEL;
+    int rowEnd = (int) Math.ceil(maxY / px) * px;
+    for (int by = (int) Math.floor(minY / px) * px; by < rowEnd; by += px) {
+      double scan = by + px / 2.0;
       int count = 0;
       for (int i = 0; i < poly.length; i++) {
         double[] a = poly[i];
@@ -575,58 +604,94 @@ public class TeleportMenuScreen extends Screen implements HomePanelHost {
       }
       java.util.Arrays.sort(xs, 0, count);
       for (int i = 0; i + 1 < count; i += 2) {
-        this.drawWedgeRow(g, y, xs[i], xs[i + 1], r0, r1, n0x, n0y, n1x, n1y);
+        this.drawHoverBand(g, by, xs[i], xs[i + 1], r0, r1, n0x, n0y, n1x, n1y);
       }
     }
   }
 
   /**
-   * One wedge row: solid core with short alpha ramps at the arcs and at the
-   * radial edges. Runs of one colour go out as a single fill, individual pixels
-   * only where the alpha changes.
+   * One row of hover pixels. Coverage comes from the arcs and the radial edges,
+   * is quantised to a few alpha steps, jittered by a stable per-pixel hash and
+   * lifted by the rim light near the border. Neighbours of equal colour go out
+   * as one fill.
    */
-  private void drawWedgeRow(GuiGraphicsExtractor g, int y, double left, double right,
+  private void drawHoverBand(GuiGraphicsExtractor g, int by, double left, double right,
       double r0, double r1, double n0x, double n0y, double n1x, double n1y) {
-    int x0 = (int) Math.round(left);
-    int x1 = (int) Math.round(right);
-    double dy = y + 0.5 - this.radialY;
+    int px = HOVER_PIXEL;
+    int xStart = (int) Math.floor(left / px) * px;
+    int xEnd = (int) Math.ceil(right / px) * px;
     int runStart = -1;
     int runColor = 0;
-    for (int x = x0; x <= x1; x++) {
-      int color = x < x1 ? this.wedgeColor(x, dy, r0, r1, n0x, n0y, n1x, n1y) : 0;
+    for (int x = xStart; x <= xEnd; x += px) {
+      int color = x < xEnd ? this.hoverColor(x, by, r0, r1, n0x, n0y, n1x, n1y) : 0;
       if (color == runColor) {
         continue;
       }
       if (runStart >= 0) {
-        g.fill(runStart, y, x, y + 1, runColor);
+        g.fill(runStart, by, x, by + px, runColor);
       }
       runStart = color == 0 ? -1 : x;
       runColor = color;
     }
   }
 
-  private int wedgeColor(int x, double dy, double r0, double r1,
+  /** Colour of the hover pixel whose top-left corner is (bx, by). */
+  private int hoverColor(int bx, int by, double r0, double r1,
       double n0x, double n0y, double n1x, double n1y) {
-    double dx = x + 0.5 - this.radialX;
+    double px = HOVER_PIXEL;
+    double dx = bx + px / 2.0 - this.radialX;
+    double dy = by + px / 2.0 - this.radialY;
     double dist = Math.sqrt(dx * dx + dy * dy);
     double edge = Math.min(Math.abs(dx * n0x + dy * n0y), Math.abs(dx * n1x + dy * n1y));
     double coverage = Math.min(1.0, edge / EDGE_RAMP);
-    if (dist > r1) {
+    coverage = Math.min(coverage, (r1 - dist) / OUTER_RAMP);
+    coverage = Math.min(coverage, (dist - r0) / INNER_RAMP);
+    if (coverage <= 0.0) {
       return 0;
     }
-    if (dist > r1 - OUTER_RAMP) {
-      coverage = Math.min(coverage, (r1 - dist) / OUTER_RAMP);
-    } else if (dist < r0 + INNER_RAMP) {
-      coverage = Math.min(coverage, (dist - r0) / INNER_RAMP);
+    int hash = pixelHash(bx / HOVER_PIXEL, by / HOVER_PIXEL);
+    double jitter = ((hash & 0xFF) - 127.5) / 127.5;
+    coverage = Math.min(1.0, coverage * (1.0 + jitter * NOISE));
+    coverage = Math.round(coverage * ALPHA_STEPS) / ALPHA_STEPS;
+    if (coverage <= 0.0) {
+      return 0;
     }
-    return withCoverage(HOVER_FILL, coverage);
+    double border = Math.min(Math.min(r1 - dist, dist - r0), edge);
+    double rim = Math.max(0.0, 1.0 - border / RIM_PX);
+    rim *= rim;
+    int alpha = (int) Math.round((((HOVER_FILL >>> 24) & 0xFF) * coverage)
+        + RIM_ALPHA * rim * coverage);
+    alpha = Math.max(0, Math.min(255, alpha));
+    if (alpha <= 2) {
+      return 0;
+    }
+    int tint = (int) Math.round((((hash >>> 8) & 0xFF) - 127.5) / 127.5 * 14.0);
+    int rgb = shade(mixRgb(HOVER_FILL & 0xFFFFFF, RIM_TINT, 0.5 * rim), tint);
+    return (alpha << 24) | (rgb & 0xFFFFFF);
   }
 
-  /** Scales the colour's alpha by coverage; fully transparent collapses to nothing. */
-  private static int withCoverage(int color, double coverage) {
-    double c = Math.max(0.0, Math.min(1.0, coverage));
-    int alpha = (int) Math.round(((color >>> 24) & 0xFF) * c);
-    return alpha <= 2 ? 0 : (alpha << 24) | (color & 0xFFFFFF);
+  /** Mixes two RGB colours; t runs from the first to the second. */
+  private static int mixRgb(int from, int to, double t) {
+    double k = Math.max(0.0, Math.min(1.0, t));
+    int r = (int) Math.round(((from >>> 16) & 0xFF) + (((to >>> 16) & 0xFF) - ((from >>> 16) & 0xFF)) * k);
+    int g = (int) Math.round(((from >>> 8) & 0xFF) + (((to >>> 8) & 0xFF) - ((from >>> 8) & 0xFF)) * k);
+    int b = (int) Math.round((from & 0xFF) + ((to & 0xFF) - (from & 0xFF)) * k);
+    return (r << 16) | (g << 8) | b;
+  }
+
+  /** Adds a brightness delta to an RGB colour, channels clamped. */
+  private static int shade(int rgb, int delta) {
+    int r = Math.max(0, Math.min(255, ((rgb >>> 16) & 0xFF) + delta));
+    int g = Math.max(0, Math.min(255, ((rgb >>> 8) & 0xFF) + delta));
+    int b = Math.max(0, Math.min(255, (rgb & 0xFF) + delta));
+    return (r << 16) | (g << 8) | b;
+  }
+
+  /** Stable per-pixel noise: the fill must not shimmer between frames. */
+  private static int pixelHash(int x, int y) {
+    int h = x * 374761393 + y * 668265263;
+    h = (h ^ (h >>> 13)) * 1274126177;
+    return h ^ (h >>> 16);
   }
 
   /** Angular span of the hovered button: halfway to its neighbours. */
@@ -666,6 +731,9 @@ public class TeleportMenuScreen extends Screen implements HomePanelHost {
     if (this.minecraft != null) {
       this.minecraft.gui.setScreen(null);
     }
+    // Any screen blocks a background fetch, so the panel cannot refresh the
+    // world timers it drew as "..." while it was open: ask once we are out.
+    com.openorigins.client.util.OpenWorldCache.ensureWorlds();
   }
 
   /**
