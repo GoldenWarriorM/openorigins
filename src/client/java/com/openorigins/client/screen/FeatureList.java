@@ -481,6 +481,16 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
             "config.openorigins.capacity_hint", 0, 15,
             () -> OpenOriginsConfig.getInstance().getHomeCapacity(),
             v -> OpenOriginsConfig.getInstance().setHomeCapacity(v), 5));
+        out.add(new CycleRow(this, "config.openorigins.radial_fill",
+            "config.openorigins.radial_fill_hint",
+            () -> Component.translatable("config.openorigins.radial_fill."
+                + OpenOriginsConfig.getInstance().getRadialFill().name()
+                    .toLowerCase(java.util.Locale.ROOT)).getString(),
+            () -> OpenOriginsConfig.getInstance().cycleRadialFill(),
+            () -> OpenOriginsConfig.getInstance()
+                .setRadialFill(OpenOriginsConfig.RadialFill.ON),
+            () -> OpenOriginsConfig.getInstance().getRadialFill()
+                == OpenOriginsConfig.RadialFill.ON));
       }
       if (category == com.openorigins.client.FeatureCategory.MISC) {
         out.add(new CycleRow(this, "config.openorigins.scan_key",

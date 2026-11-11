@@ -46,6 +46,17 @@ public class TeleportMenuScreen extends Screen implements HomePanelHost {
   static final int HOME_GAP = 8;
   static final int HOME_LABEL_H = 12;
   static final int HOME_MAX = 15;
+  /** Invisible click circle: the icon ring plus a margin, never reaching the
+   *  side panels (their nearest edge stays outside HIT_RADIUS). */
+  private static final double HIT_INNER = 24.0;
+  /** Cap for the click circle; the real radius shrinks to clear the panels. */
+  private static final double HIT_RADIUS_MAX = RADIUS + ICON_SIZE;
+  /** Hover fill inside the sector. */
+  private static final int HOVER_FILL = 0x3AFF8C00;
+  /** Fades in pixels: inner arc, outer arc, radial edges. */
+  private static final double INNER_RAMP = 1.0;
+  private static final double OUTER_RAMP = 1.0;
+  private static final double EDGE_RAMP = 1.0;
 
   private List<String> homes;
   private int panelX;
@@ -58,6 +69,9 @@ public class TeleportMenuScreen extends Screen implements HomePanelHost {
   private int retries;
   /** Home teleport the player clicked, held until the background fetch ends. */
   private String pendingTeleport;
+  /** Radial centre in screen space, so sector clicks follow the drawn icons. */
+  private double radialX;
+  private double radialY;
 
   /** Radial center: screen center unless a side panel would overlap it. */
   private double radialCx() {
@@ -180,6 +194,12 @@ public class TeleportMenuScreen extends Screen implements HomePanelHost {
   private void buildAll() {
     double cx = this.radialCx();
     double cy = this.height / 2.0;
+    this.radialX = cx;
+    this.radialY = cy;
+    // Added first, so the icons stay on top of the click disc.
+    int disc = (int) Math.round(this.hitRadius());
+    this.addRenderableWidget(new SectorCatcher((int) Math.round(cx) - disc,
+        (int) Math.round(cy) - disc, disc * 2, disc * 2));
     for (Entry entry : ENTRIES) {
       double angle = Math.toRadians(entry.angleDeg);
       int x = (int) Math.round(cx + Math.cos(angle) * RADIUS) - ICON_SIZE / 2;
@@ -189,21 +209,11 @@ public class TeleportMenuScreen extends Screen implements HomePanelHost {
         ServerPackIcons.LoadedIcon li = icon.get();
         this.addRenderableWidget(new PackIconButton(x, y, ICON_SIZE,
             Component.translatable(entry.labelKey), li.textureId(), li.width(), li.height(), () -> {
-              if (this.minecraft != null && this.minecraft.player != null
-                  && CommandDebounce.accept(entry.command)) {
-                this.minecraft.player.connection.sendCommand(entry.command);
-                com.openorigins.client.util.OutboxStats.record("menu /" + entry.command);
-              }
-              this.onClose();
-            }));
+              this.activate(entry.command, "icon");
+            }, (mx, my) -> this.entryAt(mx, my) == entry && this.sectorClicksEnabled()));
       } else {
         this.addRenderableWidget(Button.builder(Component.translatable(entry.labelKey), button -> {
-          if (this.minecraft != null && this.minecraft.player != null
-              && CommandDebounce.accept(entry.command)) {
-            this.minecraft.player.connection.sendCommand(entry.command);
-            com.openorigins.client.util.OutboxStats.record("menu /" + entry.command);
-          }
-          this.onClose();
+          this.activate(entry.command, "icon");
         }).bounds(x, y, 96, 20).build());
       }
     }
@@ -365,6 +375,7 @@ public class TeleportMenuScreen extends Screen implements HomePanelHost {
   public void extractRenderState(GuiGraphicsExtractor extractor,
       int mouseX, int mouseY, float partialTick) {
     extractor.fill(0, 0, this.width, this.height, 0xA0000000);
+    this.drawHoverHighlight(extractor, mouseX, mouseY);
     super.extractRenderState(extractor, mouseX, mouseY, partialTick);
     int titleWidth = this.font.width(this.title);
     double tcx = this.radialCx();
@@ -402,6 +413,249 @@ public class TeleportMenuScreen extends Screen implements HomePanelHost {
     return null;
   }
 
+  /** Runs a radial command, held when a background fetch is in flight. */
+  private void activate(String command, String source) {
+    if (this.minecraft == null || this.minecraft.player == null) {
+      this.onClose();
+      return;
+    }
+    if (!CommandDebounce.accept(command)) {
+      return;
+    }
+    com.openorigins.client.util.DebugLog.info("[homes] {} '{}' clicked", source, command);
+    if (com.openorigins.client.util.BackgroundMenu.sendOrQueueUserCommand(command)) {
+      this.onClose();
+    } else {
+      this.pendingTeleport = command;
+    }
+  }
+
+  /** Nearest radial entry to the cursor, or null outside the invisible circle. */
+  private Entry entryAt(double mx, double my) {
+    double dx = mx - this.radialX;
+    double dy = my - this.radialY;
+    double dist = Math.sqrt(dx * dx + dy * dy);
+    if (dist < HIT_INNER || dist > this.hitRadius()) {
+      return null;
+    }
+    double angle = Math.toDegrees(Math.atan2(dy, dx));
+    Entry best = null;
+    double bestDiff = 361.0;
+    for (Entry e : ENTRIES) {
+      double diff = Math.abs(angleDiff(angle, e.angleDeg()));
+      if (diff < bestDiff) {
+        bestDiff = diff;
+        best = e;
+      }
+    }
+    return best;
+  }
+
+  private static double angleDiff(double a, double b) {
+    double d = (a - b) % 360.0;
+    if (d > 180.0) {
+      d -= 360.0;
+    } else if (d < -180.0) {
+      d += 360.0;
+    }
+    return d;
+  }
+
+  /**
+   * A click anywhere in a sector counts as that button. Checked before the
+   * widget pass: a screen-level handler that runs after super never sees the
+   * empty space between widgets, only the widgets themselves.
+   */
+  @Override
+  public boolean mouseClicked(net.minecraft.client.input.MouseButtonEvent event,
+      boolean doubleClick) {
+    if (event.button() == 0) {
+      Entry entry = this.entryAt(event.x(), event.y());
+      if (entry != null) {
+        boolean over = this.overWidget(event.x(), event.y());
+        com.openorigins.client.util.DebugLog.info(
+            "[homes] click ({}, {}) sector='{}' widget={}", (int) event.x(), (int) event.y(),
+            entry.command(), over);
+        if (!over) {
+          this.activate(entry.command(), "sector");
+          return true;
+        }
+      }
+    }
+    return super.mouseClicked(event, doubleClick);
+  }
+
+  /**
+   * Clickable circle: the icon ring plus its size, clamped so it always ends
+   * before the homes and worlds panels (whatever the window width).
+   */
+  private double hitRadius() {
+    double r = HIT_RADIUS_MAX;
+    int panelW = this.homePanelWidth();
+    if (panelW > 0) {
+      r = Math.min(r, this.width - panelW - 10.0 - this.radialX - 6.0);
+    }
+    int worldW = this.worldPanelWidth();
+    if (worldW > 0) {
+      r = Math.min(r, this.radialX - 10.0 - worldW - 6.0);
+    }
+    r = Math.min(r, this.radialX - 6.0);
+    r = Math.min(r, this.width - this.radialX - 6.0);
+    r = Math.min(r, this.radialY - 6.0);
+    r = Math.min(r, this.height - this.radialY - 6.0);
+    return Math.max(HIT_INNER + 1.0, r);
+  }
+
+  /** Sector clicks (and their outline) exist everywhere except in "Off". */
+  private boolean sectorClicksEnabled() {
+    return com.openorigins.client.OpenOriginsConfig.getInstance().getRadialFill()
+        != com.openorigins.client.OpenOriginsConfig.RadialFill.OFF;
+  }
+
+  /** True when the cursor is on a button: those keep their own handling. */
+  private boolean overWidget(double mx, double my) {
+    for (net.minecraft.client.gui.components.events.GuiEventListener child : this.children()) {
+      if (child.isMouseOver(mx, my)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /** Hovered sector: soft fill, dithered edges, rim light just inside the edge. */
+  private void drawHoverHighlight(GuiGraphicsExtractor g, int mouseX, int mouseY) {
+    if (com.openorigins.client.OpenOriginsConfig.getInstance().getRadialFill()
+        != com.openorigins.client.OpenOriginsConfig.RadialFill.ON) {
+      return;
+    }
+    Entry hovered = this.entryAt(mouseX, mouseY);
+    if (hovered == null) {
+      return;
+    }
+    double[] bounds = this.sectorBounds(hovered);
+    double r0 = HIT_INNER;
+    double r1 = this.hitRadius();
+    // Normals of the two radial edges: distance to them fades the sector sides.
+    double a0 = Math.toRadians(bounds[0]);
+    double a1 = Math.toRadians(bounds[1]);
+    double n0x = -Math.sin(a0);
+    double n0y = Math.cos(a0);
+    double n1x = -Math.sin(a1);
+    double n1y = Math.cos(a1);
+    int steps = Math.max(2, (int) Math.ceil((bounds[1] - bounds[0]) / 2.0));
+    double[][] poly = new double[(steps + 1) * 2][];
+    int n = 0;
+    for (int i = 0; i <= steps; i++) {
+      double rad = Math.toRadians(bounds[0] + (bounds[1] - bounds[0]) * i / (double) steps);
+      poly[n++] = new double[] {this.radialX + Math.cos(rad) * r0,
+          this.radialY + Math.sin(rad) * r0};
+    }
+    for (int i = steps; i >= 0; i--) {
+      double rad = Math.toRadians(bounds[0] + (bounds[1] - bounds[0]) * i / (double) steps);
+      poly[n++] = new double[] {this.radialX + Math.cos(rad) * r1,
+          this.radialY + Math.sin(rad) * r1};
+    }
+    double minY = Double.MAX_VALUE;
+    double maxY = -Double.MAX_VALUE;
+    for (double[] p : poly) {
+      minY = Math.min(minY, p[1]);
+      maxY = Math.max(maxY, p[1]);
+    }
+    double[] xs = new double[poly.length];
+    for (int y = (int) Math.floor(minY); y < (int) Math.ceil(maxY); y++) {
+      double scan = y + 0.5;
+      int count = 0;
+      for (int i = 0; i < poly.length; i++) {
+        double[] a = poly[i];
+        double[] b = poly[(i + 1) % poly.length];
+        if ((a[1] <= scan) == (b[1] <= scan)) {
+          continue;
+        }
+        xs[count++] = a[0] + (scan - a[1]) * (b[0] - a[0]) / (b[1] - a[1]);
+      }
+      java.util.Arrays.sort(xs, 0, count);
+      for (int i = 0; i + 1 < count; i += 2) {
+        this.drawWedgeRow(g, y, xs[i], xs[i + 1], r0, r1, n0x, n0y, n1x, n1y);
+      }
+    }
+  }
+
+  /**
+   * One wedge row: solid core with short alpha ramps at the arcs and at the
+   * radial edges. Runs of one colour go out as a single fill, individual pixels
+   * only where the alpha changes.
+   */
+  private void drawWedgeRow(GuiGraphicsExtractor g, int y, double left, double right,
+      double r0, double r1, double n0x, double n0y, double n1x, double n1y) {
+    int x0 = (int) Math.round(left);
+    int x1 = (int) Math.round(right);
+    double dy = y + 0.5 - this.radialY;
+    int runStart = -1;
+    int runColor = 0;
+    for (int x = x0; x <= x1; x++) {
+      int color = x < x1 ? this.wedgeColor(x, dy, r0, r1, n0x, n0y, n1x, n1y) : 0;
+      if (color == runColor) {
+        continue;
+      }
+      if (runStart >= 0) {
+        g.fill(runStart, y, x, y + 1, runColor);
+      }
+      runStart = color == 0 ? -1 : x;
+      runColor = color;
+    }
+  }
+
+  private int wedgeColor(int x, double dy, double r0, double r1,
+      double n0x, double n0y, double n1x, double n1y) {
+    double dx = x + 0.5 - this.radialX;
+    double dist = Math.sqrt(dx * dx + dy * dy);
+    double edge = Math.min(Math.abs(dx * n0x + dy * n0y), Math.abs(dx * n1x + dy * n1y));
+    double coverage = Math.min(1.0, edge / EDGE_RAMP);
+    if (dist > r1) {
+      return 0;
+    }
+    if (dist > r1 - OUTER_RAMP) {
+      coverage = Math.min(coverage, (r1 - dist) / OUTER_RAMP);
+    } else if (dist < r0 + INNER_RAMP) {
+      coverage = Math.min(coverage, (dist - r0) / INNER_RAMP);
+    }
+    return withCoverage(HOVER_FILL, coverage);
+  }
+
+  /** Scales the colour's alpha by coverage; fully transparent collapses to nothing. */
+  private static int withCoverage(int color, double coverage) {
+    double c = Math.max(0.0, Math.min(1.0, coverage));
+    int alpha = (int) Math.round(((color >>> 24) & 0xFF) * c);
+    return alpha <= 2 ? 0 : (alpha << 24) | (color & 0xFFFFFF);
+  }
+
+  /** Angular span of the hovered button: halfway to its neighbours. */
+  private double[] sectorBounds(Entry entry) {
+    double[] angles = new double[ENTRIES.length];
+    for (int i = 0; i < ENTRIES.length; i++) {
+      angles[i] = normDeg(ENTRIES[i].angleDeg());
+    }
+    java.util.Arrays.sort(angles);
+    double self = normDeg(entry.angleDeg());
+    int idx = 0;
+    double best = 361.0;
+    for (int i = 0; i < angles.length; i++) {
+      double diff = Math.abs(angleDiff(angles[i], self));
+      if (diff < best) {
+        best = diff;
+        idx = i;
+      }
+    }
+    double prev = idx == 0 ? angles[angles.length - 1] - 360.0 : angles[idx - 1];
+    double next = idx == angles.length - 1 ? angles[0] + 360.0 : angles[idx + 1];
+    return new double[] {(prev + angles[idx]) / 2.0, (angles[idx] + next) / 2.0};
+  }
+
+  private static double normDeg(double deg) {
+    double d = deg % 360.0;
+    return d < 0.0 ? d + 360.0 : d;
+  }
+
   @Override
   public boolean isPauseScreen() {
     return false;
@@ -414,19 +668,65 @@ public class TeleportMenuScreen extends Screen implements HomePanelHost {
     }
   }
 
+  /**
+   * Invisible disc under the icons: a click anywhere in a sector runs that
+   * button, and the widget path is used because it is the one the screen
+   * definitely dispatches (the buttons themselves answer the same way).
+   */
+  private final class SectorCatcher extends net.minecraft.client.gui.components.AbstractWidget {
+    SectorCatcher(int x, int y, int w, int h) {
+      super(x, y, w, h, Component.empty());
+    }
+
+    @Override
+    public boolean isMouseOver(double mx, double my) {
+      // "Off" takes the sector clicks away with the fill; "hidden" keeps them.
+      if (!TeleportMenuScreen.this.sectorClicksEnabled()) {
+        return false;
+      }
+      return TeleportMenuScreen.this.entryAt(mx, my) != null;
+    }
+
+    @Override
+    public void onClick(net.minecraft.client.input.MouseButtonEvent event, boolean doubleClick) {
+      Entry entry = TeleportMenuScreen.this.entryAt(event.x(), event.y());
+      if (entry != null) {
+        TeleportMenuScreen.this.activate(entry.command(), "sector");
+      }
+    }
+
+    @Override
+    protected void extractWidgetRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY,
+        float partialTick) {
+      // Nothing to draw: the hover fill and the icons are drawn elsewhere.
+    }
+
+    @Override
+    protected void updateWidgetNarration(
+        net.minecraft.client.gui.narration.NarrationElementOutput output) {
+      this.defaultButtonNarrationText(output);
+    }
+  }
+
   private static final class PackIconButton extends AbstractButton {
     private final Identifier textureId;
     private final int texW;
     private final int texH;
     private final Runnable action;
+    /** True while the cursor is anywhere in this button's sector, not just on
+     *  the icon: the frame marks the whole activation area, the tooltip does
+     *  not (that one stays on the icon rectangle). */
+    private final java.util.function.BiPredicate<Double, Double> sectorHover;
 
     PackIconButton(int x, int y, int size, Component message, Identifier textureId,
-        int texW, int texH, Runnable action) {
+        int texW, int texH, Runnable action,
+        java.util.function.BiPredicate<Double, Double> sectorHover) {
       super(x, y, size, size, message);
       this.textureId = textureId;
       this.texW = texW;
       this.texH = texH;
       this.action = action;
+      this.sectorHover = sectorHover;
       this.setTooltip(Tooltip.create(message));
     }
 
@@ -453,7 +753,9 @@ public class TeleportMenuScreen extends Screen implements HomePanelHost {
       int dx = this.getX() + (this.getWidth() - dw) / 2;
       int dy = this.getY() + (this.getHeight() - dh) / 2;
       com.openorigins.client.util.VersionCompat.blitFull(graphics, this.textureId, dx, dy, 0.0F, 0.0F, dw, dh, this.texW, this.texH, this.texW, this.texH);
-      if (this.isHoveredOrFocused()) {
+      boolean inSector = this.sectorHover != null
+          && this.sectorHover.test((double) mouseX, (double) mouseY);
+      if (this.isHoveredOrFocused() || inSector) {
         int x0 = this.getX() - 1;
         int y0 = this.getY() - 1;
         int x1 = this.getX() + this.getWidth() + 1;

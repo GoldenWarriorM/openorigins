@@ -15,6 +15,11 @@ public final class OpenOriginsConfig {
     TOP_LEFT, TOP_RIGHT, BOTTOM_LEFT, BOTTOM_RIGHT
   }
 
+  /** Hovered sector of the teleport menu: painted, invisible but clickable, off. */
+  public enum RadialFill {
+    ON, HIDDEN, OFF
+  }
+
   private static final java.util.List<String> DEFAULT_SERVERS = java.util.List.of(
       "play.originrealms.com",
       "tcpshield.originrealms.com",
@@ -40,6 +45,7 @@ public final class OpenOriginsConfig {
   private boolean useHandshake = true;
   private boolean titleJoinButton = true;
   private boolean pauseConfigButton = true;
+  private RadialFill radialFill = RadialFill.ON;
   private final java.util.Set<String> servers =
       new java.util.LinkedHashSet<>(DEFAULT_SERVERS);
 
@@ -172,6 +178,13 @@ public final class OpenOriginsConfig {
       if (cfgBtn != null) {
         pauseConfigButton = Boolean.parseBoolean(cfgBtn.trim());
       }
+      String fill = props.getProperty("menu.radial.fill");
+      if (fill != null) {
+        try {
+          radialFill = RadialFill.valueOf(fill.trim().toUpperCase(java.util.Locale.ROOT));
+        } catch (IllegalArgumentException ignored) {
+        }
+      }
     } catch (IOException ignored) {
     }
   }
@@ -197,6 +210,7 @@ public final class OpenOriginsConfig {
     props.setProperty("use.handshake", Boolean.toString(useHandshake));
     props.setProperty("ui.title.join.button", Boolean.toString(titleJoinButton));
     props.setProperty("ui.pause.config.button", Boolean.toString(pauseConfigButton));
+    props.setProperty("menu.radial.fill", radialFill.name());
     try {
       Files.createDirectories(configPath().getParent());
       try (OutputStream out = Files.newOutputStream(configPath())) {
@@ -258,6 +272,22 @@ public final class OpenOriginsConfig {
 
   public synchronized void setPauseConfigButton(boolean v) {
     pauseConfigButton = v;
+    save();
+  }
+
+  public synchronized RadialFill getRadialFill() {
+    return radialFill;
+  }
+
+  public synchronized void setRadialFill(RadialFill v) {
+    radialFill = v == null ? RadialFill.ON : v;
+    save();
+  }
+
+  /** On -> hidden -> off -> on. */
+  public synchronized void cycleRadialFill() {
+    RadialFill[] values = RadialFill.values();
+    radialFill = values[(radialFill.ordinal() + 1) % values.length];
     save();
   }
 
@@ -358,6 +388,7 @@ public final class OpenOriginsConfig {
         && useHandshake
         && titleJoinButton
         && pauseConfigButton
+        && radialFill == RadialFill.ON
         && servers.equals(new java.util.LinkedHashSet<>(DEFAULT_SERVERS));
   }
 
@@ -449,6 +480,7 @@ public final class OpenOriginsConfig {
     useHandshake = true;
     titleJoinButton = true;
     pauseConfigButton = true;
+    radialFill = RadialFill.ON;
     save();
   }
 }
