@@ -123,6 +123,10 @@ public final class BadgerHud implements net.fabricmc.fabric.api.client.rendering
     h = 31 * h + BadgerCache.daysUntilReset();
     h = 31 * h + Long.hashCode(BadgerCache.taskMinutesLeft());
     h = 31 * h + BadgerCache.tiersView().hashCode();
+    // The same task list re-captured from the menu brings the exact item
+    // stacks (custom textures); without this a cached row keeps the plain
+    // fallback icon until the list itself changes.
+    h = 31 * h + BadgerCache.iconsVersion();
     return h;
   }
 

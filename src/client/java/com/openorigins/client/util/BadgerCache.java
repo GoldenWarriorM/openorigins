@@ -38,6 +38,11 @@ public final class BadgerCache {
   private static final List<Required> REQUIRED = new java.util.concurrent.CopyOnWriteArrayList<>();
   private static final List<Tier> TIERS = new java.util.concurrent.CopyOnWriteArrayList<>();
   private static final java.util.Map<String, ItemStack> ICONS = new java.util.concurrent.ConcurrentHashMap<>();
+  /** Bumped whenever the captured icon stacks change: the HUD caches its rows
+   *  by a signature that has to notice a plain fallback icon being replaced by
+   *  the menu's exact stack (otherwise a restart leaves vanilla textures on a
+   *  cached task list until the list itself changes). */
+  private static volatile int iconsVersion;
   private static volatile int streakScore;
   private static volatile int highscore;
   private static volatile int daysUntilReset;
@@ -112,6 +117,11 @@ public final class BadgerCache {
 
   private static String iconKey(String itemId, String displayName) {
     return itemId + "\n" + displayName;
+  }
+
+  /** Changes when a captured icon stack is replaced: part of the HUD signature. */
+  public static int iconsVersion() {
+    return iconsVersion;
   }
 
   /** Exact menu stack copy (keeps custom model/name) or a plain reconstruction. */
@@ -370,6 +380,7 @@ public final class BadgerCache {
             ItemStack icon = stack.copy();
             icon.setCount(1);
             ICONS.put(iconKey(id.toString(), name), icon);
+            iconsVersion++;
           }
         }
       }
@@ -470,6 +481,7 @@ public final class BadgerCache {
       kept.add(iconKey(r.itemId(), r.displayName()));
     }
     ICONS.keySet().removeIf(k -> !kept.contains(k));
+    iconsVersion++;
   }
 
   public static synchronized void save() {
@@ -509,6 +521,7 @@ public final class BadgerCache {
     REQUIRED.clear();
     TIERS.clear();
     ICONS.clear();
+    iconsVersion++;
     streakScore = 0;
     highscore = 0;
     daysUntilReset = 0;
