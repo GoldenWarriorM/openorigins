@@ -44,7 +44,7 @@ public abstract class ChatConfirmMixin {
       // Our fetch burst hit the server's chat limiter: never hand that to the
       // player as their own mistake, back our sends off instead.
       if (com.openorigins.client.util.BackgroundMenu.isServerErrorOurs()) {
-        com.openorigins.client.util.BackgroundMenu.noteCommandError(30000L);
+        com.openorigins.client.util.BackgroundMenu.noteRateLimited();
         ci.cancel();
       }
       return;

@@ -28,6 +28,7 @@ public abstract class OpenScreenMixin {
     // A shown server window is user territory: back any fetch off it.
     // It is also the visible answer to a recent command, if any.
     if (!openorigins$swallowed) {
+      BackgroundMenu.noteShownWindow(packet.getContainerId());
       BackgroundMenu.noteManualContainer();
       com.openorigins.client.util.OutboxStats.ack(label ->
           label.startsWith("cmd /") || label.startsWith("key /") || label.startsWith("menu /"));

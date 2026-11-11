@@ -36,7 +36,6 @@
 | Cutscene Enhancements | Locks FOV to 70 and freezes mouse look while you are in a cutscene (spectator mode). |
 | Back Swag Render | Draws the back cosmetic on avatars, as reported by the server. |
 | Moa Facing Fix | The server builds the Moa mount body facing backwards; this rotates it to the travel direction (visual only). |
-| Allay Arms Fix | Custom allay arm models arrive detached; this shifts them back into place. |
 
 ### Interface
 

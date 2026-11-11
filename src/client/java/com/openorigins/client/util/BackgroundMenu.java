@@ -68,6 +68,17 @@ public final class BackgroundMenu {
   private static final long QUEUE_TIMEOUT_MS = 10000L;
   /** The server needs a moment to accept our close before the next open. */
   private static final long CLOSE_SETTLE_MS = 250L;
+  /** Back-to-back commands get "you're speaking too fast" from the server. */
+  private static final long MIN_COMMAND_GAP_MS = 2000L;
+  /** Breathing room after a server window the player saw has closed. */
+  private static final long SHOWN_SETTLE_MS = 500L;
+  private static final long RATE_LIMIT_BACKOFF_MS = 5000L;
+
+  private static long lastCommandSentMs;
+  /** Server window on screen right now, -1 when none is open. */
+  private static int shownWindowId = -1;
+  private static long shownWindowClosedMs;
+  private static long rateLimitedUntil;
 
   /** Our own command send, marked so manual input is never confused. */
   public static long lastOwnSendMsForProbe() {
@@ -89,7 +100,7 @@ public final class BackgroundMenu {
       net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
       if (mc != null && mc.player != null) {
         expectOwnSend = true;
-        mc.player.connection.sendCommand(command);
+        sendNow(mc, command);
         OutboxStats.record("cmd /" + command, 30000L);
       }
     } catch (Throwable ignored) {
@@ -114,8 +125,8 @@ public final class BackgroundMenu {
       return false;
     }
     long now = System.currentTimeMillis();
-    if (!armed && !openContainerScreenShown(mc) && now - lastFinishMs >= CLOSE_SETTLE_MS) {
-      mc.player.connection.sendCommand(command);
+    if (!armed && canSendCommand() && now - lastFinishMs >= CLOSE_SETTLE_MS) {
+      sendNow(mc, command);
       OutboxStats.record("key /" + command);
       return true;
     }
@@ -141,11 +152,11 @@ public final class BackgroundMenu {
       return;
     }
     Minecraft mc = Minecraft.getInstance();
-    if (mc == null || mc.player == null || openContainerScreenShown(mc)) {
+    if (mc == null || mc.player == null || !canSendCommand()) {
       return;
     }
     queuedMenuCommand = null;
-    mc.player.connection.sendCommand(command);
+    sendNow(mc, command);
     OutboxStats.record("key /" + command);
     com.openorigins.client.util.DebugLog.info("[bgmenu] queued '{}' sent", command);
   }
@@ -412,6 +423,76 @@ public final class BackgroundMenu {
     disarm();
     queuedMenuCommand = null;
     queuedUntilMs = 0;
+    shownWindowId = -1;
+    rateLimitedUntil = 0;
+    lastCommandSentMs = 0;
+  }
+
+  /** A server window the player can see opened: commands wait for its close. */
+  public static synchronized void noteShownWindow(int containerId) {
+    shownWindowId = containerId;
+  }
+
+  /**
+   * The server takes a command, opens a chest for its answer and only then
+   * accepts the next one; a command fired over that chest is answered with
+   * "you're speaking too fast" (2026-11-07: 'streaks' right over the Badger
+   * menu). Everything we send goes through this one gate.
+   */
+  private static boolean canSendCommand() {
+    long now = System.currentTimeMillis();
+    if (now < rateLimitedUntil) {
+      return false;
+    }
+    Minecraft mc = Minecraft.getInstance();
+    if (mc == null || mc.player == null) {
+      return false;
+    }
+    if (openContainerScreenShown(mc) || shownWindowOpen(mc)) {
+      return false;
+    }
+    if (now - shownWindowClosedMs < SHOWN_SETTLE_MS) {
+      return false;
+    }
+    return now - lastCommandSentMs >= MIN_COMMAND_GAP_MS;
+  }
+
+  /** True while the server window the player saw is still open. */
+  private static synchronized boolean shownWindowOpen(Minecraft mc) {
+    if (shownWindowId < 0) {
+      return false;
+    }
+    boolean open = false;
+    try {
+      open = mc != null && mc.gui != null
+          && mc.gui.screen()
+              instanceof net.minecraft.client.gui.screens.inventory.AbstractContainerScreen<?> cs
+          && cs.getMenu() != null && cs.getMenu().containerId == shownWindowId;
+    } catch (Throwable ignored) {
+    }
+    if (!open) {
+      shownWindowId = -1;
+      shownWindowClosedMs = System.currentTimeMillis();
+    }
+    return open;
+  }
+
+  private static void sendNow(Minecraft mc, String command) {
+    mc.player.connection.sendCommand(command);
+    lastCommandSentMs = System.currentTimeMillis();
+  }
+
+  /**
+   * The server refused a command as too fast. That is a limiter, not a broken
+   * area: back every send off for a moment and keep the location usable.
+   */
+  public static synchronized void noteRateLimited() {
+    rateLimitedUntil = System.currentTimeMillis() + RATE_LIMIT_BACKOFF_MS;
+    if (armed) {
+      disarm();
+    }
+    com.openorigins.client.util.DebugLog.info(
+        "[bgmenu] server rate limit hit, backing off {}ms", RATE_LIMIT_BACKOFF_MS);
   }
 
   /**
@@ -421,6 +502,10 @@ public final class BackgroundMenu {
    * reuses it (e.g. the player's chest) nor route its content into our menu.
    */
   public static synchronized void noteServerClose(int containerId) {
+    if (containerId == shownWindowId) {
+      shownWindowId = -1;
+      shownWindowClosedMs = System.currentTimeMillis();
+    }
     if (armed && menu != null && containerId == windowId) {
       com.openorigins.client.util.DebugLog.info("[bgmenu] server closed window {}, dropping",
           containerId);
@@ -861,11 +946,9 @@ public final class BackgroundMenu {
         // race its container (and the wrong window would be swallowed).
         return;
       }
-      net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
-      // Never fire a fetch command while the user looks at a real server
-      // window: the response would race it (flash over the chest, or worse,
-      // a swallowed window the server still treats as open).
-      if (mc != null && mc.player != null && !openContainerScreenShown(mc)) {
+      // Never fire a fetch command while a server window is open: the answer
+      // would race it and the server answers "speaking too fast".
+      if (canSendCommand()) {
         attempts = 1;
         sendCommand(pendingCommand);
         com.openorigins.client.util.DebugLog.info("[bgmenu] sending '{}'", pendingCommand);
