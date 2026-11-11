@@ -35,6 +35,18 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
   private static final double SMOOTH_SPEED = 12.0;
   private static final java.util.Map<String, Boolean> EXPANDED = new java.util.HashMap<>();
 
+  /** Live text from the config search box (trimmed, lower case, may be empty). */
+  private static volatile String query = "";
+
+  public static String query() {
+    return query;
+  }
+
+  /** Sets the filter text; the config screen rebuilds the feeds afterwards. */
+  public static void setQuery(String value) {
+    query = value == null ? "" : value.trim().toLowerCase(java.util.Locale.ROOT);
+  }
+
   private static boolean isExpanded(String group) {
     Boolean b = EXPANDED.get(group);
     return b == null || b;
@@ -297,6 +309,10 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
   }
 
   private double groupOpenTarget(String group) {
+    if (!query.isEmpty()) {
+      // Searching: show matched sub-rows even if their group is collapsed.
+      return 1;
+    }
     OpenOriginsConfig cfg = OpenOriginsConfig.getInstance();
     return switch (group) {
       case "badger" ->
@@ -496,6 +512,43 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
       }
       }
     }
+    return filterFeed(out);
+  }
+
+  /**
+   * Search filter: keeps matching rows, the section headers they belong to and
+   * the dependent sub-rows of a matched parent (position, backdrop, servers).
+   * One feed per page, so one filter serves every tab.
+   */
+  private static java.util.List<Entry> filterFeed(java.util.List<Entry> feed) {
+    if (query.isEmpty()) {
+      return feed;
+    }
+    java.util.Set<String> groups = new java.util.HashSet<>();
+    for (Entry e : feed) {
+      String group = e.collapseGroup();
+      if (group != null && e.searchText().toLowerCase(java.util.Locale.ROOT).contains(query)) {
+        groups.add(group);
+      }
+    }
+    java.util.List<Entry> out = new java.util.ArrayList<>();
+    Entry pendingHeader = null;
+    for (Entry e : feed) {
+      if (e instanceof CategoryEntry) {
+        pendingHeader = e;
+        continue;
+      }
+      boolean keep = e.searchText().toLowerCase(java.util.Locale.ROOT).contains(query)
+          || (e.collapseGroup() != null && groups.contains(e.collapseGroup()));
+      if (!keep) {
+        continue;
+      }
+      if (pendingHeader != null) {
+        out.add(pendingHeader);
+        pendingHeader = null;
+      }
+      out.add(e);
+    }
     return out;
   }
 
@@ -659,6 +712,11 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
 
     public abstract void refreshEntry();
 
+    /** Text the search box matches against ("" when the row is not searchable). */
+    public String searchText() {
+      return "";
+    }
+
     /** Stable id used to anchor the scroll across feed rebuilds. */
     public String key() {
       return "entry";
@@ -674,7 +732,7 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
     }
 
     public boolean isCollapsed() {
-      return this.collapseGroup != null && this.animProgress <= 0.0;
+      return this.collapseGroup != null && this.animProgress <= 0.0 && query.isEmpty();
     }
 
     /** Extra clickable gutter left of the row (group +/- glyph). */
@@ -777,6 +835,11 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
 
     /** Row label component (feature name or translatable key). */
     protected abstract net.minecraft.network.chat.Component label();
+
+    @Override
+    public String searchText() {
+      return this.label().getString();
+    }
 
     /** Group +/- glyph factory shared by both row flavors. */
     protected static GlyphToggleButton groupExpand(String group, FeatureList list) {
@@ -942,6 +1005,12 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
     protected Component label() {
       return Component.literal(this.feature.getName());
     }
+
+    @Override
+    public String searchText() {
+      return this.feature.getName() + " "
+          + Component.translatable(this.feature.getDescriptionKey()).getString();
+    }
   }
 
   /** Label left, green/red ON/OFF toggle right. */
@@ -1090,6 +1159,11 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
     }
 
     @Override
+    public String searchText() {
+      return Component.translatable(this.labelKey).getString();
+    }
+
+    @Override
     public void extractContent(GuiGraphicsExtractor graphics, int mouseX, int mouseY, boolean hovered,
         float partialTick) {
       if (this.isCollapsed()) {
@@ -1209,6 +1283,11 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
     }
 
     @Override
+    public String searchText() {
+      return Component.translatable(this.labelKey).getString();
+    }
+
+    @Override
     public void extractContent(GuiGraphicsExtractor graphics, int mouseX, int mouseY, boolean hovered,
         float partialTick) {
       if (this.isCollapsed()) {
@@ -1321,6 +1400,11 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
     }
 
     @Override
+    public String searchText() {
+      return Component.translatable("config.openorigins.servers_current").getString();
+    }
+
+    @Override
     public void extractContent(GuiGraphicsExtractor graphics, int mouseX, int mouseY, boolean hovered,
         float partialTick) {
       net.minecraft.client.gui.Font font = net.minecraft.client.Minecraft.getInstance().font;
@@ -1367,6 +1451,11 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
     @Override
     public String key() {
       return "server:" + this.address;
+    }
+
+    @Override
+    public String searchText() {
+      return this.address;
     }
 
     @Override
@@ -1426,6 +1515,11 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
     @Override
     public String key() {
       return "servers:add";
+    }
+
+    @Override
+    public String searchText() {
+      return Component.translatable("config.openorigins.servers_add").getString();
     }
 
     @Override
