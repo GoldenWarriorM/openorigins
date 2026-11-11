@@ -78,6 +78,8 @@
   "menu.openorigins.ahdb.excl_hint1": "Excluded sellers:",
   "menu.openorigins.ahdb.excl_hint2": "click sale to add",
   "menu.openorigins.homes.title": "Homes",
+  "menu.openorigins.status.fetching": "Fetching %s...",
+  "menu.openorigins.status.teleporting": "Teleporting...",
   "menu.openorigins.worlds.title": "Worlds",
   "menu.openorigins.homes.new": "New",
   "menu.openorigins.homes.new_hint": "Create a new home",

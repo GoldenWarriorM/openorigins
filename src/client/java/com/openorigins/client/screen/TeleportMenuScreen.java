@@ -56,6 +56,8 @@ public class TeleportMenuScreen extends Screen implements HomePanelHost {
   private int worldPanelCount;
   private long retryAt;
   private int retries;
+  /** Home teleport the player clicked, held until the background fetch ends. */
+  private String pendingTeleport;
 
   /** Radial center: screen center unless a side panel would overlap it. */
   private double radialCx() {
@@ -158,6 +160,14 @@ public class TeleportMenuScreen extends Screen implements HomePanelHost {
   @Override
   public void tick() {
     super.tick();
+    // The panel stays open while the press waits: the bottom line tells the
+    // player what is happening, and closing happens only once it is sent.
+    if (this.pendingTeleport != null
+        && !com.openorigins.client.util.BackgroundMenu.hasQueuedUserCommand()) {
+      this.pendingTeleport = null;
+      this.onClose();
+      return;
+    }
     if (this.retryAt > 0 && System.currentTimeMillis() >= this.retryAt) {
       this.retryAt = 0;
       this.retries++;
@@ -323,15 +333,20 @@ public class TeleportMenuScreen extends Screen implements HomePanelHost {
   }
 
   private void teleportHome(String name) {
-    if (this.minecraft != null && this.minecraft.player != null) {
-      // Server home ids use underscores; display names use spaces.
-      String command = "home " + name.replace(' ', '_');
-      if (CommandDebounce.accept(command)) {
-        this.minecraft.player.connection.sendCommand(command);
-        com.openorigins.client.util.OutboxStats.record("menu /home " + name);
-      }
+    if (this.minecraft == null || this.minecraft.player == null) {
+      this.onClose();
+      return;
     }
-    this.onClose();
+    // Server home ids use underscores; display names use spaces.
+    String command = "home " + name.replace(' ', '_');
+    if (!CommandDebounce.accept(command)) {
+      return;
+    }
+    if (com.openorigins.client.util.BackgroundMenu.sendOrQueueUserCommand(command)) {
+      this.onClose();
+    } else {
+      this.pendingTeleport = command;
+    }
   }
 
   private void deleteHome(String name) {
@@ -369,6 +384,22 @@ public class TeleportMenuScreen extends Screen implements HomePanelHost {
       extractor.text(this.font, wheader, this.worldPanelX + wgridW / 2 - hww / 2,
           this.worldPanelY - 16, 0xFFFFFFFF);
     }
+    Component status = this.statusLine();
+    if (status != null) {
+      extractor.text(this.font, status, 10, this.height - 16, 0xFFAAAAAA);
+    }
+  }
+
+  /** Bottom-left progress line: the background work the panel is waiting on. */
+  private Component statusLine() {
+    String inFlight = com.openorigins.client.util.BackgroundMenu.inFlightCommand();
+    if (inFlight != null) {
+      return Component.translatable("menu.openorigins.status.fetching", inFlight);
+    }
+    if (this.pendingTeleport != null) {
+      return Component.translatable("menu.openorigins.status.teleporting");
+    }
+    return null;
   }
 
   @Override

@@ -66,6 +66,10 @@ public final class BackgroundMenu {
   private static long queuedUntilMs;
   private static long lastFinishMs;
   private static final long QUEUE_TIMEOUT_MS = 10000L;
+  /** Player's own command (from our UI) held while a fetch is in flight. */
+  private static String queuedUserCommand;
+  private static long queuedUserUntilMs;
+  private static final long USER_QUEUE_TIMEOUT_MS = 15000L;
   /** The server needs a moment to accept our close before the next open. */
   private static final long CLOSE_SETTLE_MS = 250L;
   /** Back-to-back commands get "you're speaking too fast" from the server. */
@@ -159,6 +163,71 @@ public final class BackgroundMenu {
     sendNow(mc, command);
     OutboxStats.record("key /" + command);
     com.openorigins.client.util.DebugLog.info("[bgmenu] queued '{}' sent", command);
+  }
+
+  /** Command the background fetch is working on, or null when idle. */
+  public static synchronized String inFlightCommand() {
+    return armed ? pendingCommand : null;
+  }
+
+  /** True while a command the player asked for is waiting its turn. */
+  public static synchronized boolean hasQueuedUserCommand() {
+    return queuedUserCommand != null;
+  }
+
+  /**
+   * Sends a command the player asked for from our own UI, or holds it while a
+   * background fetch is in flight. Our fetch command and the player's command
+   * must never reach the server inside one limiter window: the server answers
+   * the later one with "you're speaking too fast" (2026-11-07: our /homes and
+   * the player's /balloon landed in the same second).
+   *
+   * @return true when it went out now, false when it waits for the fetch.
+   */
+  public static synchronized boolean sendOrQueueUserCommand(String command) {
+    if (command == null || command.isBlank()) {
+      return false;
+    }
+    Minecraft mc = Minecraft.getInstance();
+    if (mc == null || mc.player == null) {
+      return false;
+    }
+    if (!armed && canSendCommand()) {
+      mc.player.connection.sendCommand(command);
+      OutboxStats.record("user /" + command);
+      lastCommandSentMs = System.currentTimeMillis();
+      return true;
+    }
+    queuedUserCommand = command;
+    queuedUserUntilMs = System.currentTimeMillis() + USER_QUEUE_TIMEOUT_MS;
+    com.openorigins.client.util.DebugLog.info(
+        "[bgmenu] user '{}' queued behind '{}'", command, pendingCommand);
+    return false;
+  }
+
+  /** Sends the held player command once the fetch is gone and the gap is clear. */
+  private static void flushQueuedUserCommand(long now) {
+    String command = queuedUserCommand;
+    if (command == null) {
+      return;
+    }
+    if (now > queuedUserUntilMs) {
+      queuedUserCommand = null;
+      com.openorigins.client.util.DebugLog.info("[bgmenu] queued user '{}' expired", command);
+      return;
+    }
+    if (armed || now - lastFinishMs < CLOSE_SETTLE_MS) {
+      return;
+    }
+    Minecraft mc = Minecraft.getInstance();
+    if (mc == null || mc.player == null || !canSendCommand()) {
+      return;
+    }
+    queuedUserCommand = null;
+    mc.player.connection.sendCommand(command);
+    OutboxStats.record("user /" + command);
+    lastCommandSentMs = System.currentTimeMillis();
+    com.openorigins.client.util.DebugLog.info("[bgmenu] queued user '{}' sent", command);
   }
 
   /** A chat command not sent by us (user typed it): back off. */
@@ -423,6 +492,8 @@ public final class BackgroundMenu {
     disarm();
     queuedMenuCommand = null;
     queuedUntilMs = 0;
+    queuedUserCommand = null;
+    queuedUserUntilMs = 0;
     shownWindowId = -1;
     rateLimitedUntil = 0;
     lastCommandSentMs = 0;
@@ -913,6 +984,7 @@ public final class BackgroundMenu {
   public static synchronized void tick() {
     long now = System.currentTimeMillis();
     flushQueuedMenuCommand(now);
+    flushQueuedUserCommand(now);
     if (!armed) {
       return;
     }
