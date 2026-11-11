@@ -686,6 +686,9 @@ public final class BackgroundMenu {
           orphanUntilMs = 0;
         }
       }
+      if (!adopted && suppressLateAnswerOverUserWindow(packet, id, titleStr, now)) {
+        return true;
+      }
       if (!adopted) {
         if (armed && menu != null) {
           // A second open while our window is still captured: the server has
@@ -777,6 +780,59 @@ public final class BackgroundMenu {
     com.openorigins.client.util.DebugLog.info(
         "[bgmenu] open window={} type={} title='{}' verdict={}", id, typeStr, titleStr, verdict);
     return swallow;
+  }
+
+  /**
+   * The server answers our own command late: the player right-clicked a chest
+   * in between, its window is on screen, and then our answer wants that same
+   * window id. The answer must never pop over the player's container
+   * (2026-11-09: /navigator worlds went out a second before a double chest
+   * opened at the base, the fetch was dropped by the manual container, and its
+   * unreadable-titled window replaced the chest in front of the player).
+   *
+   * Only a glyph-titled generic window is taken for our answer, and only while
+   * the player's own container screen is still up; an NPC menu right after a
+   * right-click is left alone.
+   */
+  private static boolean suppressLateAnswerOverUserWindow(ClientboundOpenScreenPacket packet,
+      int id, String titleStr, long now) {
+    if (orphanCommand == null || now >= orphanUntilMs) {
+      return false;
+    }
+    if (!isGenericRows(packet.getType()) || looksUserFacing(titleStr)
+        || afterEntityInteraction(now)) {
+      return false;
+    }
+    Minecraft mc = Minecraft.getInstance();
+    if (mc == null || mc.player == null || mc.gui == null || !openContainerScreenShown(mc)) {
+      return false;
+    }
+    com.openorigins.client.util.DebugLog.info(
+        "[bgmenu] late answer for '{}' window={} title='{}' over the user's container, closing",
+        orphanCommand, id, titleStr);
+    orphanCommand = null;
+    orphanUntilMs = 0;
+    lastManualContainerMs = now;
+    lastFinishMs = now;
+    lastSwallowedTitle = titleStr;
+    try {
+      mc.player.connection.send(new ServerboundContainerClosePacket(id));
+      OutboxStats.record("close w" + id, 5000L);
+    } catch (Throwable t) {
+      com.openorigins.client.util.DebugLog.warn("[bgmenu] late answer close failed: {}",
+          t.toString());
+    }
+    // The window the player was looking at is gone server-side anyway: send
+    // them back to the world instead of a container whose clicks all fail.
+    mc.execute(() -> {
+      try {
+        if (mc.gui != null) {
+          mc.gui.setScreen(null);
+        }
+      } catch (Throwable ignored) {
+      }
+    });
+    return true;
   }
 
   /** Server GUI menus are generic chest rows; real block containers have own types. */
