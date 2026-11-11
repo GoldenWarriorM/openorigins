@@ -358,6 +358,21 @@ public final class BackgroundMenu {
    * (1-2-3), so any overlap risks clicks landing in the wrong window and
    * mass rollbacks on close.
    */
+  /**
+   * Any GUI on screen means the user is busy with the server: a fetch started
+   * now answers into their window and the swallow closes it
+   * (2026-11-08: /streaks armed inside a custom block menu, its answer took
+   * the block's window id, closed it and the streaks menu popped in its place).
+   */
+  private static boolean screenOpen() {
+    try {
+      Minecraft mc = Minecraft.getInstance();
+      return mc != null && mc.gui != null && mc.gui.screen() != null;
+    } catch (Throwable t) {
+      return false;
+    }
+  }
+
   public static synchronized void noteManualContainer() {
     lastManualContainerMs = System.currentTimeMillis();
     if (armed) {
@@ -440,6 +455,14 @@ public final class BackgroundMenu {
       return false;
     }
     long now = System.currentTimeMillis();
+    if (screenOpen()) {
+      if (now - lastTryArmLogMs > 15000) {
+        lastTryArmLogMs = now;
+        com.openorigins.client.util.DebugLog.info("[bgmenu] tryArm '{}' refused: screen open",
+            command);
+      }
+      return false;
+    }
     if (now - lastManualContainerMs < MANUAL_COOLDOWN_MS) {
       if (now - lastTryArmLogMs > 15000) {
         lastTryArmLogMs = now;
@@ -675,6 +698,9 @@ public final class BackgroundMenu {
           // Our id may now belong to the user's window: never close it.
           disarm();
         } else {
+          // Someone else's menu on screen: the user is browsing the server, so
+          // keep fetches off until it is closed and the cooldown runs out.
+          lastManualContainerMs = now;
           com.openorigins.client.util.DebugLog.info(
               "[bgmenu] open window={} type={} title='{}' verdict=show (idle)",
               id, typeStr, titleStr);
