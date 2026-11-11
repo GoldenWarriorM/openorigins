@@ -1,5 +1,41 @@
 # Changelog
 
+## [2.0.0-beta4] — 2026-11-11
+
+> Beta: features marked *Experimental* are still being worked on. Expect bugs and crashes.
+
+## Added
+
+- **Radial background** in the teleport menu: the hovered sector is painted in
+  the color of location, highlight and zone hit registration can be turned off
+  in the config.
+- **Config search**: a search field with a clear all button.
+- **Fetch status line** in the teleport menu; a clicked teleport now is placed
+  in queue.
+
+## Changed
+
+- **Improved Streak refetch**: the task list refreshes right after a quest is
+  turned in or a tier unlocks.
+- **Improved World timers**: reset timers tick live in the worlds panel and
+  refetch themselves once they all run out.
+
+## Fixed
+
+- **Task HUD icons refetch**: custom task icons now appear without reopening
+  `/streaks`.
+- Background fetches stay clear of an open screen, and a late answer to a silent
+  fetch is closed instead of taking over the player's container.
+- Chest and chat commands are paced behind server windows instead of firing in
+  the same tick.
+- **Allay Arms Fix** is now off by default and hidden: Origin Realms fixed the
+  models on the server.
+
+### Notes
+
+- Requires **Java 25**, Fabric Loader **0.19.5+** and Fabric API.
+- Client-side only: nothing changes in singleplayer or on other servers.
+
 ## [2.0.0-beta3] — 2026-11-06
 
 > Beta: features marked *Experimental* are still being worked on. Expect bugs and crashes.
