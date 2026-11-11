@@ -209,6 +209,7 @@ public final class HotkeyFeatures {
         com.openorigins.client.util.BackgroundMenu.tick();
         com.openorigins.client.util.OpenWorldCache.tick();
         if (!badgerFetchDone && joinTicks > 100
+            && com.openorigins.client.util.BadgerCache.wantsJoinFetch()
             && !com.openorigins.client.util.BackgroundMenu.isArmed()
             && com.openorigins.client.util.BackgroundMenu.tryArm("streaks")) {
           badgerFetchDone = true;
@@ -224,6 +225,8 @@ public final class HotkeyFeatures {
             && com.openorigins.client.util.BackgroundMenu.tryArm("streaks")) {
           com.openorigins.client.util.BadgerCache.markDeliveredRefreshSent();
         }
+        // A quest turned in or a tier unlocked: the list changed right now, so
+        // the answer is wanted at once, not at the timer window.
         if (com.openorigins.client.util.BadgerCache.hasRefreshPending()
             && !com.openorigins.client.util.BackgroundMenu.isArmed()
             && com.openorigins.client.util.BackgroundMenu.tryArm("streaks")) {

@@ -206,11 +206,38 @@ public final class BadgerCache {
   private static volatile boolean refreshPending;
   private static volatile long forceAcceptUntil;
 
+  /** Automatic fetches start this long before the server timer rolls over. */
+  private static final long REFRESH_WINDOW_MS = 30 * 60000L;
+
+  /**
+   * A fetch on join is only worth sending when the answer can differ from the
+   * cache: tasks are still pending (or nothing is cached yet), or the server
+   * timer is within half an hour of rolling over. With everything delivered
+   * and hours left, the saved list is still the truth.
+   *
+   * Only the join fetch asks this: a delivery or a quest event is a real
+   * change and fetches at once, without waiting for the timer.
+   */
+  public static boolean wantsJoinFetch() {
+    if (!REQUIRED.isEmpty()) {
+      return true;
+    }
+    long now = System.currentTimeMillis();
+    if (timerDeadline == 0 || timerDeadline <= now) {
+      return true;
+    }
+    return timerDeadline - now <= REFRESH_WINDOW_MS;
+  }
+
   /** True once when a previously seen task fully empties (all delivered). */
   public static boolean needsDeliveredRefresh() {
     if (!REQUIRED.isEmpty()) {
       hadTask = true;
       deliveredRefreshSent = false;
+      return false;
+    }
+    if (refreshPending) {
+      // The pending event fetch brings the same answer: never send two.
       return false;
     }
     return hadTask && !deliveredRefreshSent;
@@ -239,6 +266,9 @@ public final class BadgerCache {
       return false;
     }
     refreshPending = false;
+    // The event may have been queued for hours (the refresh window was shut),
+    // so renew the accept window from the actual send instead of the event.
+    forceAcceptUntil = System.currentTimeMillis() + 60000L;
     return true;
   }
 
@@ -407,6 +437,9 @@ public final class BadgerCache {
       REQUIRED.clear();
       REQUIRED.addAll(req);
     }
+    // An accepted scan already carries the fresh list (the user opened the
+    // menu themselves, or our answer landed): a queued fetch is moot now.
+    refreshPending = false;
     // Tier lore ("Basic (2/5)" lines) only exists on quest pages; mid-accept
     // or delivery scans list none, and wiping the list there made the HUD
     // difficulty row blink away. Only overwrite with a non-empty tier list.
