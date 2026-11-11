@@ -25,19 +25,23 @@ import net.minecraft.resources.Identifier;
  * The radial part renders instantly; the homes section fills in async.
  */
 public class TeleportMenuScreen extends Screen implements HomePanelHost {
-  private record Entry(String labelKey, String command, double angleDeg, String packPath, int yOff) {}
+  private record Entry(String labelKey, String command, double angleDeg, String packPath, int yOff,
+      int rgb) {}
 
+  /** Hue of each entry: the hover fill is tinted with the colour of the
+   *  teleport it belongs to. Realm takes purple, the one colour no balloon
+   *  and no open world uses here. */
   private static final Entry[] ENTRIES = {
       new Entry("menu.openorigins.teleport.blue", "balloon blue-balloon", -90.0,
-          "textures/custom_ui/transport_menu/button_balloon_blue.png", 0),
+          "textures/custom_ui/transport_menu/button_balloon_blue.png", 0, 0x3F7BFF),
       new Entry("menu.openorigins.teleport.yellow", "balloon yellow-balloon", 0.0,
-          "textures/custom_ui/transport_menu/button_balloon_yellow.png", 0),
+          "textures/custom_ui/transport_menu/button_balloon_yellow.png", 0, 0xFFC61A),
       new Entry("menu.openorigins.teleport.green", "balloon green-balloon", 180.0,
-          "textures/custom_ui/transport_menu/button_balloon_green.png", 0),
+          "textures/custom_ui/transport_menu/button_balloon_green.png", 0, 0x46C25A),
       new Entry("menu.openorigins.teleport.realm", "realm tp", 115.0,
-          "textures/custom_ui/transport_menu/button_homes.png", 16),
+          "textures/custom_ui/transport_menu/button_homes.png", 16, 0xA972FF),
       new Entry("menu.openorigins.teleport.spawn", "spawn", 65.0,
-          "textures/custom_ui/transport_menu/button_origin_isles.png", 16),
+          "textures/custom_ui/transport_menu/button_origin_isles.png", 16, 0xFF4A3F),
   };
   private static final int ICON_SIZE = 56;
   private static final int RADIUS = 95;
@@ -46,28 +50,45 @@ public class TeleportMenuScreen extends Screen implements HomePanelHost {
   static final int HOME_GAP = 8;
   static final int HOME_LABEL_H = 12;
   static final int HOME_MAX = 15;
-  /** Invisible click circle: the icon ring plus a margin, never reaching the
-   *  side panels (their nearest edge stays outside HIT_RADIUS). */
-  private static final double HIT_INNER = 24.0;
+  /** Inner edge of the fill, outside the centre: a sector spans up to ninety
+   *  degrees here, so a wedge reaching the middle converges to a point and
+   *  reads as a diamond. A band that starts away from the centre keeps the
+   *  curved shape of the icon ring. */
+  private static final double FILL_INNER = 56.0;
+  /** Invisible click circle: starts exactly where the fill starts, so the
+   *  empty middle of the ring never teleports, and ends before the side panels
+   *  (their nearest edge stays outside HIT_RADIUS). */
+  private static final double HIT_INNER = FILL_INNER;
   /** Cap for the click circle; the real radius shrinks to clear the panels. */
   private static final double HIT_RADIUS_MAX = RADIUS + ICON_SIZE;
-  /** Hover fill inside the sector. */
-  private static final int HOVER_FILL = 0x3AFF8C00;
+  /** Alpha of the hover fill; its hue comes from the hovered entry. */
+  private static final int HOVER_ALPHA = 0x3A;
   /** Pixel size of the hover fill: the sector sits on a coarse grid, so its
    *  border reads as chunky pixels instead of a smooth vector fan. */
   private static final int HOVER_PIXEL = 3;
   /** Coverage steps: quantised alpha plus a per-pixel dither, no smooth ramp. */
   private static final double ALPHA_STEPS = 4.0;
-  /** Visible fade at the border, in pixels: inner arc, outer arc, radial edges. */
-  private static final double INNER_RAMP = HOVER_PIXEL;
-  private static final double OUTER_RAMP = HOVER_PIXEL;
-  private static final double EDGE_RAMP = HOVER_PIXEL;
-  /** Rim light just inside the border: brighter pixels, added on top. */
-  private static final double RIM_PX = 4.0;
-  private static final int RIM_TINT = 0xFFC070;
-  private static final int RIM_ALPHA = 0x50;
-  /** Brightness jitter of one hover pixel, as a fraction of the fill alpha. */
-  private static final double NOISE = 0.5;
+  /** Visible fade at the border, in pixels: inner arc, outer arc, radial edges.
+   *  Kept short: a long ramp paints concentric alpha rings around the centre
+   *  and eats the border that the rim light is supposed to sit on. */
+  private static final double INNER_RAMP = 6.0;
+  private static final double OUTER_RAMP = 2.0;
+  private static final double EDGE_RAMP = 4.0;
+  /** Rim light: brightest on the outline itself and fading inward over RIM_PX.
+   *  The light has to sit on the border, otherwise the sheen reads as a stripe
+   *  floating beside it; the falloff keeps the edge convex, not framed. */
+  private static final double RIM_PX = 12.0;
+  /** Only the outermost pixels next to a radial side lose the sheen: the light
+   *  has to run along the straight edges too, or the outline reads as broken. */
+  private static final double RIM_SIDE_FADE = 2.5;
+  private static final int RIM_ALPHA = 0x5A;
+  /** Barely visible grain: a few alpha units and a few RGB units per pixel. */
+  private static final double NOISE_ALPHA = 3.0;
+  private static final double NOISE_TINT = 5.0;
+  /** Fade of the hover fill, both ways: the sector grows out of nothing under
+   *  the cursor and melts away again when it leaves. Switching sectors
+   *  restarts the fade-in. */
+  private static final long HOVER_FADE_MS = 140L;
 
   private List<String> homes;
   private int panelX;
@@ -83,6 +104,17 @@ public class TeleportMenuScreen extends Screen implements HomePanelHost {
   /** Radial centre in screen space, so sector clicks follow the drawn icons. */
   private double radialX;
   private double radialY;
+  /** Sector the running fade belongs to; null when nothing is drawn at all. */
+  private Entry fadeEntry;
+  private long fadeStartMs;
+  /** True while the sector fades out after the cursor left it. */
+  private boolean fadingOut;
+  /** Eased 0..1 fade of the hover fill for the frame being drawn. */
+  private float hoverAlpha = 1.0F;
+  /** Fill of the sector being drawn, hue of the hovered entry. */
+  private int fillColor = (HOVER_ALPHA << 24) | 0xFF8C00;
+  /** Lightened version of the same hue, used for the rim sheen. */
+  private int rimTint = 0xFFD9A0;
 
   /** Radial center: screen center unless a side panel would overlap it. */
   private double radialCx() {
@@ -351,6 +383,13 @@ public class TeleportMenuScreen extends Screen implements HomePanelHost {
     }
   }
 
+  /** Eased 0..1 progress of the fade started at fadeStartMs. */
+  private float fadeCurve() {
+    float t = (System.currentTimeMillis() - this.fadeStartMs) / (float) HOVER_FADE_MS;
+    t = Math.max(0.0F, Math.min(1.0F, t));
+    return t * t * (3.0F - 2.0F * t);
+  }
+
   /** Live world countdown, "..." while no timer is known. */
   private static String countdownText(String color) {
     String cd = com.openorigins.client.util.OpenWorldCache.countdown(color);
@@ -556,10 +595,35 @@ public class TeleportMenuScreen extends Screen implements HomePanelHost {
       return;
     }
     Entry hovered = this.entryAt(mouseX, mouseY);
-    if (hovered == null) {
+    Entry shown;
+    if (hovered != null) {
+      if (hovered != this.fadeEntry || this.fadingOut) {
+        this.fadeEntry = hovered;
+        this.fadeStartMs = System.currentTimeMillis();
+        this.fadingOut = false;
+      }
+      this.hoverAlpha = this.fadeCurve();
+      shown = hovered;
+    } else if (this.fadeEntry == null) {
       return;
+    } else {
+      // Cursor left the sector: keep drawing the last one while it melts.
+      if (!this.fadingOut) {
+        this.fadingOut = true;
+        this.fadeStartMs = System.currentTimeMillis();
+      }
+      this.hoverAlpha = 1.0F - this.fadeCurve();
+      if (this.hoverAlpha <= 0.0F) {
+        this.fadeEntry = null;
+        this.fadingOut = false;
+        return;
+      }
+      shown = this.fadeEntry;
     }
-    double[] bounds = this.sectorBounds(hovered);
+    // Colour of the hovered teleport: blue balloon lights up blue, spawn red.
+    this.fillColor = (HOVER_ALPHA << 24) | shown.rgb();
+    this.rimTint = mixRgb(shown.rgb(), 0xFFFFFF, 0.45);
+    double[] bounds = this.sectorBounds(shown);
     double r0 = HIT_INNER;
     double r1 = this.hitRadius();
     // Normals of the two radial edges: distance to them fades the sector sides.
@@ -604,7 +668,7 @@ public class TeleportMenuScreen extends Screen implements HomePanelHost {
       }
       java.util.Arrays.sort(xs, 0, count);
       for (int i = 0; i + 1 < count; i += 2) {
-        this.drawHoverBand(g, by, xs[i], xs[i + 1], r0, r1, n0x, n0y, n1x, n1y);
+        this.drawHoverBand(g, by, xs[i], xs[i + 1], FILL_INNER, r1, n0x, n0y, n1x, n1y);
       }
     }
   }
@@ -649,24 +713,37 @@ public class TeleportMenuScreen extends Screen implements HomePanelHost {
     if (coverage <= 0.0) {
       return 0;
     }
-    int hash = pixelHash(bx / HOVER_PIXEL, by / HOVER_PIXEL);
-    double jitter = ((hash & 0xFF) - 127.5) / 127.5;
-    coverage = Math.min(1.0, coverage * (1.0 + jitter * NOISE));
-    coverage = Math.round(coverage * ALPHA_STEPS) / ALPHA_STEPS;
+    // Pixel silhouette: a few coarse alpha steps instead of a vector ramp.
+    coverage = Math.round(Math.min(1.0, coverage) * ALPHA_STEPS) / ALPHA_STEPS;
     if (coverage <= 0.0) {
       return 0;
     }
+    int hash = pixelHash(bx / HOVER_PIXEL, by / HOVER_PIXEL);
+    int fill = this.fillColor;
+    int alpha = (int) Math.round(((fill >>> 24) & 0xFF) * coverage)
+        + (int) Math.round(((hash & 0xFF) - 127.5) / 127.5 * NOISE_ALPHA);
+    int rgb = fill & 0xFFFFFF;
+    // Rim light: a smooth sheen standing back from the arc. It is added,
+    // never stamped over the fill, so the edge keeps its soft falloff.
+    // Distance to the nearest border of any kind: an arc or a radial edge.
     double border = Math.min(Math.min(r1 - dist, dist - r0), edge);
-    double rim = Math.max(0.0, 1.0 - border / RIM_PX);
-    rim *= rim;
-    int alpha = (int) Math.round((((HOVER_FILL >>> 24) & 0xFF) * coverage)
-        + RIM_ALPHA * rim * coverage);
+    double rim = Math.max(0.0, Math.min(1.0, 1.0 - border / RIM_PX));
+    rim = rim * rim * (3.0 - 2.0 * rim);
+    // Fades just at the very corner where a radial edge meets an arc.
+    rim *= Math.min(1.0, edge / RIM_SIDE_FADE);
+    if (rim > 0.0) {
+      // Not scaled by coverage: the inner arc has only a short fade, and tying
+      // the sheen to it dimmed that arc into nothing.
+      alpha += (int) Math.round(RIM_ALPHA * rim);
+      rgb = mixRgb(rgb, this.rimTint, 0.75 * rim);
+    }
+    rgb = shade(rgb, (int) Math.round(
+        (((hash >>> 8) & 0xFF) - 127.5) / 127.5 * NOISE_TINT));
+    alpha = Math.round(alpha * this.hoverAlpha);
     alpha = Math.max(0, Math.min(255, alpha));
     if (alpha <= 2) {
       return 0;
     }
-    int tint = (int) Math.round((((hash >>> 8) & 0xFF) - 127.5) / 127.5 * 14.0);
-    int rgb = shade(mixRgb(HOVER_FILL & 0xFFFFFF, RIM_TINT, 0.5 * rim), tint);
     return (alpha << 24) | (rgb & 0xFFFFFF);
   }
 
