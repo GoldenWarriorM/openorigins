@@ -208,7 +208,9 @@ public final class HotkeyFeatures {
         joinTicks++;
         com.openorigins.client.util.BackgroundMenu.tick();
         com.openorigins.client.util.OpenWorldCache.tick();
-        if (!badgerFetchDone && joinTicks > 100
+        // 40 ticks = 2s after the connection: the first /streaks used to wait
+        // five seconds, which left the task HUD empty for the whole landing.
+        if (!badgerFetchDone && joinTicks > 40
             && com.openorigins.client.util.BadgerCache.wantsJoinFetch()
             && !com.openorigins.client.util.BackgroundMenu.isArmed()
             && com.openorigins.client.util.BackgroundMenu.tryArm("streaks")) {
