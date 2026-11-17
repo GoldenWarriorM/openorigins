@@ -85,12 +85,25 @@ public class ConfigScreen extends Screen {
   }
 
   private void selectTab(int i) {
+    selectTab(i, true);
+  }
+
+  /**
+   * Picks the tab the screen opens on. Silent on purpose: the player already
+   * heard the click that opened this screen, and TabManager plays its own on
+   * every selection, which made the icon sound twice.
+   */
+  private void selectTabSilently(int i) {
+    selectTab(i, false);
+  }
+
+  private void selectTab(int i, boolean withSound) {
     if (i < 0 || i >= this.pages.length) {
       return;
     }
     this.activeTab = i;
     this.highlightTab = this.tabs[i];
-    this.tabManager.setCurrentTab(this.pages[i], true);
+    this.tabManager.setCurrentTab(this.pages[i], withSound);
     if (this.pages[i] instanceof ConfigTabPage page) {
       page.list().snapGroups();
       page.list().scrollToSection(this.tabs[i]);
@@ -159,12 +172,12 @@ public class ConfigScreen extends Screen {
       button.setTabOrderGroup(1);
       this.addRenderableWidget(button);
     });
-    this.selectTab(0);
+    this.selectTabSilently(0);
     try {
       if (System.currentTimeMillis() - savedAtMs < SCROLL_KEEP_MS
           && savedTab >= 0 && savedTab < this.pages.length
           && this.pages[savedTab] instanceof ConfigTabPage page) {
-        this.selectTab(savedTab);
+        this.selectTabSilently(savedTab);
         page.list().setScrollAmount(savedScroll);
       }
     } catch (Throwable ignored) {
