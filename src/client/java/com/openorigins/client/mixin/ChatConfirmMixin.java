@@ -41,11 +41,11 @@ public abstract class ChatConfirmMixin {
       return;
     }
     if (text.contains("speaking too fast")) {
-      // Our fetch burst hit the server's chat limiter: never hand that to the
-      // player as their own mistake, back our sends off instead.
+      // Our fetch burst hit the server's chat limiter. The line stays visible:
+      // the player should see why a command did not go through. Only the
+      // backoff is ours.
       if (com.openorigins.client.util.BackgroundMenu.isServerErrorOurs()) {
         com.openorigins.client.util.BackgroundMenu.noteRateLimited();
-        ci.cancel();
       }
       return;
     }

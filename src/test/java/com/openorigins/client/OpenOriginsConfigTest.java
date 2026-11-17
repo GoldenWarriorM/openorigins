@@ -35,6 +35,7 @@ class OpenOriginsConfigTest {
     }
     config.setHomeCapacity(5);
     config.setExtrapMs(150);
+    config.setCommandGapMs(200);
     config.setUseHandshake(true);
     config.setAllayArmsShiftTexels(12.0f);
     config.setBadgerHudCorner(OpenOriginsConfig.HudCorner.TOP_LEFT);
@@ -57,6 +58,24 @@ class OpenOriginsConfigTest {
     assertFalse(config.isEnabled(OriginFeature.ENTITY_EXTRAPOLATION));
     assertTrue(config.isEnabled(OriginFeature.CUSTOM_ITEM_IDS));
     assertEquals(Set.of(DEFAULT_SERVERS.split(",")), config.getServers());
+  }
+
+  @Test
+  void loadingKeepsValuesItHasNotParsedYet() throws IOException {
+    // 2026-11-15: the servers key sits above the gap in the file, and the old
+    // setServersText() saved the whole file in the middle of the parse: the
+    // disk got defaults for every later key, so a probe value of 0 became 200
+    // on the next start while memory read 0 just once.
+    Files.writeString(file, String.join("\n",
+        "servers=play.originrealms.com",
+        "bgmenu.command.gap.ms=0",
+        ""));
+
+    config.load();
+
+    assertEquals(0, config.getCommandGapMs());
+    assertTrue(Files.readString(file).contains("bgmenu.command.gap.ms=0"),
+        "load() must not write defaults over keys it has not parsed yet");
   }
 
   @Test

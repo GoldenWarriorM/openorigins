@@ -481,6 +481,10 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
             "config.openorigins.capacity_hint", 0, 15,
             () -> OpenOriginsConfig.getInstance().getHomeCapacity(),
             v -> OpenOriginsConfig.getInstance().setHomeCapacity(v), 5));
+        out.add(new StepperRow(this, "config.openorigins.command_gap",
+            "config.openorigins.command_gap_hint", 0, 5000,
+            () -> OpenOriginsConfig.getInstance().getCommandGapMs(),
+            v -> OpenOriginsConfig.getInstance().setCommandGapMs(v), 250, 10));
         out.add(new CycleRow(this, "config.openorigins.radial_fill",
             "config.openorigins.radial_fill_hint",
             () -> Component.translatable("config.openorigins.radial_fill."
@@ -1230,6 +1234,7 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
   public static class StepperRow extends Entry {
     private final FeatureList list;
     private final String labelKey;
+    private final String tooltipKey;
     private final int min;
     private final int max;
     private final java.util.function.IntSupplier get;
@@ -1237,6 +1242,7 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
     private final Button minusButton;
     private final Button plusButton;
     private final int defaultValue;
+    private final int step;
     private final Button resetButton;
     private net.minecraft.client.gui.components.EditBox field;
     /** Uncommitted typed digits, kept across feed rebuilds; per labelKey. */
@@ -1250,20 +1256,29 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
 
     public StepperRow(FeatureList list, String labelKey, String tooltipKey, int min, int max,
         java.util.function.IntSupplier get, java.util.function.IntConsumer set, int defaultValue) {
+      this(list, labelKey, tooltipKey, min, max, get, set, defaultValue, 1);
+    }
+
+    /** Same, with a wider arithmetic step for the - and + buttons. */
+    public StepperRow(FeatureList list, String labelKey, String tooltipKey, int min, int max,
+        java.util.function.IntSupplier get, java.util.function.IntConsumer set, int defaultValue,
+        int step) {
       this.list = list;
       this.labelKey = labelKey;
+      this.tooltipKey = tooltipKey;
       this.min = min;
       this.max = max;
       this.get = get;
       this.set = set;
       this.defaultValue = defaultValue;
+      this.step = Math.max(1, step);
       this.minusButton = Button.builder(Component.literal("-"), b -> {
-        this.set.accept(Math.max(this.min, this.get.getAsInt() - 1));
+        this.set.accept(Math.max(this.min, this.get.getAsInt() - this.step));
         DRAFTS.remove(this.labelKey);
         this.list.refreshEntries();
       }).bounds(0, 0, 20, 20).build();
       this.plusButton = Button.builder(Component.literal("+"), b -> {
-        this.set.accept(Math.min(this.max, this.get.getAsInt() + 1));
+        this.set.accept(Math.min(this.max, this.get.getAsInt() + this.step));
         DRAFTS.remove(this.labelKey);
         this.list.refreshEntries();
       }).bounds(0, 0, 20, 20).build();
@@ -1274,6 +1289,12 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
         this.list.refreshEntries();
       }, true)
           .width(20).sprite(RESET_ICON, 8, 8).withTootip().build();
+      // The hint key used to be accepted and dropped: a numeric row is only
+      // understandable on hover, so every control carries it.
+      Tooltip hint = Tooltip.create(Component.translatable(this.tooltipKey));
+      this.minusButton.setTooltip(hint);
+      this.plusButton.setTooltip(hint);
+      this.resetButton.setTooltip(hint);
       this.refreshEntry();
     }
 
@@ -1309,6 +1330,7 @@ public class FeatureList extends ContainerObjectSelectionList<FeatureList.Entry>
         this.field = new net.minecraft.client.gui.components.EditBox(mc.font, 0, 0, 52, 20,
             Component.translatable(this.labelKey));
         this.field.setTextColor(0x00000000);
+        this.field.setTooltip(Tooltip.create(Component.translatable(this.tooltipKey)));
         this.field.setMaxLength(Math.max(2, Integer.toString(this.max).length()));
         String draft = DRAFTS.get(this.labelKey);
         this.field.setValue(draft != null ? draft : Integer.toString(this.get.getAsInt()));

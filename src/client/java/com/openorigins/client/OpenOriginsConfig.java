@@ -46,6 +46,9 @@ public final class OpenOriginsConfig {
   private boolean titleJoinButton = true;
   private boolean pauseConfigButton = true;
   private RadialFill radialFill = RadialFill.ON;
+  /** Server command limiter window for our background fetches. Raising it is
+   *  always safe; low values feel snappier but can trip the server anti-spam. */
+  private int commandGapMs = 250;
   private final java.util.Set<String> servers =
       new java.util.LinkedHashSet<>(DEFAULT_SERVERS);
 
@@ -189,6 +192,13 @@ public final class OpenOriginsConfig {
         } catch (IllegalArgumentException ignored) {
         }
       }
+      String gap = props.getProperty("bgmenu.command.gap.ms");
+      if (gap != null) {
+        try {
+          commandGapMs = Math.max(0, Math.min(5000, Integer.parseInt(gap.trim())));
+        } catch (NumberFormatException ignored) {
+        }
+      }
     } catch (IOException ignored) {
     }
     if (needSave) {
@@ -218,6 +228,7 @@ public final class OpenOriginsConfig {
     props.setProperty("ui.title.join.button", Boolean.toString(titleJoinButton));
     props.setProperty("ui.pause.config.button", Boolean.toString(pauseConfigButton));
     props.setProperty("menu.radial.fill", radialFill.name());
+    props.setProperty("bgmenu.command.gap.ms", Integer.toString(commandGapMs));
     try {
       Files.createDirectories(configPath().getParent());
       try (OutputStream out = Files.newOutputStream(configPath())) {
@@ -284,6 +295,16 @@ public final class OpenOriginsConfig {
 
   public synchronized void setPauseConfigButton(boolean v) {
     pauseConfigButton = v;
+    save();
+  }
+
+  /** Command limiter window in ms: our fetch never follows another send sooner. */
+  public synchronized int getCommandGapMs() {
+    return commandGapMs;
+  }
+
+  public synchronized void setCommandGapMs(int v) {
+    commandGapMs = Math.max(0, Math.min(5000, v));
     save();
   }
 
@@ -401,6 +422,7 @@ public final class OpenOriginsConfig {
         && titleJoinButton
         && pauseConfigButton
         && radialFill == RadialFill.ON
+        && commandGapMs == 250
         && servers.equals(new java.util.LinkedHashSet<>(DEFAULT_SERVERS));
   }
 
@@ -493,6 +515,7 @@ public final class OpenOriginsConfig {
     titleJoinButton = true;
     pauseConfigButton = true;
     radialFill = RadialFill.ON;
+    commandGapMs = 250;
     save();
   }
 }

@@ -38,8 +38,9 @@ public final class BackgroundMenu {
   /** A fetch is sent exactly once per arm. A retry produces a second answer,
    *  and that duplicate answer is what pops a server menu in the player's
    *  face; a lost answer only leaves the cache stale until the next trigger
-   *  (join, menu open, quest completion) a minute later. */
-  private static final long GIVE_UP_MS = 8000L;
+   *  (join, menu open, quest completion) a minute later. Kept short on
+   *  purpose: while it runs, everything the player queued waits behind it. */
+  private static final long GIVE_UP_MS = 4000L;
   /** Right-clicks on entities (NPCs) that can open a server menu of their own. */
   private static volatile long lastEntityInteractMs;
   private static volatile String lastEntityInteractName = "?";
@@ -72,11 +73,14 @@ public final class BackgroundMenu {
   private static final long USER_QUEUE_TIMEOUT_MS = 15000L;
   /** The server needs a moment to accept our close before the next open. */
   private static final long CLOSE_SETTLE_MS = 250L;
-  /** Back-to-back commands get "you're speaking too fast" from the server. */
-  private static final long MIN_COMMAND_GAP_MS = 2000L;
+  /** Back-to-back commands get "you're speaking too fast" from the server.
+   *  The window lives in the config (bgmenu.command.gap.ms, default 250) so it
+   *  can be tuned without a rebuild. */
+  private static final int SAFE_COMMAND_GAP_MS = 250;
   /** Breathing room after a server window the player saw has closed. */
   private static final long SHOWN_SETTLE_MS = 500L;
-  private static final long RATE_LIMIT_BACKOFF_MS = 5000L;
+  /** Server refused a command as too fast: every send waits this long. */
+  private static final long RATE_LIMIT_BACKOFF_MS = 2000L;
 
   private static long lastCommandSentMs;
   /** Server window on screen right now, -1 when none is open. */
@@ -548,7 +552,16 @@ public final class BackgroundMenu {
     if (now - shownWindowClosedMs < SHOWN_SETTLE_MS) {
       return false;
     }
-    return now - lastCommandSentMs >= MIN_COMMAND_GAP_MS;
+    return now - lastCommandSentMs >= commandGapMs();
+  }
+
+  /** Configured limiter window, with the safe value when config is unavailable. */
+  private static long commandGapMs() {
+    try {
+      return com.openorigins.client.OpenOriginsConfig.getInstance().getCommandGapMs();
+    } catch (Throwable t) {
+      return SAFE_COMMAND_GAP_MS;
+    }
   }
 
   /** True while the server window the player saw is still open. */

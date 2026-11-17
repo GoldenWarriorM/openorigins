@@ -21,6 +21,8 @@
   "config.openorigins.max_slots": "Max home slots",
   "config.openorigins.radial_fill": "Radial fill",
   "config.openorigins.radial_fill_hint": "Hovered sector of the teleport menu. Off removes it together with its clicks.",
+  "config.openorigins.command_gap": "Command gap (ms)",
+  "config.openorigins.command_gap_hint": "Pause before next command is sent. Low values feel faster, but the server anti-spam can answer \"you are speaking too fast\" and the command is lost: 250 is the default.",
   "config.openorigins.radial_fill.on": "On",
   "config.openorigins.radial_fill.hidden": "Hidden",
   "config.openorigins.radial_fill.off": "Off",
