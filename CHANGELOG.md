@@ -1,5 +1,36 @@
 # Changelog
 
+## [2.0.0-beta5] — 2026-11-17
+
+> Beta: features marked *Experimental* are still being worked on. Expect bugs and crashes.
+
+## Added
+
+- **Command gap** in the config: the pause the mod keeps before it sends its
+  next command, 250 ms by default and tuned in 10 ms steps.
+
+## Changed
+
+- **Streak fetch** now starts 2s after joining instead of 5s, so the task HUD is
+  filled on landing.
+- The server's "you are speaking too fast" line is no longer swallowed: it stays
+  in chat so it is clear why a command did not go through, and the mod backs off
+  for 2s instead of 5s.
+- A lost fetch answer is given up after 4s instead of 8s, so the commands
+  queued behind it go out sooner.
+
+## Fixed
+
+- Opening the settings from the pause menu plays the click sound once.
+- A late fetch answer no longer opens a server window over a container the
+  player is using.
+- The config no longer writes defaults over the keys it has not parsed yet.
+
+### Notes
+
+- Requires **Java 25**, Fabric Loader **0.19.5+** and Fabric API.
+- Client-side only: nothing changes in singleplayer or on other servers.
+
 ## [2.0.0-beta4] — 2026-11-11
 
 > Beta: features marked *Experimental* are still being worked on. Expect bugs and crashes.
