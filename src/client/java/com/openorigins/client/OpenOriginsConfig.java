@@ -77,6 +77,10 @@ public final class OpenOriginsConfig {
       return;
     }
     Properties props = new Properties();
+    /** A save during the parse would write defaults for every key that comes
+     *  later in the file (the gap, handshake, buttons...), leaving the disk at
+     *  defaults while memory ends up with the real values. Defer it. */
+    boolean needSave = false;
     try (InputStream in = Files.newInputStream(p)) {
       props.load(in);
       for (OriginFeature f : OriginFeature.values()) {
@@ -87,7 +91,7 @@ public final class OpenOriginsConfig {
       if (clientId != null) {
         discordClientId = clientId.trim();
       } else {
-        save();
+        needSave = true;
       }
       String corner = props.getProperty("badger.hud.corner");
       if (corner != null) {
@@ -164,7 +168,7 @@ public final class OpenOriginsConfig {
       }
       String servers = props.getProperty("servers");
       if (servers != null) {
-        setServersText(servers);
+        applyServersText(servers);
       }
       String bypass = props.getProperty("use.handshake");
       if (bypass != null) {
@@ -186,6 +190,9 @@ public final class OpenOriginsConfig {
         }
       }
     } catch (IOException ignored) {
+    }
+    if (needSave) {
+      save();
     }
   }
 
@@ -233,6 +240,13 @@ public final class OpenOriginsConfig {
   }
 
   public synchronized void setServersText(String text) {
+    applyServersText(text);
+    save();
+    ConnectionUtil.invalidateServerCache();
+  }
+
+  /** Parses the server list without touching the file: called from load(). */
+  private void applyServersText(String text) {
     servers.clear();
     if (text != null) {
       for (String part : text.split(",")) {
@@ -242,8 +256,6 @@ public final class OpenOriginsConfig {
         }
       }
     }
-    save();
-    ConnectionUtil.invalidateServerCache();
   }
 
   public synchronized boolean addServer(String raw) {
