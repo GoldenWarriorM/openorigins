@@ -671,6 +671,14 @@ public final class BackgroundMenu {
       }
     }
     if (!armed || menu != null) {
+      // A late answer to a fetch the player's own container already displaced
+      // goes out first: the orphan adoption below drops the orphan when the
+      // answer's glyph title is still unknown, and then nothing is left to
+      // recognise it by (2026-11-17: /navigator worlds went out as the player
+      // opened a chest, and its window opened in their face).
+      if (suppressLateAnswerOverUserWindow(packet, id, titleStr, now)) {
+        return true;
+      }
       boolean adopted = false;
       if (!armed && menu == null && orphanCommand != null
           && System.currentTimeMillis() < orphanUntilMs
@@ -698,9 +706,6 @@ public final class BackgroundMenu {
           orphanCommand = null;
           orphanUntilMs = 0;
         }
-      }
-      if (!adopted && suppressLateAnswerOverUserWindow(packet, id, titleStr, now)) {
-        return true;
       }
       if (!adopted) {
         if (armed && menu != null) {
@@ -823,6 +828,12 @@ public final class BackgroundMenu {
     com.openorigins.client.util.DebugLog.info(
         "[bgmenu] late answer for '{}' window={} title='{}' over the user's container, closing",
         orphanCommand, id, titleStr);
+    boolean ownsScreen;
+    try {
+      ownsScreen = mc.player.containerMenu != null && mc.player.containerMenu.containerId == id;
+    } catch (Throwable t) {
+      ownsScreen = false;
+    }
     orphanCommand = null;
     orphanUntilMs = 0;
     lastManualContainerMs = now;
@@ -835,16 +846,19 @@ public final class BackgroundMenu {
       com.openorigins.client.util.DebugLog.warn("[bgmenu] late answer close failed: {}",
           t.toString());
     }
-    // The window the player was looking at is gone server-side anyway: send
-    // them back to the world instead of a container whose clicks all fail.
-    mc.execute(() -> {
-      try {
-        if (mc.gui != null) {
-          mc.gui.setScreen(null);
+    // When the answer took over the id of the player's own container, that
+    // container is dead server-side: send them back to the world. A different
+    // id means their chest is still real and its screen must stay.
+    if (ownsScreen) {
+      mc.execute(() -> {
+        try {
+          if (mc.gui != null) {
+            mc.gui.setScreen(null);
+          }
+        } catch (Throwable ignored) {
         }
-      } catch (Throwable ignored) {
-      }
-    });
+      });
+    }
     return true;
   }
 
