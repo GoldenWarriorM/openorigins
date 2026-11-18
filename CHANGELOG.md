@@ -1,5 +1,15 @@
 # Changelog
 
+## [2.0.0-beta6] — 2026-11-18
+
+> Beta: features marked *Experimental* are still being worked on. Expect bugs and crashes.
+
+## Fixed
+
+- **Enhanced back cosmetics** render again: the server's item serializer was
+  updated to a newer build and numbers components differently, so the mod maps
+  them through that numbering instead of the old 1.21 table.
+
 ## [2.0.0-beta5] — 2026-11-17
 
 > Beta: features marked *Experimental* are still being worked on. Expect bugs and crashes.
