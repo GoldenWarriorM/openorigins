@@ -132,7 +132,7 @@ public final class OEPackets {
       stack = LegacyTranslator.decodeItem(regBuf);
     } catch (Throwable t) {
       StringBuilder hex = new StringBuilder();
-      for (int i = 0; i < Math.min(raw.length, 96); i++) {
+      for (int i = 0; i < raw.length; i++) {
         hex.append(String.format("%02x", raw[i]));
       }
       com.openorigins.client.util.DebugLog.warn("[OpenOrigins] backitem decode failed: {}: {} ({} bytes, head={})",
