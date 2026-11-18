@@ -323,7 +323,7 @@ public final class VersionCompat {
     }
   }
 
-  /** Y-180 rotation that works on both versions (rotate vs mulPose). */
+  /** Rotation that works on both versions (rotate on 26.3, mulPose on 26.2). */
   public static void rotate(com.mojang.blaze3d.vertex.PoseStack poseStack,
       org.joml.Quaternionf rotation) {
     try {
@@ -332,19 +332,27 @@ public final class VersionCompat {
         synchronized (VersionCompat.class) {
           m = rotateMethod;
           if (m == null) {
-            if (IS_SDL) {
-              m = com.mojang.blaze3d.vertex.PoseStack.class
-                  .getMethod("rotate", org.joml.Quaternionfc.class);
-            } else {
-              m = com.mojang.blaze3d.vertex.PoseStack.class
-                  .getMethod("mulPose", org.joml.Quaternionf.class);
-            }
+            m = findRotate();
             rotateMethod = m;
           }
         }
       }
-      m.invoke(poseStack, rotation);
+      if (m != null) {
+        m.invoke(poseStack, rotation);
+      }
     } catch (Throwable ignored) {
     }
+  }
+
+  /** 26.3 renamed mulPose to rotate; both take a Quaternionfc. */
+  private static Method findRotate() {
+    for (String name : new String[] {"rotate", "mulPose"}) {
+      try {
+        return com.mojang.blaze3d.vertex.PoseStack.class
+            .getMethod(name, org.joml.Quaternionfc.class);
+      } catch (NoSuchMethodException ignored) {
+      }
+    }
+    return null;
   }
 }
