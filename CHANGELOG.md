@@ -1,5 +1,16 @@
 # Changelog
 
+## [2.0.0-beta7] — 2026-11-19
+
+> Beta: features marked *Experimental* are still being worked on. Expect bugs and crashes.
+
+## Fixed
+
+- **Enhanced back cosmetics** render again on 26.3: the server no longer sends
+  item components numbered by a fixed 26.2 table, it numbers them the way the
+  connected client does, so the mod decodes with that numbering. Packets
+  numbered like 26.2 still decode, so 26.2 clients are unaffected.
+
 ## [2.0.0-beta6] — 2026-11-18
 
 > Beta: features marked *Experimental* are still being worked on. Expect bugs and crashes.
