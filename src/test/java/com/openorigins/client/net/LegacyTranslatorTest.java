@@ -4,47 +4,32 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.netty.buffer.Unpooled;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.ComponentSerialization;
 import net.minecraft.server.Bootstrap;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.component.CustomModelData;
 import net.minecraft.world.item.component.ItemLore;
+import net.minecraft.world.item.component.TooltipDisplay;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-/** Replays a back item packet captured from the server: lore, tooltip display,
- *  item name, custom model data, firework explosion and the polymer stack. */
+/**
+ * The server sends item bytes with 1.21 item ids and 26.2 component ids, and it
+ * hides the real item inside custom data. These tests pin the decoder down on a
+ * packet captured from the server plus a synthesized packet without that stack.
+ */
 public class LegacyTranslatorTest {
-  private static final String CAPTURED =
-      "01dc0906000b020a080005636f6c6f7200057768697465080004746578740003ea919e0100"
-          + "066974616c696300000a080005636f6c6f72000723464643373435080004746578740015"
-          + "416368696576656d656e74204578636c75736976650100066974616c6963000012000244"
-          + "0d090a09000565787472610a00000002080005636f6c6f72000577686974650800047465"
-          + "78740004ea91b42000080005636f6c6f7200072338423543463608000474657874001841"
-          + "726d6f726564204361706520284772617669746974652900080004746578740000001101"
-          + "467e6c0000000044000100cb5148000000000a0a000e24706f6c796d65723a737461636b"
-          + "0a000a636f6d706f6e656e74730a001b6d696e6563726166743a637573746f6d5f6d6f64"
-          + "656c5f64617461090006666c6f6174730500000001467e6c00000800136d696e65637261"
-          + "66743a6974656d5f6e616d65001841726d6f726564204361706520284772617669746974"
-          + "652909000e6d696e6563726166743a6c6f72650a00000002080005636f6c6f72000577"
-          + "68697465080004746578740003ea919e0100066974616c69630000080005636f6c6f72"
-          + "000723464643373435080004746578740015416368696576656d656e74204578636c7573"
-          + "6976650100066974616c696300000a001c6d696e6563726166743a66697265776f726b5f"
-          + "6578706c6f73696f6e0800057368617065000a736d616c6c5f62616c6c090006636f6c"
-          + "6f7273030000000100cb5148000a00196d696e6563726166743a746f6f6c7469705f6469"
-          + "73706c617909001168696464656e5f636f6d706f6e656e74730800000002001c6d696e65"
-          + "63726166743a66697265776f726b5f6578706c6f73696f6e00166d696e656372616674"
-          + "3a656e6368616e746d656e7473000a00156d696e6563726166743a637573746f6d5f6461"
-          + "74610a00125075626c696342756b6b697456616c756573010008436f736d657469630103"
-          + "000d436f736d65746963436f6c6f7200cb514808000c436f736d657469634e616d650016"
-          + "61726d6f7265645f636170655f6772617669746974650800067261726974790004657069"
-          + "63000000080002696400176d696e6563726166743a66697265776f726b5f737461720000";
-
   private static RegistryAccess access;
 
   @BeforeAll
@@ -58,8 +43,8 @@ public class LegacyTranslatorTest {
   }
 
   @Test
-  void decodesCapturedBackItem() {
-    RegistryFriendlyByteBuf buf = new RegistryFriendlyByteBuf(Unpooled.wrappedBuffer(unhex(CAPTURED)), access);
+  void decodesCapturedPacketWithPolymerStack() throws Exception {
+    RegistryFriendlyByteBuf buf = buffer(resource("backitem-polymer.hex"));
 
     ItemStack stack = LegacyTranslator.decodeItem(buf);
 
@@ -67,10 +52,48 @@ public class LegacyTranslatorTest {
     assertEquals("minecraft:firework_star", stack.getItem().toString());
     assertEquals(2, stack.getOrDefault(DataComponents.LORE, ItemLore.EMPTY).lines().size());
     assertEquals(List.of(16283.0F), stack.get(DataComponents.CUSTOM_MODEL_DATA).floats());
-    assertFalse(stack.getOrDefault(DataComponents.TOOLTIP_DISPLAY,
-        net.minecraft.world.item.component.TooltipDisplay.DEFAULT).hideTooltip());
+    assertFalse(stack.getOrDefault(DataComponents.TOOLTIP_DISPLAY, TooltipDisplay.DEFAULT).hideTooltip());
     assertNotNull(stack.get(DataComponents.FIREWORK_EXPLOSION));
     assertNotNull(stack.get(DataComponents.CUSTOM_DATA));
+    assertEquals(0, buf.readableBytes());
+  }
+
+  @Test
+  void decodesThePacketNumberedLike263() throws Exception {
+    // Same cape from the same server after it moved to 26.3 numbering:
+    // firework_explosion is 70 there, which the 26.2 table reads as profile.
+    RegistryFriendlyByteBuf buf = buffer(resource("backitem-263.hex"));
+
+    ItemStack stack = LegacyTranslator.decodeItem(buf);
+
+    assertEquals("minecraft:firework_star", stack.getItem().toString());
+    assertEquals(2, stack.getOrDefault(DataComponents.LORE, ItemLore.EMPTY).lines().size());
+    assertNotNull(stack.get(DataComponents.CUSTOM_MODEL_DATA));
+    assertNotNull(stack.get(DataComponents.FIREWORK_EXPLOSION));
+    TooltipDisplay display = stack.get(DataComponents.TOOLTIP_DISPLAY);
+    assertNotNull(display);
+    assertTrue(display.hiddenComponents().contains(DataComponents.FIREWORK_EXPLOSION));
+    assertTrue(display.hiddenComponents().contains(DataComponents.ENCHANTMENTS));
+  }
+
+  @Test
+  void keepsTheSentItemWhenThereIsNoPolymerStack() {
+    RegistryFriendlyByteBuf buf = new RegistryFriendlyByteBuf(Unpooled.buffer(), access);
+    buf.writeVarInt(1);
+    buf.writeVarInt(1244);   // 1.21 enchanted_book
+    buf.writeVarInt(2);      // added components
+    buf.writeVarInt(0);      // removed components
+    buf.writeVarInt(6);      // minecraft:custom_name
+    ComponentSerialization.STREAM_CODEC.encode(buf, Component.literal("Armored Cape"));
+    buf.writeVarInt(17);     // minecraft:custom_model_data
+    DataComponents.CUSTOM_MODEL_DATA.streamCodec().encode(buf,
+        new CustomModelData(List.of(3522.0F), List.of(), List.of(), List.of()));
+
+    ItemStack stack = LegacyTranslator.decodeItem(buf);
+
+    assertEquals("minecraft:enchanted_book", stack.getItem().toString());
+    assertEquals("Armored Cape", stack.getHoverName().getString());
+    assertEquals(List.of(3522.0F), stack.get(DataComponents.CUSTOM_MODEL_DATA).floats());
     assertEquals(0, buf.readableBytes());
   }
 
@@ -80,6 +103,20 @@ public class LegacyTranslatorTest {
     assertSame(DataComponents.FIREWORK_EXPLOSION, LegacyTranslator.componentType(68));
     assertSame(DataComponents.PROFILE, LegacyTranslator.componentType(70));
     assertSame(DataComponents.CUSTOM_DATA, LegacyTranslator.componentType(0));
+  }
+
+  private static RegistryFriendlyByteBuf buffer(String hex) {
+    return new RegistryFriendlyByteBuf(Unpooled.wrappedBuffer(unhex(hex)), access);
+  }
+
+  private static String resource(String name) throws Exception {
+    try (InputStream in = LegacyTranslatorTest.class
+        .getResourceAsStream("/openorigins/" + name)) {
+      if (in == null) {
+        throw new IllegalStateException("missing test resource " + name);
+      }
+      return new String(in.readAllBytes(), StandardCharsets.US_ASCII).trim();
+    }
   }
 
   private static byte[] unhex(String s) {
